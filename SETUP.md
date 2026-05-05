@@ -1,0 +1,206 @@
+# Quorum — Bootstrap Setup
+
+You are reading this because the `quorum/` folder has just been dropped into a codebase.
+Follow every step below in order. Do not skip steps. Do not ask for confirmation between steps — complete the full sequence and then report what was done.
+
+---
+
+## Step 1 — Read before touching anything
+
+Read these files in full before proceeding:
+
+- `quorum/modules/README.md` — module overview and quick-start
+- `quorum/modules/AGENTS.md` — file ownership and invariants
+- `quorum/.github/copilot-instructions.md` — workflow rules for AI agents
+
+These are your operating instructions for everything that follows.
+
+---
+
+## Step 2 — Audit the host project
+
+Check what already exists at the project root. Record what you find — you will need this in Step 4.
+
+```
+Does .github/copilot-instructions.md exist?        yes / no
+Does AGENTS.md exist at the project root?           yes / no
+Does CLAUDE.md exist at the project root?           yes / no
+Does package.json exist?                            yes / no
+Does .gitignore exist?                              yes / no
+Does .chronicle/ exist?                             yes / no
+```
+
+---
+
+## Step 3 — Install dependencies
+
+Open `package.json` at the project root. Add the following to `dependencies` if they are not already present:
+
+```json
+"zod": "^3.23.0",
+"vectordb": "^0.4.0",
+"@xenova/transformers": "^2.17.0"
+```
+
+Then run:
+
+```bash
+npm install
+```
+
+If the project uses `yarn` or `pnpm`, use the appropriate installer instead.
+
+> `zod` is required for all structured LLM output validation.
+> `vectordb` is the LanceDB adapter (swappable — see `quorum/modules/oracle/adapters/`).
+> `@xenova/transformers` is the local ONNX embedder (swappable — see `quorum/modules/oracle/adapters/xenova-embedder.ts`).
+
+---
+
+## Step 4 — Merge AI instruction files
+
+### 4a. `.github/copilot-instructions.md`
+
+**If it does not exist:**
+Copy `quorum/.github/copilot-instructions.md` to `.github/copilot-instructions.md`.
+
+**If it already exists:**
+Append the entire contents of `quorum/.github/copilot-instructions.md` to the existing file, preceded by this separator:
+
+```markdown
+---
+
+<!-- Quorum: appended by setup -->
+```
+
+Do not replace or overwrite existing content.
+
+### 4b. `AGENTS.md`
+
+**If it does not exist:**
+Create `AGENTS.md` at the project root with this content:
+
+```markdown
+# Agent Instructions
+
+See [quorum/modules/AGENTS.md](quorum/modules/AGENTS.md) for Quorum module internals.
+See [.github/copilot-instructions.md](.github/copilot-instructions.md) for workflow rules.
+```
+
+**If it already exists:**
+Append to it:
+
+```markdown
+
+## Quorum modules
+
+See [quorum/modules/AGENTS.md](quorum/modules/AGENTS.md) for Oracle, Jury, and Council internals.
+```
+
+### 4c. `CLAUDE.md`
+
+**If it does not exist:**
+Create `CLAUDE.md` at the project root with this content:
+
+```markdown
+# Claude Instructions
+
+See [quorum/modules/CLAUDE.md](quorum/modules/CLAUDE.md) for Quorum module internals.
+See [.github/copilot-instructions.md](.github/copilot-instructions.md) for workflow rules.
+```
+
+**If it already exists:**
+Append to it:
+
+```markdown
+
+## Quorum modules
+
+See [quorum/modules/CLAUDE.md](quorum/modules/CLAUDE.md) for Oracle, Jury, and Council internals.
+```
+
+---
+
+## Step 5 — Update .gitignore
+
+**If `.gitignore` does not exist**, create it.
+
+Add the following block if it is not already present:
+
+```gitignore
+# Quorum — Chronicle
+# entries/ is a LanceDB binary vector store — do not commit
+.chronicle/entries/
+
+# proposals/ contains pending human-approval writes — commit these
+# (remove the line above if you want to ignore the whole store)
+```
+
+---
+
+## Step 6 — Wire setup() into the project
+
+Find the application entry point (e.g. `index.ts`, `server.ts`, `app.ts`, or equivalent).
+
+Add the following import and call at startup, **before** any agent or workflow code runs:
+
+```typescript
+import { setup } from "./quorum/modules/setup"
+
+const { oracle, evaluate, deliberate } = await setup({
+  llm: yourLLMProvider, // replace with your project's LLM provider function
+})
+```
+
+`setup()` creates `.chronicle/` directories, warms the embedder, and wires all module dependencies.
+It must be called once before any `oracle.query()`, `evaluate()`, or `deliberate()` call.
+
+If no entry point exists yet, note that `setup()` must be called before first use — do not inline it.
+
+---
+
+## Step 7 — Verify Chronicle is created
+
+Run the project (or call `setup()` in isolation). Confirm that `.chronicle/proposals/` exists after startup.
+
+```bash
+ls .chronicle/
+# expected: proposals/
+# entries/ will appear after the first oracle.commit()
+```
+
+If the directory is not created, re-check that `setup()` is being awaited correctly.
+
+---
+
+## Step 8 — Run module tests
+
+Confirm the modules are working in this environment:
+
+```bash
+npx vitest run quorum/modules/
+```
+
+All tests should pass. If they fail due to missing dependencies, re-run Step 3.
+
+---
+
+## Step 9 — Report what was done
+
+Once all steps are complete, report:
+
+1. Which files were created vs appended
+2. Which dependencies were added (if any were already present, note that)
+3. Whether tests passed
+4. The path to `setup()` in the entry point, and the LLM provider that was wired (or a note if it was left as a placeholder)
+5. Any step that could not be completed and why
+
+---
+
+## After setup
+
+You are now operating under Quorum. The rules in `quorum/modules/AGENTS.md` and `.github/copilot-instructions.md` apply to all subsequent work.
+
+Key reminders:
+- **Query Oracle before proposing anything.** `oracle.query("what you're about to do")` first.
+- **Never call `oracle.commit()` autonomously.** Only `oracle.propose()`. A human commits.
+- **Chronicle entries are ground truth.** Respect `refuted` entries — do not retry what has already failed.
