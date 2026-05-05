@@ -1,0 +1,27 @@
+{
+  "name": "quorum",
+  "version": "0.1.0",
+  "description": "Portable reasoning layer for agentic codebases — Oracle, Jury, Council",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run modules/",
+    "test:watch": "vitest modules/",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "zod": "^3.23.0"
+  },
+  "optionalDependencies": {
+    "@xenova/transformers": "^2.17.0",
+    "vectordb": "^0.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.5.0",
+    "vitest": "^2.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

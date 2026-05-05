@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Chronicle — vector store is binary, do not commit
+# proposals/ is intentionally NOT ignored — those are pending human-approval writes
+.chronicle/entries/
+.chronicle/query-log.jsonl
+
+# Local ONNX model cache (downloaded on first use by @xenova/transformers)
+.cache/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/settings.json
+.idea/
+
+# Environment
+.env
+.env.local
