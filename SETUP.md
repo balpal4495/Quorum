@@ -1,7 +1,27 @@
 # Quorum — Bootstrap Setup
 
 You are reading this because the `quorum/` folder has just been dropped into a codebase.
-Follow every step below in order. Do not skip steps. Do not ask for confirmation between steps — complete the full sequence and then report what was done.
+
+---
+
+## Automated setup (preferred)
+
+If you have Node.js 18+ available, run this from the project root:
+
+```bash
+npx github:balpal4495/Quorum init
+```
+
+This handles all steps below automatically — copying modules, merging instruction files, updating `package.json`, `.gitignore`, and creating the Chronicle directory.
+
+After it completes, run `npm install` and wire `setup()` into your entry point (see Step 6 below).
+
+---
+
+## Manual setup (AI-assisted fallback)
+
+If the automated script is not available or fails, follow every step below in order.
+Do not skip steps. Do not ask for confirmation between steps — complete the full sequence and then report what was done.
 
 ---
 

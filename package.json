@@ -4,7 +4,11 @@
   "description": "Portable reasoning layer for agentic codebases — Oracle, Jury, Council",
   "private": true,
   "type": "module",
+  "bin": {
+    "quorum": "./bin/init.js"
+  },
   "scripts": {
+    "init": "node bin/init.js",
     "test": "vitest run modules/",
     "test:watch": "vitest modules/",
     "typecheck": "tsc --noEmit"
