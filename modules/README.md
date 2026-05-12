@@ -34,6 +34,36 @@ Chronicle is the data that underpins the system. It is not a module — it lives
 
 Every entry goes through `oracle.propose()` → human approval → `oracle.commit()`. There are no auto-commits.
 
+### Chronicle entry schema (v2)
+
+```typescript
+type ChronicleEntry = {
+  // Always present (v1 + v2)
+  id: string
+  key_insight: string        // v1: primary text; v2: copy of decision for compat
+  affected_areas: string[]   // file paths — used by Sentinel for coverage matching
+  status: "validated" | "refuted" | "open"
+  confidence: number         // 0–1
+  source_module: string
+  evidence_cited: string[]
+  timestamp: string
+
+  // v2 fields (optional — absent on legacy entries)
+  schema_version?: 2
+  topic?: string                    // short label: "auth/session strategy"
+  decision?: string                 // the decision — primary text in v2
+  scope?: string[]                  // domain tags: ["auth", "sessions"] — additive
+  alternatives_considered?: string[]
+  rejected_reason?: string[]
+  supersedes?: string | null        // ID of the entry this replaces
+  superseded_by?: string | null     // ID of the entry that replaced this
+}
+```
+
+Use `entryText(entry)` from `shared/types` whenever you need to read the primary text — it returns `entry.decision ?? entry.key_insight` and works across both schema versions.
+
+New entries created by Council automatically include `decision`, `topic`, `alternatives_considered`, and `rejected_reason` from the deliberation output.
+
 ---
 
 ## Dependencies

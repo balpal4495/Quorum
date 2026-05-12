@@ -65,6 +65,12 @@ When a decision is made, your AI stages a Chronicle entry using `oracle.propose(
 
 Commit `.chronicle/committed/` to git. Future sessions — and your teammates' sessions — start with that context.
 
+### Every merged PR creates a Chronicle proposal automatically
+
+A GitHub Actions workflow fires when any PR merges to main. It creates a Chronicle proposal capturing the decision, which files changed, and any explicitly deferred items from the PR description. The proposal sits in `proposals/` until you commit it — nothing is auto-indexed.
+
+This means the gap between "PR merged" and "Chronicle knows about it" is now zero.
+
 ---
 
 ## Real examples
@@ -119,7 +125,17 @@ verdict: "On a table this size, a naive ALTER TABLE takes an exclusive lock for 
           Specify a shadow column pattern or pg_repack. No rollback plan documented."
 ```
 
-The agent revises the plan. You approve the Chronicle entry once it's solid. The reasoning is on record for the next time someone touches that table.
+The agent revises the plan. You approve the Chronicle entry once it's solid. The reasoning — including the alternatives considered and why they were rejected — is on record for the next time someone touches that table:
+
+```json
+{
+  "decision": "Use shadow column pattern for NOT NULL migration on users table",
+  "alternatives_considered": ["naive ALTER TABLE", "pg_repack"],
+  "rejected_reason": ["ALTER TABLE takes exclusive lock for minutes on 50M rows"],
+  "scope": ["database", "migrations"],
+  "affected_areas": ["db/migrations/", "src/models/user.ts"]
+}
+```
 
 ---
 
