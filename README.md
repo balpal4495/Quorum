@@ -24,6 +24,57 @@ oracle.query()  →  jury.evaluate()  →  council.deliberate()  →  human gate
 
 ---
 
+## How it works
+
+**Flow — system components and connections:**
+
+```mermaid
+flowchart TD
+    Agent[AI Agent] -->|"1 — query"| Oracle
+    Oracle <-->|"vector search + read"| Chronicle[(Chronicle\n.chronicle/)]
+    Oracle -->|"evidence"| Jury
+    Jury -->|"evaluation"| Council
+    Council -->|"satisfied: false — revise"| Agent
+    Council -->|"satisfied: true"| Gate[Human Gate]
+    Gate -->|"reject — revise"| Agent
+    Gate -->|"approve → commit"| Oracle
+    Oracle -->|"SUMMARY.md\ntemporal context"| Agent
+```
+
+**Sequence — one full decision cycle:**
+
+```mermaid
+sequenceDiagram
+    participant Agent as AI Agent
+    participant Oracle
+    participant Jury
+    participant Council
+    participant Human
+    participant Chronicle
+
+    Agent->>+Oracle: query(text)
+    Oracle->>+Chronicle: vector search
+    Chronicle-->>-Oracle: ranked entries
+    Oracle-->>-Agent: OracleResult[]
+
+    Agent->>+Jury: evaluate(design, evidence)
+    Jury-->>-Agent: score, flags, passed
+
+    Agent->>+Council: deliberate(design, evaluations)
+    Council-->>-Agent: satisfied, verdict, proposal
+
+    alt satisfied: false
+        Agent->>Agent: revise design
+    else satisfied: true
+        Agent->>Human: surface verdict + proposal
+        Human->>+Oracle: commit(proposalId)
+        Oracle->>Chronicle: upsert + write committed entry
+        Oracle-->>-Human: ChronicleEntry
+    end
+```
+
+---
+
 ## How to use it
 
 1. Copy the `quorum/` folder into your project root
