@@ -43,19 +43,27 @@ if (changedFiles.some(f => f === "README.md"))                scope.push("docs")
 if (changedFiles.some(f => f === "package.json"))             scope.push("npm")
 if (scope.length === 0) scope.push("general")
 
-// Extract deferred items from PR body (lines containing "deferred" or "defer")
+// Extract deferred items — only bullet/list lines that start with a marker and contain "defer"
 const deferredLines = PR_BODY
   .split("\n")
-  .filter(l => /defer/i.test(l))
-  .map(l => l.replace(/^[-*#\s]+/, "").trim())
+  .filter(l => /^[-*]\s.+defer/i.test(l))
+  .map(l => l.replace(/^[-*]\s+/, "").trim())
   .filter(Boolean)
+
+// Only include source files in affected_areas — skip proposals/, node_modules, lock files
+const sourceFiles = changedFiles.filter(f =>
+  !f.startsWith(".chronicle/") &&
+  !f.startsWith("node_modules/") &&
+  !f.endsWith(".lock") &&
+  f !== "package-lock.json"
+)
 
 const proposal = {
   schema_version: 2,
   topic: `PR #${PR_NUMBER}`,
   decision: PR_TITLE.slice(0, 200),
   key_insight: PR_TITLE.slice(0, 200),
-  affected_areas: changedFiles.slice(0, 10),
+  affected_areas: sourceFiles.slice(0, 10),
   scope,
   alternatives_considered: [],
   rejected_reason: deferredLines.slice(0, 3),
