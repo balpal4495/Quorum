@@ -132,4 +132,50 @@ describe("oracle/query", () => {
     }
     await expect(query("test", { scoreThreshold: 0 }, deps)).resolves.toBeDefined()
   })
+
+  // ── tier assignment ────────────────────────────────────────────────────────
+
+  it("single result always gets primary tier", async () => {
+    const deps = makeDeps({
+      search: vi.fn().mockResolvedValue([{ entry: makeEntry("a"), score: 0.9 }]),
+    })
+    const results = await query("test", { scoreThreshold: 0 }, deps)
+    expect(results[0].tier).toBe("primary")
+  })
+
+  it("top result gets primary tier when multiple results returned", async () => {
+    const entries = Array.from({ length: 5 }, (_, i) => makeEntry(`id-${i}`))
+    const deps = makeDeps({
+      search: vi.fn().mockResolvedValue(
+        entries.map((entry, i) => ({ entry, score: 1 - i * 0.05 })),
+      ),
+    })
+    const results = await query("test", { scoreThreshold: 0 }, deps)
+    expect(results[0].tier).toBe("primary")
+  })
+
+  it("assigns all three tiers across a larger result set", async () => {
+    const entries = Array.from({ length: 10 }, (_, i) => makeEntry(`id-${i}`))
+    const deps = makeDeps({
+      search: vi.fn().mockResolvedValue(
+        entries.map((entry, i) => ({ entry, score: 1 - i * 0.05 })),
+      ),
+    })
+    const results = await query("test", { scoreThreshold: 0 }, deps)
+    const tiers = results.map(r => r.tier)
+    expect(tiers).toContain("primary")
+    expect(tiers).toContain("supporting")
+    expect(tiers).toContain("background")
+  })
+
+  it("all results have a tier field", async () => {
+    const entries = [makeEntry("a"), makeEntry("b"), makeEntry("c")]
+    const deps = makeDeps({
+      search: vi.fn().mockResolvedValue(
+        entries.map((entry, i) => ({ entry, score: 1 - i * 0.1 })),
+      ),
+    })
+    const results = await query("test", { scoreThreshold: 0 }, deps)
+    expect(results.every(r => ["primary", "supporting", "background"].includes(r.tier))).toBe(true)
+  })
 })

@@ -39,10 +39,29 @@ export type ChronicleEntry = {
 }
 
 /**
- * A Chronicle entry enriched with its retrieval score.
+ * A Chronicle entry enriched with its retrieval score and relevance tier.
  * Returned by Oracle.query().
+ *
+ * Tiers indicate relevance within the result set:
+ *   primary    — top ~30%: directly answers the query, should be foregrounded
+ *   supporting — middle ~40%: contextually relevant, useful but not central
+ *   background — bottom ~30%: loosely related, de-emphasise but do not hide
  */
-export type OracleResult = ChronicleEntry & { score: number }
+export type OracleResult = ChronicleEntry & {
+  score: number
+  tier: "primary" | "supporting" | "background"
+}
+
+/**
+ * Returned by oracle.propose() when a high-similarity entry already exists.
+ * The human gate should surface this before approving the commit.
+ */
+export type SimilarityWarning = {
+  entry: ChronicleEntry
+  score: number
+  /** potential-duplicate: near-identical insight. potential-supersession: likely a correction. */
+  warning: "potential-duplicate" | "potential-supersession"
+}
 
 export type QueryOptions = {
   statusFilter?: Array<"validated" | "refuted" | "open">
@@ -64,7 +83,7 @@ export interface OracleClient {
   query: (text: string, options?: QueryOptions) => Promise<OracleResult[]>
   propose: (
     entry: Omit<ChronicleEntry, "id" | "timestamp">,
-  ) => Promise<{ proposalId: string }>
+  ) => Promise<{ proposalId: string; similarity?: SimilarityWarning }>
   /** Called after human approval. Indexes the proposal into Chronicle. */
   commit: (proposalId: string) => Promise<ChronicleEntry>
 }

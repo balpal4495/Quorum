@@ -1,0 +1,11 @@
+{
+  "id": "716ab32b-9f8f-4228-9c00-305758d543c7",
+  "key_insight": "Synthesis layer in oracle/query.ts deferred until Chronicle has real entries for calibration",
+  "affected_areas": ["oracle/query.ts", "chronicle/read-path"],
+  "status": "validated",
+  "confidence": 0.82,
+  "source_module": "council",
+  "evidence_cited": ["b0ae359a-953a-49a6-b7d0-6ae5b2eaf3f6", "30bdc1c1-d776-4888-9244-02c8a5990436"],
+  "outcome": "A compression layer built before there is data to compress against optimises for sounding good rather than being accurate. Implement after score distributions are known.",
+  "timestamp": "2026-05-12T00:00:00.000Z"
+}
