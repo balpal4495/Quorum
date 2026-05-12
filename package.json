@@ -1,12 +1,12 @@
 {
-  "name": "quorum",
+  "name": "@balpal4495/quorum",
   "version": "0.1.0",
   "description": "Portable reasoning layer for agentic codebases — Oracle, Jury, Council, Sentinel",
   "type": "module",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/balpal4495/Quorum.git"
+    "url": "git+https://github.com/balpal4495/Quorum.git"
   },
   "homepage": "https://github.com/balpal4495/Quorum#readme",
   "keywords": [
@@ -19,15 +19,8 @@
     "oracle",
     "llm"
   ],
-  "files": [
-    "bin/",
-    "modules/",
-    "SETUP.md",
-    ".github/copilot-instructions.md",
-    "GEMINI.md"
-  ],
   "bin": {
-    "quorum": "./bin/init.js"
+    "quorum": "bin/init.js"
   },
   "scripts": {
     "init": "node bin/init.js",

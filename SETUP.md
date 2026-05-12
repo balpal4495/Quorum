@@ -9,7 +9,7 @@ You are reading this because Quorum is being set up in a codebase.
 If you have Node.js 18+ available, run this from the project root:
 
 ```bash
-npx quorum@latest init
+npx @balpal4495/quorum@latest init
 ```
 
 This handles all steps below automatically — copying modules, merging instruction files, updating `package.json`, `.gitignore`, and creating the Chronicle directory.

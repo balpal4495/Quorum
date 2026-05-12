@@ -340,7 +340,7 @@ async function cli() {
   if (!command || command === "help" || command === "--help" || command === "-h") {
     console.log(`\n${c.bold("quorum")} — portable reasoning layer for agentic codebases\n`)
     console.log("Usage:")
-    console.log(`  ${c.blue("npx quorum init")}        Scaffold Quorum into a project (or meld into an existing one)`)
+    console.log(`  ${c.blue("npx @balpal4495/quorum init")}        Scaffold Quorum into a project (or meld into an existing one)`)
     console.log(`  ${c.blue("npx quorum --version")}   Print version\n`)
     return
   }

@@ -81,7 +81,7 @@ sequenceDiagram
 Run this from any Node.js project root:
 
 ```bash
-npx quorum@latest init
+npx @balpal4495/quorum@latest init
 ```
 
 Quorum scaffolds itself — copying modules into `quorum/`, merging AI instruction files (CLAUDE.md, AGENTS.md), and initialising Chronicle. Then run `npm install`.
