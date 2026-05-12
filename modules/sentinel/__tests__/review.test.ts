@@ -25,13 +25,22 @@ async function writeEntry(chronicleDir: string, entry: ChronicleEntry): Promise<
   await fs.writeFile(path.join(dir, `${entry.id}.json`), JSON.stringify(entry), "utf8")
 }
 
+async function touchFile(codebasePath: string, relPath: string): Promise<void> {
+  const full = path.join(codebasePath, relPath)
+  await fs.mkdir(path.dirname(full), { recursive: true })
+  await fs.writeFile(full, "// stub\n", "utf8")
+}
+
 describe("sentinel/reviewContext", () => {
   let tmpDir: string
   let chronicleDir: string
+  let codebasePath: string
 
   beforeEach(async () => {
     tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "sentinel-review-"))
     chronicleDir = path.join(tmpDir, ".chronicle")
+    codebasePath = path.join(tmpDir, "codebase")
+    await fs.mkdir(codebasePath, { recursive: true })
   })
 
   afterEach(async () => {
@@ -39,140 +48,160 @@ describe("sentinel/reviewContext", () => {
   })
 
   it("returns a placeholder comment when no files are changed", async () => {
-    const result = await reviewContext([], chronicleDir)
+    const result = await reviewContext([], chronicleDir, codebasePath)
     expect(result).toContain("sentinel")
     expect(result).toContain("no changed files")
   })
 
   it("returns a placeholder comment when changed files are all whitespace", async () => {
-    const result = await reviewContext(["  ", ""], chronicleDir)
+    const result = await reviewContext(["  ", ""], chronicleDir, codebasePath)
     expect(result).toContain("no changed files")
   })
 
-  it("includes the sentinel header", async () => {
-    const result = await reviewContext(["modules/oracle/propose.ts"], chronicleDir)
-    expect(result).toContain("Sentinel — PR Knowledge Map")
+  it("includes the sentinel header with iso week", async () => {
+    const result = await reviewContext(["modules/oracle/propose.ts"], chronicleDir, codebasePath)
+    expect(result).toMatch(/Sentinel — Chronicle Coverage Map — \d{4}-W\d{2}/)
   })
 
-  it("includes a mermaid diagram", async () => {
-    const result = await reviewContext(["modules/oracle/propose.ts"], chronicleDir)
+  it("includes a mermaid heatmap diagram", async () => {
+    const result = await reviewContext(["modules/oracle/propose.ts"], chronicleDir, codebasePath)
     expect(result).toContain("```mermaid")
-    expect(result).toContain("flowchart LR")
-    expect(result).toContain("This PR")
+    expect(result).toContain("flowchart TD")
+    expect(result).toContain("Chronicle[(Chronicle)]")
   })
 
-  it("shows uncovered module in the diagram when no Chronicle entry exists", async () => {
-    const result = await reviewContext(["modules/oracle/propose.ts"], chronicleDir)
-    expect(result).toContain("oracle")
-    expect(result).toContain("no entries")
+  it("includes classDef color declarations in the diagram", async () => {
+    const result = await reviewContext(["modules/oracle/propose.ts"], chronicleDir, codebasePath)
+    const diagram = result.split("```mermaid")[1]?.split("```")[0] ?? ""
+    expect(diagram).toContain("classDef high")
+    expect(diagram).toContain("classDef medium")
+    expect(diagram).toContain("classDef good")
   })
 
-  it("shows covered module with entry count in the diagram", async () => {
+  it("includes the coverage table with correct columns", async () => {
+    const result = await reviewContext(["modules/oracle/propose.ts"], chronicleDir, codebasePath)
+    expect(result).toContain("| Module | Coverage | Entries | Files | PR Changes | Risk |")
+  })
+
+  it("shows changed module bolded in the table", async () => {
+    const result = await reviewContext(["modules/oracle/propose.ts"], chronicleDir, codebasePath)
+    expect(result).toContain("**oracle/**")
+  })
+
+  it("shows uncovered changed module with high risk", async () => {
+    const result = await reviewContext(["modules/oracle/propose.ts"], chronicleDir, codebasePath)
+    const tableLines = result.split("\n").filter(l => l.includes("|") && l.includes("oracle"))
+    expect(tableLines).toHaveLength(1)
+    expect(tableLines[0]).toContain("high")
+  })
+
+  it("applies high risk class to uncovered module in diagram", async () => {
+    const result = await reviewContext(["modules/oracle/propose.ts"], chronicleDir, codebasePath)
+    const diagram = result.split("```mermaid")[1]?.split("```")[0] ?? ""
+    expect(diagram).toContain(":::high")
+  })
+
+  it("shows 100% coverage and good risk when all files are covered", async () => {
+    await touchFile(codebasePath, "oracle/propose.ts")
     await writeEntry(chronicleDir, makeEntry("e1", ["oracle/propose.ts"]))
-    const result = await reviewContext(["modules/oracle/propose.ts"], chronicleDir)
-    expect(result).toContain("oracle")
-    expect(result).toContain("1 entry")
+    const result = await reviewContext(["modules/oracle/propose.ts"], chronicleDir, codebasePath)
+    expect(result).toContain("100%")
+    const tableLines = result.split("\n").filter(l => l.includes("|") && l.includes("oracle"))
+    expect(tableLines).toHaveLength(1)
+    expect(tableLines[0]).toContain("low")
   })
 
-  it("groups multiple files from the same module under one module node", async () => {
-    await writeEntry(chronicleDir, makeEntry("e1", ["oracle"]))
+  it("applies good risk class to fully covered module in diagram", async () => {
+    await touchFile(codebasePath, "oracle/propose.ts")
+    await writeEntry(chronicleDir, makeEntry("e1", ["oracle/propose.ts"]))
+    const result = await reviewContext(["modules/oracle/propose.ts"], chronicleDir, codebasePath)
+    const diagram = result.split("```mermaid")[1]?.split("```")[0] ?? ""
+    expect(diagram).toContain(":::good")
+  })
+
+  it("groups multiple files from the same module under one table row", async () => {
     const result = await reviewContext([
       "modules/oracle/propose.ts",
       "modules/oracle/query.ts",
-    ], chronicleDir)
-    const oracleMatches = result.match(/oracle/g) ?? []
-    // oracle should appear but as one module group, not two separate nodes
-    const diagramSection = result.split("```mermaid")[1]?.split("```")[0] ?? ""
-    const nodeLines = diagramSection.split("\n").filter(l => l.includes("oracle"))
-    expect(nodeLines).toHaveLength(1)
+    ], chronicleDir, codebasePath)
+    const tableLines = result.split("\n").filter(l => l.includes("|") && l.includes("oracle"))
+    expect(tableLines).toHaveLength(1)
   })
 
-  it("surfaces Chronicle entries in the 'what Chronicle knows' section", async () => {
+  it("shows PR change count for changed modules", async () => {
+    const result = await reviewContext([
+      "modules/oracle/propose.ts",
+      "modules/oracle/query.ts",
+    ], chronicleDir, codebasePath)
+    expect(result).toContain("**2 files**")
+  })
+
+  it("shows dash for PR changes on untouched modules", async () => {
+    await touchFile(codebasePath, "council/deliberate.ts")
+    const result = await reviewContext(["modules/oracle/propose.ts"], chronicleDir, codebasePath)
+    const councilRows = result.split("\n").filter(l => l.includes("|") && l.includes("council"))
+    expect(councilRows.some(l => l.includes("—"))).toBe(true)
+  })
+
+  it("surfaces Chronicle entries in the context section for touched modules", async () => {
+    await touchFile(codebasePath, "oracle/propose.ts")
     await writeEntry(chronicleDir, makeEntry("abcd1234-0000-0000-0000-000000000000", ["oracle/propose.ts"], {
       key_insight: "schema constraints enforce quality at write time",
       status: "validated",
       confidence: 0.9,
     }))
-    const result = await reviewContext(["modules/oracle/propose.ts"], chronicleDir)
-    expect(result).toContain("What Chronicle knows")
+    const result = await reviewContext(["modules/oracle/propose.ts"], chronicleDir, codebasePath)
+    expect(result).toContain("Chronicle context for changed modules")
     expect(result).toContain("[abcd1234]")
     expect(result).toContain("schema constraints enforce quality at write time")
     expect(result).toContain("validated")
     expect(result).toContain("0.90")
   })
 
-  it("surfaces the 'where the path goes dark' section for uncovered modules", async () => {
-    const result = await reviewContext(["modules/council/deliberate.ts"], chronicleDir)
-    expect(result).toContain("Where the path goes dark")
-    expect(result).toContain("council")
-    expect(result).toContain("Consider proposing an entry")
+  it("omits Chronicle context section when no touched modules have entries", async () => {
+    const result = await reviewContext(["modules/council/deliberate.ts"], chronicleDir, codebasePath)
+    expect(result).not.toContain("Chronicle context for changed modules")
   })
 
-  it("shows both zones when some modules are covered and some are not", async () => {
+  it("shows context for covered modules and omits it for uncovered", async () => {
+    await touchFile(codebasePath, "oracle/propose.ts")
     await writeEntry(chronicleDir, makeEntry("e1", ["oracle/propose.ts"]))
     const result = await reviewContext([
       "modules/oracle/propose.ts",
       "modules/council/deliberate.ts",
-    ], chronicleDir)
-    expect(result).toContain("What Chronicle knows")
-    expect(result).toContain("Where the path goes dark")
-  })
-
-  it("shows only covered section when all modules have entries", async () => {
-    await writeEntry(chronicleDir, makeEntry("e1", ["oracle"]))
-    await writeEntry(chronicleDir, makeEntry("e2", ["council"]))
-    const result = await reviewContext([
-      "modules/oracle/propose.ts",
-      "modules/council/deliberate.ts",
-    ], chronicleDir)
-    expect(result).toContain("What Chronicle knows")
-    expect(result).not.toContain("Where the path goes dark")
-  })
-
-  it("shows only dark section when no modules have entries", async () => {
-    const result = await reviewContext([
-      "modules/council/deliberate.ts",
-      "modules/jury/evaluate.ts",
-    ], chronicleDir)
-    expect(result).not.toContain("What Chronicle knows")
-    expect(result).toContain("Where the path goes dark")
+    ], chronicleDir, codebasePath)
+    expect(result).toContain("Chronicle context for changed modules")
+    expect(result).toContain("oracle")
+    // council has no entry — should not appear in context section
+    const contextSection = result.split("### Chronicle context")[1] ?? ""
+    expect(contextSection).not.toContain("council")
   })
 
   it("extracts module correctly from modules/ prefix", async () => {
-    const result = await reviewContext(["modules/jury/evaluate.ts"], chronicleDir)
+    const result = await reviewContext(["modules/jury/evaluate.ts"], chronicleDir, codebasePath)
     expect(result).toContain("jury")
-    // module name should be extracted without the modules/ prefix
     expect(result).not.toContain("modules/jury")
   })
 
   it("extracts module correctly without modules/ prefix", async () => {
-    const result = await reviewContext(["oracle/propose.ts"], chronicleDir)
+    const result = await reviewContext(["oracle/propose.ts"], chronicleDir, codebasePath)
     expect(result).toContain("oracle")
   })
 
   it("handles root-level files without crashing", async () => {
-    const result = await reviewContext(["README.md", "package.json"], chronicleDir)
+    const result = await reviewContext(["README.md", "package.json"], chronicleDir, codebasePath)
     expect(result).toContain("Sentinel")
     expect(result).toContain("(root)")
   })
 
-  it("includes the coverage summary line", async () => {
-    await writeEntry(chronicleDir, makeEntry("e1", ["oracle"]))
-    const result = await reviewContext([
-      "modules/oracle/propose.ts",
-      "modules/council/deliberate.ts",
-    ], chronicleDir)
-    expect(result).toContain("1 of 2 modules")
-  })
-
   it("does not include \\n escapes in the mermaid diagram", async () => {
-    const result = await reviewContext(["modules/oracle/propose.ts"], chronicleDir)
+    const result = await reviewContext(["modules/oracle/propose.ts"], chronicleDir, codebasePath)
     const diagram = result.split("```mermaid")[1]?.split("```")[0] ?? ""
     expect(diagram).not.toContain("\\n")
   })
 
   it("mermaid node IDs contain no special characters", async () => {
-    const result = await reviewContext(["modules/oracle/propose.ts"], chronicleDir)
+    const result = await reviewContext(["modules/oracle/propose.ts"], chronicleDir, codebasePath)
     const diagram = result.split("```mermaid")[1]?.split("```")[0] ?? ""
     const nodeLines = diagram.split("\n").filter(l => l.includes("-->"))
     for (const line of nodeLines) {

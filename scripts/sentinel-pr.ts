@@ -13,6 +13,7 @@ const changedFiles = raw
   .map(f => f.trim())
   .filter(Boolean)
 
-const report = await reviewContext(changedFiles, ".chronicle")
+const codebasePath = process.env.SENTINEL_CODEBASE_PATH ?? "modules"
+const report = await reviewContext(changedFiles, ".chronicle", codebasePath)
 await writeFile("sentinel-report.md", report, "utf8")
 console.log(`Sentinel: reviewed ${changedFiles.length} changed file(s)`)
