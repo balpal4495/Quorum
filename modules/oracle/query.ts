@@ -1,4 +1,5 @@
 import type { ChronicleEntry, OracleResult, QueryOptions } from "../shared/types"
+import { entryText } from "../shared/types"
 import type { OracleDeps } from "./types"
 import { bm25Score, extractDomainTerms } from "./bm25"
 import { appendQueryLog } from "./log"
@@ -62,13 +63,13 @@ export async function query(
   // ── Pass 2: BM25 re-ranking with query enrichment ─────────────────────────
   const topInsights = candidates
     .slice(0, Math.min(5, candidates.length))
-    .map(c => c.entry.key_insight)
+    .map(c => entryText(c.entry))
   const domainTerms = extractDomainTerms(topInsights)
   const enrichedQuery =
     domainTerms.length > 0 ? `${text} ${domainTerms.join(" ")}` : text
 
   const documents = candidates.map(c =>
-    [c.entry.key_insight, ...c.entry.affected_areas].join(" "),
+    [entryText(c.entry), ...c.entry.affected_areas, ...(c.entry.scope ?? [])].join(" "),
   )
   const bm25Scores = bm25Score(enrichedQuery, documents)
 

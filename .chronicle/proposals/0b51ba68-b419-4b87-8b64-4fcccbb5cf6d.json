@@ -1,0 +1,36 @@
+{
+  "schema_version": 2,
+  "topic": "PR #1 — multi-tool AI setup",
+  "decision": "Support Claude Code, Gemini CLI, and Copilot as first-class agents via conditional instruction files; Gemini is opt-in at runtime — projects without it are fully unaffected",
+  "key_insight": "Support Claude Code, Gemini CLI, and Copilot as first-class agents via conditional instruction files; Gemini is opt-in at runtime — projects without it are fully unaffected",
+  "affected_areas": [
+    "CLAUDE.md",
+    "GEMINI.md",
+    "SETUP.md",
+    "bin/init.js"
+  ],
+  "scope": [
+    "ai-integration",
+    "setup",
+    "docs"
+  ],
+  "alternatives_considered": [
+    "single AI tool only",
+    "always-on Gemini integration"
+  ],
+  "rejected_reason": [
+    "forcing Gemini install mid-task is disruptive",
+    "single-tool breaks multi-agent workflows"
+  ],
+  "supersedes": null,
+  "superseded_by": null,
+  "status": "validated",
+  "confidence": 0.88,
+  "source_module": "pr-merge",
+  "evidence_cited": [],
+  "work_ref": {
+    "type": "pr",
+    "ref": "PR #1"
+  },
+  "timestamp": "2026-05-12T22:44:25.789Z"
+}

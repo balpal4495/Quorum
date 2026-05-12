@@ -6,6 +6,7 @@ import { createLanceDBStore } from "./oracle/adapters/lance-db"
 import { evaluate } from "./jury/evaluate"
 import { deliberate } from "./council/deliberate"
 import type { LLMProvider, OracleClient } from "./shared/types"
+import { entryText } from "./shared/types"
 import type { JuryInput, JuryOutput, JuryDeps } from "./jury/types"
 import type { CouncilInput, CouncilOutput, CouncilDeps, CouncilModels } from "./council/types"
 
@@ -124,7 +125,7 @@ export async function setup(options: SetupOptions): Promise<Modules> {
       for (const file of missing) {
         const raw = await fs.readFile(path.join(committedDir, file), "utf8")
         const entry = JSON.parse(raw) as import("./shared/types").ChronicleEntry
-        const embeddingText = [entry.key_insight, ...entry.affected_areas].join(" ")
+        const embeddingText = [entryText(entry), ...entry.affected_areas, ...(entry.scope ?? [])].join(" ")
         const vector = await embedder(embeddingText)
         await vectorStore.upsert(entry.id, vector, entry)
       }

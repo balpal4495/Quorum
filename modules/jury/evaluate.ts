@@ -1,5 +1,6 @@
 import type { JuryInput, JuryOutput, JuryDeps } from "./types"
 import type { OracleResult } from "../shared/types"
+import { entryText } from "../shared/types"
 import { JuryOutputSchema } from "./schema"
 
 const CONFIDENCE_THRESHOLD = 0.6
@@ -12,8 +13,8 @@ function formatEvidence(evidence: OracleResult[]): string {
     .map(e =>
       [
         `[${e.id}] status=${e.status}  confidence=${e.confidence.toFixed(2)}  score=${e.score.toFixed(3)}`,
-        `Insight: ${e.key_insight}`,
-        `Areas: ${e.affected_areas.join(", ")}`,
+        `Insight: ${entryText(e)}`,
+        `Areas: ${e.affected_areas.join(", ")}${e.scope ? " | " + e.scope.join(", ") : ""}`,
         e.outcome ? `Outcome: ${e.outcome}` : null,
       ]
         .filter(Boolean)

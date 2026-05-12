@@ -1,6 +1,7 @@
 import { promises as fs } from "fs"
 import path from "path"
 import type { ChronicleEntry, DriftFlag, DriftReport, LLMProvider } from "../shared/types"
+import { entryText } from "../shared/types"
 
 const FILE_CONTENT_LIMIT = 3000
 
@@ -73,7 +74,10 @@ async function evaluateDrift(
     {
       role: "user",
       content:
-        `Documented insight:\n"${entry.key_insight}"\n\n` +
+        `Documented insight:
+"${entryText(entry)}"
+
+` +
         `Current source:\n${fileSection}\n\n` +
         `Does this insight still accurately describe the code above?\n` +
         `{"stillValid": boolean, "confidence": number, "reasoning": "one sentence"}`,
@@ -86,7 +90,7 @@ async function evaluateDrift(
     const parsed = JSON.parse(match[0]) as { stillValid?: unknown; confidence?: unknown; reasoning?: unknown }
     return {
       entryId: entry.id,
-      keyInsight: entry.key_insight,
+      keyInsight: entryText(entry),
       affectedFiles: files.map(f => f.filePath),
       stillValid: Boolean(parsed.stillValid),
       confidence: typeof parsed.confidence === "number" ? Math.max(0, Math.min(1, parsed.confidence)) : 0.5,
@@ -96,7 +100,7 @@ async function evaluateDrift(
     // Parse failure → conservative: flag for human review
     return {
       entryId: entry.id,
-      keyInsight: entry.key_insight,
+      keyInsight: entryText(entry),
       affectedFiles: files.map(f => f.filePath),
       stillValid: false,
       confidence: 0,

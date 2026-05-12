@@ -1,5 +1,6 @@
 import { z } from "zod"
 import type { LLMProvider, OracleResult } from "../shared/types"
+import { entryText } from "../shared/types"
 import type { AdvisorResponse } from "./advisors"
 import type { ReviewerResponse } from "./reviewers"
 import type { CouncilOutput } from "./types"
@@ -29,7 +30,7 @@ function formatEvidence(evidence: OracleResult[]): string {
   return evidence
     .map(
       e =>
-        `[${e.id}] (${e.status}, confidence: ${e.confidence.toFixed(2)}) ${e.key_insight}`,
+        `[${e.id}] (${e.status}, confidence: ${e.confidence.toFixed(2)}) ${entryText(e)}`,
     )
     .join("\n")
 }

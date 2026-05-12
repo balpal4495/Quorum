@@ -4,6 +4,7 @@ import { randomUUID } from "crypto"
 import { exec } from "child_process"
 import { promisify } from "util"
 import type { ChronicleEntry, SimilarityWarning } from "../shared/types"
+import { entryText } from "../shared/types"
 import type { OracleDeps } from "./types"
 import { updateSummary } from "./summary"
 
@@ -27,6 +28,21 @@ function validateEntry(entry: Omit<ChronicleEntry, "id" | "timestamp">): void {
       `Distil to a single clear sentence.`,
     )
   }
+  if (entry.decision !== undefined) {
+    const d = entry.decision.trim()
+    if (d.length < INSIGHT_MIN_LENGTH) {
+      throw new Error(
+        `decision too short (${d.length} chars, min ${INSIGHT_MIN_LENGTH}). ` +
+        `Write a specific, complete sentence describing the decision.`,
+      )
+    }
+    if (d.length > INSIGHT_MAX_LENGTH) {
+      throw new Error(
+        `decision too long (${d.length} chars, max ${INSIGHT_MAX_LENGTH}). ` +
+        `Distil to a single clear sentence.`,
+      )
+    }
+  }
   if (!entry.affected_areas || entry.affected_areas.filter(a => a.trim()).length === 0) {
     throw new Error(`affected_areas must contain at least one non-empty entry.`)
   }
@@ -40,7 +56,7 @@ async function checkSimilarity(
   deps: OracleDeps,
 ): Promise<SimilarityWarning | undefined> {
   try {
-    const text = [entry.key_insight, ...entry.affected_areas].join(" ")
+    const text = [entryText(entry), ...entry.affected_areas, ...(entry.scope ?? [])].join(" ")
     const vector = await deps.embedder(text)
     const results = await deps.vectorStore.search(vector, 3)
     if (results.length === 0) return undefined
@@ -116,8 +132,8 @@ export async function commit(
     timestamp: new Date().toISOString(),
   }
 
-  // Embed the key insight (plus affected areas for richer retrieval)
-  const embeddingText = [entry.key_insight, ...entry.affected_areas].join(" ")
+  // Embed the primary text + areas + scope tags for richer retrieval
+  const embeddingText = [entryText(entry), ...entry.affected_areas, ...(entry.scope ?? [])].join(" ")
   const vector = await deps.embedder(embeddingText)
   await deps.vectorStore.upsert(entry.id, vector, entry)
 

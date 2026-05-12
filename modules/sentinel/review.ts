@@ -1,6 +1,7 @@
 import { promises as fs } from "fs"
 import path from "path"
 import type { ChronicleEntry } from "../shared/types"
+import { entryText } from "../shared/types"
 import { coverage as runCoverage } from "./coverage"
 
 function extractModule(filePath: string): string {
@@ -192,7 +193,7 @@ export async function reviewContext(
       lines.push(`**${stat.name}/**`)
       const relevant = allEntries.filter(e => stat.entryIds.includes(e.id))
       for (const entry of relevant) {
-        lines.push(`- \`[${entry.id.slice(0, 8)}]\` ${entry.key_insight}`)
+        lines.push(`- \`[${entry.id.slice(0, 8)}]\` ${entryText(entry)}`)
         lines.push(`  *${entry.status} — confidence ${entry.confidence.toFixed(2)}*`)
       }
       lines.push("")

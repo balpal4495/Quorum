@@ -1,0 +1,42 @@
+{
+  "schema_version": 2,
+  "topic": "PR #11 — npm CLI distribution",
+  "decision": "Distribute as @balpal4495/quorum npm package using OIDC Trusted Publishing via npx --package=npm@11; upgrade and sentinel subcommands deferred pending real deployment calibration",
+  "key_insight": "Distribute as @balpal4495/quorum npm package using OIDC Trusted Publishing via npx --package=npm@11; upgrade and sentinel subcommands deferred pending real deployment calibration",
+  "affected_areas": [
+    "bin/init.js",
+    "package.json",
+    ".github/workflows/release.yml",
+    ".npmignore"
+  ],
+  "scope": [
+    "distribution",
+    "npm",
+    "cli",
+    "ci"
+  ],
+  "alternatives_considered": [
+    "npx github: install",
+    "global npm install",
+    "stored NPM_TOKEN",
+    "upgrade subcommand",
+    "sentinel subcommand"
+  ],
+  "rejected_reason": [
+    "github: install has no version pinning",
+    "stored tokens have expiry and rotation burden",
+    "upgrade subcommand deferred — no real deployments to calibrate 3-way diff logic",
+    "sentinel subcommand deferred — CLI vs CI source-of-truth question unresolved"
+  ],
+  "supersedes": null,
+  "superseded_by": null,
+  "status": "validated",
+  "confidence": 0.85,
+  "source_module": "pr-merge",
+  "evidence_cited": [],
+  "work_ref": {
+    "type": "pr",
+    "ref": "PR #11"
+  },
+  "timestamp": "2026-05-12T22:44:25.793Z"
+}
