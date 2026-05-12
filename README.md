@@ -121,12 +121,15 @@ Quorum is intentionally a folder, not an npm package. The source lives in your r
 
 ## Sentinel
 
-Sentinel answers two questions Chronicle cannot answer about itself:
+Sentinel answers three questions Chronicle cannot answer about itself.
 
-- **Coverage** — which files in the codebase have no Chronicle entries? These are the blind spots: areas where AI agents have no prior knowledge to draw on.
-- **Drift** — do the existing Chronicle entries still accurately describe the code? Code changes; documented insights can become stale without anyone noticing.
+**Coverage** — which files have no Chronicle entries? These are the blind spots where agents have no prior knowledge to draw on.
 
-Both surface as Vitest assertions alongside your unit tests:
+**Drift** — do existing Chronicle entries still accurately describe the code? Insights become stale without anyone noticing.
+
+**PR knowledge map** — when a PR is opened, which modules does it touch, and what does Chronicle know about them? Surfaces context for reviewers at exactly the right moment.
+
+### In CI — coverage and drift as Vitest assertions
 
 ```typescript
 import { describe } from "vitest"
@@ -141,16 +144,37 @@ const assertions = sentinelAssertions({
 describe("sentinel", () => { assertions.forEach(a => a()) })
 ```
 
-**Coverage tests** are deterministic — no LLM required, always run, can fail CI.
+Coverage tests are deterministic — no LLM required, always run, can fail CI. Drift tests are advisory — they skip when no LLM is configured and never hard-block the build.
 
-**Drift tests** are advisory — they skip when no LLM is configured, and their failures are visible in test output without hard-blocking the build by default.
+### In PRs — the knowledge map
+
+The `sentinel-pr.yml` workflow runs on every PR and posts a comment showing the path the PR walks through Chronicle's knowledge:
+
+```
+## Sentinel — PR Knowledge Map
+
+1 of 3 modules touched have Chronicle coverage.
+
+[mermaid diagram — touched modules + coverage state per module]
+
+### What Chronicle knows about this path
+**oracle/**
+- [30bdc1c1] schema constraints not LLM self-evaluation — validated (0.88)
+
+### Where the path goes dark
+- **council/** — 2 files changed, no Chronicle coverage.
+  Consider proposing an entry once this lands.
+```
+
+The comment updates in place on each new push — one comment per PR, never a thread of duplicates.
 
 ```mermaid
 flowchart LR
     Chronicle[(Chronicle)] -->|committed entries| Sentinel
     Codebase[Codebase] -->|source files| Sentinel
     LLM[LLM Provider] -. drift eval .-> Sentinel
-    Sentinel --> Report([coverage + drift report])
+    Sentinel --> Vitest([Vitest assertions])
+    Sentinel --> PRComment([PR comment])
 ```
 
 ---
