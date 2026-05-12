@@ -78,11 +78,17 @@ sequenceDiagram
 
 ## How to use it
 
-1. Copy the `quorum/` folder into your project root
-2. Tell your AI: *"follow quorum/SETUP.md"*
-3. That's it — the AI handles the rest
+Run this from any Node.js project root:
 
-See [quorum/SETUP.md](quorum/SETUP.md) for the full bootstrap sequence.
+```bash
+npx quorum@latest init
+```
+
+Quorum scaffolds itself — copying modules into `quorum/`, merging AI instruction files (CLAUDE.md, AGENTS.md), and initialising Chronicle. Then run `npm install`.
+
+For manual control or AI-assisted setup, tell your AI: *"follow quorum/SETUP.md"*.
+
+See [SETUP.md](SETUP.md) for the full bootstrap sequence.
 
 ---
 

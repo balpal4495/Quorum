@@ -1,6 +1,6 @@
 # Quorum — Bootstrap Setup
 
-You are reading this because the `quorum/` folder has just been dropped into a codebase.
+You are reading this because Quorum is being set up in a codebase.
 
 ---
 
@@ -9,7 +9,7 @@ You are reading this because the `quorum/` folder has just been dropped into a c
 If you have Node.js 18+ available, run this from the project root:
 
 ```bash
-npx github:balpal4495/Quorum init
+npx quorum@latest init
 ```
 
 This handles all steps below automatically — copying modules, merging instruction files, updating `package.json`, `.gitignore`, and creating the Chronicle directory.
