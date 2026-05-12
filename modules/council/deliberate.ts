@@ -76,8 +76,10 @@ export async function deliberate(
   )
 
   // 5. Propose verdict to Oracle — human must call oracle.commit() to index it
-  const keyInsight =
-    verdict.verdict.split(/[.!?]/)[0]?.trim() ?? verdict.verdict.slice(0, 200)
+  // Truncate to 200 chars so it passes propose()'s schema validation.
+  const firstSentence = verdict.verdict.split(/[.!?]/)[0]?.trim() ?? ""
+  const keyInsight = (firstSentence.length >= 20 ? firstSentence : verdict.verdict)
+    .slice(0, 200)
 
   await oracle.propose({
     key_insight: keyInsight,

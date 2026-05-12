@@ -1,0 +1,11 @@
+{
+  "id": "b0ae359a-953a-49a6-b7d0-6ae5b2eaf3f6",
+  "key_insight": "High-similarity commits in oracle/propose.ts warn of supersession, not hard-block",
+  "affected_areas": ["oracle/propose.ts", "chronicle/write-path"],
+  "status": "validated",
+  "confidence": 0.85,
+  "source_module": "council",
+  "evidence_cited": [],
+  "outcome": "Blocking high-similarity commits silently risks discarding legitimate corrections to validated entries. A supersession warning preserves human judgment at the gate.",
+  "timestamp": "2026-05-12T00:00:00.000Z"
+}

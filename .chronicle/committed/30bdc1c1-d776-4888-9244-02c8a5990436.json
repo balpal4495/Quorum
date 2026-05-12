@@ -1,0 +1,11 @@
+{
+  "id": "30bdc1c1-d776-4888-9244-02c8a5990436",
+  "key_insight": "key_insight specificity in propose.ts enforced by schema constraints, not LLM self-evaluation",
+  "affected_areas": ["oracle/propose.ts", "chronicle/write-path", "shared/types.ts"],
+  "status": "validated",
+  "confidence": 0.88,
+  "source_module": "council",
+  "evidence_cited": [],
+  "outcome": "LLMs pass their own output when asked to evaluate it. Hard constraints (length, structure) are dumb but consistent and cannot be overridden by the model that wrote the entry.",
+  "timestamp": "2026-05-12T00:00:00.000Z"
+}

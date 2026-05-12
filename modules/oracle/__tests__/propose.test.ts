@@ -3,7 +3,7 @@ import { promises as fs } from "fs"
 import path from "path"
 import os from "os"
 import { propose, commit } from "../propose"
-import type { OracleDeps, VectorStore } from "../types"
+import type { OracleDeps } from "../types"
 import type { ChronicleEntry } from "../../shared/types"
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -18,7 +18,7 @@ function mockVectorStore(): VectorStore {
 
 function makePartialEntry(): Omit<ChronicleEntry, "id" | "timestamp"> {
   return {
-    key_insight: "Using dependency injection improves testability in this codebase",
+    key_insight: "Constructor injection in ServiceLayer eliminated all database mocks from unit tests",
     affected_areas: ["services", "api"],
     status: "open",
     confidence: 0.7,
@@ -146,5 +146,89 @@ describe("oracle/propose + commit", () => {
     const { proposalId } = await propose(makePartialEntry(), deps)
     // tmpDir is not a git repo — git add will fail but commit must not throw
     await expect(commit(proposalId, deps)).resolves.toBeDefined()
+  })
+
+  // ── propose: schema validation ─────────────────────────────────────────────
+
+  it("propose throws when key_insight is too short", async () => {
+    const entry = { ...makePartialEntry(), key_insight: "Too short" }
+    await expect(propose(entry, deps)).rejects.toThrow("key_insight too short")
+  })
+
+  it("propose throws when key_insight is too long", async () => {
+    const entry = { ...makePartialEntry(), key_insight: "x".repeat(201) }
+    await expect(propose(entry, deps)).rejects.toThrow("key_insight too long")
+  })
+
+  it("propose throws when affected_areas is empty", async () => {
+    const entry = { ...makePartialEntry(), affected_areas: [] }
+    await expect(propose(entry, deps)).rejects.toThrow("affected_areas")
+  })
+
+  it("propose throws when affected_areas contains only blank strings", async () => {
+    const entry = { ...makePartialEntry(), affected_areas: ["   ", ""] }
+    await expect(propose(entry, deps)).rejects.toThrow("affected_areas")
+  })
+
+  it("propose throws when confidence is out of range", async () => {
+    const entry = { ...makePartialEntry(), confidence: 1.5 }
+    await expect(propose(entry, deps)).rejects.toThrow("confidence")
+  })
+
+  // ── propose: similarity gate ───────────────────────────────────────────────
+
+  it("propose returns no similarity warning when store is empty", async () => {
+    const result = await propose(makePartialEntry(), deps)
+    expect(result.similarity).toBeUndefined()
+  })
+
+  it("propose returns similarity warning when a near-identical validated entry exists", async () => {
+    const existingEntry: ChronicleEntry = {
+      ...makePartialEntry(),
+      id: "existing-id-abc",
+      timestamp: new Date().toISOString(),
+      status: "validated",
+    }
+    const depsWithMatch: OracleDeps = {
+      ...deps,
+      vectorStore: {
+        ...deps.vectorStore,
+        search: vi.fn().mockResolvedValue([{ entry: existingEntry, score: 0.92 }]),
+      },
+    }
+    const result = await propose(makePartialEntry(), depsWithMatch)
+    expect(result.similarity).toBeDefined()
+    expect(result.similarity?.warning).toBe("potential-supersession")
+    expect(result.similarity?.entry.id).toBe("existing-id-abc")
+  })
+
+  it("propose returns no warning when top similarity is below threshold", async () => {
+    const existingEntry: ChronicleEntry = {
+      ...makePartialEntry(),
+      id: "low-score-id",
+      timestamp: new Date().toISOString(),
+    }
+    const depsWithLowMatch: OracleDeps = {
+      ...deps,
+      vectorStore: {
+        ...deps.vectorStore,
+        search: vi.fn().mockResolvedValue([{ entry: existingEntry, score: 0.6 }]),
+      },
+    }
+    const result = await propose(makePartialEntry(), depsWithLowMatch)
+    expect(result.similarity).toBeUndefined()
+  })
+
+  it("propose still succeeds and returns proposalId if similarity check throws", async () => {
+    const depsWithBrokenSearch: OracleDeps = {
+      ...deps,
+      vectorStore: {
+        ...deps.vectorStore,
+        search: vi.fn().mockRejectedValue(new Error("store unavailable")),
+      },
+    }
+    const result = await propose(makePartialEntry(), depsWithBrokenSearch)
+    expect(typeof result.proposalId).toBe("string")
+    expect(result.similarity).toBeUndefined()
   })
 })

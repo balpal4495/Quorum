@@ -1,4 +1,4 @@
-import type { OracleResult, QueryOptions } from "../shared/types"
+import type { ChronicleEntry, OracleResult, QueryOptions } from "../shared/types"
 import type { OracleDeps } from "./types"
 import { bm25Score, extractDomainTerms } from "./bm25"
 import { appendQueryLog } from "./log"
@@ -82,19 +82,44 @@ export async function query(
     })
 
   // ── RRF fusion ─────────────────────────────────────────────────────────────
-  const fused: OracleResult[] = candidates.map((candidate, vectorRank) => ({
-    ...candidate.entry,
-    score: rrfScore([vectorRank, bm25RankOf[vectorRank]]),
-  }))
+  const fused: Array<ChronicleEntry & { score: number }> = candidates.map(
+    (candidate, vectorRank) => ({
+      ...candidate.entry,
+      score: rrfScore([vectorRank, bm25RankOf[vectorRank]]),
+    }),
+  )
 
   fused.sort((a, b) => b.score - a.score)
 
-  const results = fused
+  const filtered = fused
     .filter(r => r.score >= scoreThreshold)
     .slice(0, limit)
 
+  const results = assignTiers(filtered)
+
   await tryLogQuery(text, results, startTime, deps)
   return results
+}
+
+/**
+ * Assign relevance tiers within the result set using relative rank.
+ * Top ~30% → primary, next ~40% → supporting, remainder → background.
+ * Thresholds are relative so they self-calibrate as Chronicle grows.
+ */
+function assignTiers(
+  results: Array<ChronicleEntry & { score: number }>,
+): OracleResult[] {
+  const n = results.length
+  if (n === 0) return []
+  const primaryCount = Math.max(1, Math.ceil(n * 0.3))
+  const supportingCount = Math.max(1, Math.ceil(n * 0.4))
+  return results.map((r, i) => ({
+    ...r,
+    tier:
+      i < primaryCount ? "primary"
+      : i < primaryCount + supportingCount ? "supporting"
+      : "background",
+  }))
 }
 
 async function tryLogQuery(
