@@ -1,0 +1,41 @@
+{
+  "schema_version": 2,
+  "topic": "PR #13",
+  "decision": "feat: Chronicle decision records, entryText compat, and PR auto-propose",
+  "key_insight": "feat: Chronicle decision records, entryText compat, and PR auto-propose",
+  "affected_areas": [
+    ".chronicle/proposals/0b51ba68-b419-4b87-8b64-4fcccbb5cf6d.json",
+    ".chronicle/proposals/261cd266-1add-4eea-aec6-8a56b1fa2529.json",
+    ".chronicle/proposals/38baf381-f238-436c-978c-970d0a364795.json",
+    ".chronicle/proposals/9c19139a-e100-4358-87ef-ba570f75d09c.json",
+    ".chronicle/proposals/e06a2e55-cd6f-41d6-abb2-a2b3d4d351f1.json",
+    ".github/workflows/chronicle-on-merge.yml",
+    "modules/council/advisors.ts",
+    "modules/council/chairman.ts",
+    "modules/council/deliberate.ts",
+    "modules/council/reviewers.ts"
+  ],
+  "scope": [
+    "oracle",
+    "jury",
+    "council",
+    "sentinel",
+    "shared",
+    "ci"
+  ],
+  "alternatives_considered": [],
+  "rejected_reason": [
+    "Extracts deferred items from the PR body"
+  ],
+  "supersedes": null,
+  "superseded_by": null,
+  "status": "open",
+  "confidence": 0.7,
+  "source_module": "pr-merge",
+  "evidence_cited": [],
+  "work_ref": {
+    "type": "pr",
+    "ref": "PR #13"
+  },
+  "outcome": "## What this does\n\nThree things in one PR — all came out of a Jury + Council run against the proposal, followed by a dry run against the actual codebase.\n\n---\n\n### 1. Chronicle v2 schema — decision records\n\n`shared/types.ts` gains optional v2 fields on `ChronicleEntry`:\n\n| Field | Purpose |\n|---|---|\n| `schema_version: 2` | Marks a v2 entry; absent = v1 legacy |\n| `topic` | Short label — \"auth/session strategy\" |\n| `decision` | Primary text in v2; replaces key_insight as the thing you read |\n| `"
+}
