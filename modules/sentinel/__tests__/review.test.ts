@@ -209,4 +209,17 @@ describe("sentinel/reviewContext", () => {
       if (nodeId) expect(nodeId).toMatch(/^[a-zA-Z0-9_]+$/)
     }
   })
+
+  it("shows bootstrap banner when Chronicle has no entries", async () => {
+    const result = await reviewContext(["modules/oracle/propose.ts"], chronicleDir, codebasePath)
+    expect(result).toContain("Chronicle has no entries yet")
+    expect(result).toContain("oracle.propose()")
+  })
+
+  it("omits bootstrap banner when Chronicle has at least one entry", async () => {
+    await touchFile(codebasePath, "oracle/propose.ts")
+    await writeEntry(chronicleDir, makeEntry("e1", ["oracle/propose.ts"]))
+    const result = await reviewContext(["modules/oracle/propose.ts"], chronicleDir, codebasePath)
+    expect(result).not.toContain("Chronicle has no entries yet")
+  })
 })

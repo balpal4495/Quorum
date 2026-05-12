@@ -8,6 +8,12 @@ export interface SentinelAssertOptions {
   /** When provided, drift detection runs. When absent, drift tests are skipped. */
   llm?: LLMProvider
   extensions?: string[]
+  /**
+   * Chronicle coverage must reach this percentage for the CI test to pass.
+   * Default 0 = report gaps as advisory output without failing the build.
+   * Raise this as the project matures (e.g. 50 for an established codebase).
+   */
+  minCoveragePercent?: number
 }
 
 /**
@@ -25,9 +31,10 @@ export interface SentinelAssertOptions {
 export function sentinelAssertions(options: SentinelAssertOptions = {}): Array<() => void> {
   const {
     chronicleDir = ".chronicle",
-    codebasePath = "modules",
+    codebasePath = ".",
     llm,
     extensions,
+    minCoveragePercent = 0,
   } = options
 
   // Import vitest lazily so this file is usable outside of a test context too
@@ -38,14 +45,20 @@ export function sentinelAssertions(options: SentinelAssertOptions = {}): Array<(
 
   // ── Coverage (deterministic, always run) ──────────────────────────────────
   assertions.push(() => {
-    it("coverage: all source files have at least one Chronicle entry", async () => {
+    const label = minCoveragePercent > 0
+      ? `coverage: Chronicle coverage ≥ ${minCoveragePercent}%`
+      : "coverage: Chronicle coverage report [advisory]"
+    it(label, async () => {
       const report = await coverage(chronicleDir, codebasePath, { extensions })
       if (report.uncoveredFiles.length > 0) {
         const list = report.uncoveredFiles.slice(0, 10).join("\n  ")
-        expect(
-          report.uncoveredFiles,
-          `${report.uncoveredFiles.length} file(s) have no Chronicle coverage:\n  ${list}`,
-        ).toHaveLength(0)
+        const msg = `${report.uncoveredFiles.length} source file(s) have no Chronicle coverage (${report.percentage}% covered):\n  ${list}`
+        if (minCoveragePercent > 0) {
+          expect(report.percentage, msg).toBeGreaterThanOrEqual(minCoveragePercent)
+        } else {
+          // New project or no threshold set — surface gaps without failing the build
+          console.info(`[sentinel] ${msg}`)
+        }
       }
     })
   })

@@ -136,4 +136,27 @@ describe("sentinel/coverage", () => {
     const report = await coverage(chronicleDir, codebaseDir)
     expect(report.coveredFiles).toBe(2)
   })
+
+  it("excludes test files by default", async () => {
+    await writeFile(codebaseDir, "oracle/propose.ts")
+    await writeFile(codebaseDir, "oracle/__tests__/propose.test.ts")
+    await writeFile(codebaseDir, "oracle/propose.spec.ts")
+    const report = await coverage(chronicleDir, codebaseDir)
+    expect(report.totalFiles).toBe(1)
+    expect(report.coverageByFile[0].file).toBe("oracle/propose.ts")
+  })
+
+  it("excludes __tests__ directories by default", async () => {
+    await writeFile(codebaseDir, "oracle/propose.ts")
+    await writeFile(codebaseDir, "__tests__/oracle.test.ts")
+    const report = await coverage(chronicleDir, codebaseDir)
+    expect(report.totalFiles).toBe(1)
+  })
+
+  it("includes test files when excludeTestFiles is false", async () => {
+    await writeFile(codebaseDir, "oracle/propose.ts")
+    await writeFile(codebaseDir, "oracle/propose.test.ts")
+    const report = await coverage(chronicleDir, codebaseDir, { excludeTestFiles: false })
+    expect(report.totalFiles).toBe(2)
+  })
 })

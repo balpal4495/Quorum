@@ -139,10 +139,19 @@ export async function reviewContext(
 
   const lines: string[] = []
   const week = isoWeekKey(new Date())
+  const chronicleIsEmpty = allEntries.length === 0
 
   // ── Header ────────────────────────────────────────────────────────────────
   lines.push(`## Sentinel — Chronicle Coverage Map — ${week}`)
   lines.push("")
+
+  if (chronicleIsEmpty) {
+    lines.push(
+      "> **Chronicle has no entries yet.** Every module shows as uncovered because this project has no documented knowledge. " +
+      "The modules touched by this PR are a good starting point — run `oracle.propose()` after this lands to begin building Chronicle.",
+    )
+    lines.push("")
+  }
 
   // ── Coverage table ────────────────────────────────────────────────────────
   lines.push("| Module | Coverage | Entries | Files | PR Changes | Risk |")
