@@ -216,6 +216,36 @@ Once all steps are complete, report:
 
 ---
 
+## Optional: Step 10 — Gemini CLI integration
+
+Skip this step if you do not have Google Gemini CLI installed. Quorum is fully functional without it.
+
+If you do have it (or want to add it later), this enables Claude Code to delegate large-context
+analysis to Gemini — useful when a task requires surveying the whole codebase at once.
+
+**10a. Install Gemini CLI** (if not already installed — requires Node.js 18+):
+
+```bash
+npm install -g @google/gemini-cli
+```
+
+**10b. Get an API key** from Google AI Studio and add to your shell profile:
+
+```bash
+export GEMINI_API_KEY="your-key-here"
+export GEMINI_CLI_TRUST_WORKSPACE=true
+```
+
+**10c. Create `GEMINI.md`** at the project root so Gemini understands the codebase.
+Copy `quorum/modules/AGENTS.md` content as a starting point, or write a brief description of
+the project and the Quorum architecture. The `GEMINI.md` in the Quorum repo itself is a
+working example.
+
+Once the key is set and `gemini -p "hello"` responds, Claude Code will automatically detect
+Gemini and use it for large-context tasks.
+
+---
+
 ## After setup
 
 You are now operating under Quorum. The rules in `quorum/modules/AGENTS.md` and `.github/copilot-instructions.md` apply to all subsequent work.
