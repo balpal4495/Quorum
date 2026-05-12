@@ -15,6 +15,10 @@ import { promises as fs } from "fs"
 import path from "path"
 import { fileURLToPath } from "url"
 import { execSync } from "child_process"
+import { createRequire } from "module"
+
+const _require = createRequire(import.meta.url)
+const PKG_VERSION = _require("../package.json").version
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const QUORUM_ROOT = path.resolve(__dirname, "..")
@@ -346,7 +350,7 @@ async function cli() {
   }
 
   if (command === "--version" || command === "-v" || command === "version") {
-    console.log("0.1.0")
+    console.log(PKG_VERSION)
     return
   }
 
