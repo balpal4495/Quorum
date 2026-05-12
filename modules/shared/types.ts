@@ -17,6 +17,16 @@ export type Message = {
 export type LLMProvider = (messages: Message[], model?: string) => Promise<string>
 
 /**
+ * Links a Chronicle entry to the unit of work that triggered it.
+ * Gives agents the "why now" context that key_insight alone cannot convey.
+ */
+export type WorkRef = {
+  type: "bug" | "story" | "epic" | "pr" | "spike"
+  /** Ticket number, PR reference, or branch name. e.g. "PROJ-123", "PR #4" */
+  ref?: string
+}
+
+/**
  * A durable knowledge record stored in Chronicle.
  * This is the canonical unit of institutional memory.
  */
@@ -35,6 +45,8 @@ export type ChronicleEntry = {
   evidence_cited: string[]
   /** What actually happened when this was acted on. Added post-execution by Scribe. */
   outcome?: string
+  /** The unit of work that triggered this entry. Used to build SUMMARY.md temporal context. */
+  work_ref?: WorkRef
   timestamp: string
 }
 
