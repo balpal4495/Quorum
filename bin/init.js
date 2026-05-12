@@ -281,9 +281,11 @@ async function updateGitignore() {
 async function createChronicle() {
   log.section("Creating Chronicle")
 
-  const proposalsDir = path.join(TARGET, ".chronicle", "proposals")
-  await fs.mkdir(proposalsDir, { recursive: true })
+  await fs.mkdir(path.join(TARGET, ".chronicle", "proposals"), { recursive: true })
   log.created(".chronicle/proposals/")
+
+  await fs.mkdir(path.join(TARGET, ".chronicle", "committed"), { recursive: true })
+  log.created(".chronicle/committed/")
 }
 
 // ── Main ───────────────────────────────────────────────────────────────────

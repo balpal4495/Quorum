@@ -1,8 +1,12 @@
 import { promises as fs } from "fs"
 import path from "path"
 import { randomUUID } from "crypto"
+import { exec } from "child_process"
+import { promisify } from "util"
 import type { ChronicleEntry } from "../shared/types"
 import type { OracleDeps } from "./types"
+
+const execAsync = promisify(exec)
 
 /**
  * Propose a new Chronicle entry for human review.
@@ -57,6 +61,19 @@ export async function commit(
   const embeddingText = [entry.key_insight, ...entry.affected_areas].join(" ")
   const vector = await deps.embedder(embeddingText)
   await deps.vectorStore.upsert(entry.id, vector, entry)
+
+  // Write to committed/ — the git-tracked source of truth shared across the team
+  const committedDir = path.join(chronicleDir, "committed")
+  await fs.mkdir(committedDir, { recursive: true })
+  const committedPath = path.join(committedDir, `${entry.id}.json`)
+  await fs.writeFile(committedPath, JSON.stringify(entry, null, 2), "utf8")
+
+  // Stage the committed entry for the next git commit — best-effort
+  try {
+    await execAsync(`git add "${committedPath}"`)
+  } catch {
+    // Not in a git repo, or git is unavailable — silently continue
+  }
 
   // Remove the proposal — it has been committed
   await fs.unlink(proposalPath)

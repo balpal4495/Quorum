@@ -99,6 +99,7 @@ export async function setup(options: SetupOptions): Promise<Modules> {
 
   // Ensure Chronicle directories exist before anything tries to write to them
   await fs.mkdir(path.join(chronicleDir, "proposals"), { recursive: true })
+  await fs.mkdir(path.join(chronicleDir, "committed"), { recursive: true })
 
   // Pre-warm the embedder if using the default (downloads model on first use)
   if (shouldWarm && embedder === xenovaEmbed) {
@@ -106,6 +107,29 @@ export async function setup(options: SetupOptions): Promise<Modules> {
   }
 
   const vectorStore = await createLanceDBStore(chronicleDir)
+
+  // Rebuild local index from committed entries if any are missing.
+  // This brings a fresh machine (or a post-git-pull state) up to date
+  // without requiring any manual step.
+  const committedDir = path.join(chronicleDir, "committed")
+  const committedFiles = (await fs.readdir(committedDir)).filter(f => f.endsWith(".json"))
+
+  if (committedFiles.length > 0) {
+    const existing = await vectorStore.getAll()
+    const existingIds = new Set(existing.map(e => e.id))
+    const missing = committedFiles.filter(f => !existingIds.has(f.replace(".json", "")))
+
+    if (missing.length > 0) {
+      console.log(`[Chronicle] Rebuilding index from ${missing.length} committed ${missing.length === 1 ? "entry" : "entries"}…`)
+      for (const file of missing) {
+        const raw = await fs.readFile(path.join(committedDir, file), "utf8")
+        const entry = JSON.parse(raw) as import("./shared/types").ChronicleEntry
+        const embeddingText = [entry.key_insight, ...entry.affected_areas].join(" ")
+        const vector = await embedder(embeddingText)
+        await vectorStore.upsert(entry.id, vector, entry)
+      }
+    }
+  }
 
   const oracle = createOracleClient({
     embedder,
