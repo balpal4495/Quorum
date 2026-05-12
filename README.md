@@ -88,10 +88,12 @@ Chronicle lives at `.chronicle/` and is the persistent knowledge store that unde
 
 ```
 .chronicle/
-  entries/        ← LanceDB vector store (indexed, not committed to git)
-  proposals/      ← pending human-approval writes (JSON, committed to git)
-  query-log.jsonl ← append-only audit log of every Oracle query
+  committed/    ← approved entries as JSON (committed to git, source of truth)
+  proposals/    ← staged entries awaiting human approval (JSON, not indexed yet)
+  SUMMARY.md    ← auto-generated agent context, rebuilt on every commit
 ```
+
+`SUMMARY.md` groups the last 12 weeks of entries by week and work context. It gives agents temporal sequence — what happened and in what order — which vector search alone cannot provide.
 
 ---
 
@@ -115,7 +117,7 @@ Quorum is intentionally a folder, not an npm package. The source lives in your r
 
 ## Module docs
 
-- [quorum/modules/README.md](quorum/modules/README.md) — full API reference and quick-start
-- [quorum/modules/AGENTS.md](quorum/modules/AGENTS.md) — file ownership and invariants
-- [quorum/modules/CLAUDE.md](quorum/modules/CLAUDE.md) — design decisions and what not to change
-- [quorum/SETUP.md](quorum/SETUP.md) — bootstrap sequence for new projects
+- [modules/README.md](modules/README.md) — full API reference and quick-start
+- [modules/AGENTS.md](modules/AGENTS.md) — file ownership and invariants
+- [modules/CLAUDE.md](modules/CLAUDE.md) — design decisions and what not to change
+- [SETUP.md](SETUP.md) — bootstrap sequence for new projects

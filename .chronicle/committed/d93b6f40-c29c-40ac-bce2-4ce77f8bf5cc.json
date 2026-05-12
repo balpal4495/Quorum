@@ -1,0 +1,11 @@
+{
+  "id": "d93b6f40-c29c-40ac-bce2-4ce77f8bf5cc",
+  "key_insight": "Mermaid flowcharts with multiple back-edges fail layout with 'Could not find a suitable point' — structure as a DAG and move feedback loop narrative to a sequence diagram instead",
+  "affected_areas": ["docs", "README.md", "mermaid"],
+  "status": "validated",
+  "confidence": 0.97,
+  "source_module": "chronicle",
+  "evidence_cited": [],
+  "work_ref": { "type": "pr", "ref": "PR #7" },
+  "timestamp": "2026-05-12T00:00:00.000Z"
+}

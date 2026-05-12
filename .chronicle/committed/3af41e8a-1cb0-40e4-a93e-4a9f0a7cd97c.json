@@ -1,0 +1,11 @@
+{
+  "id": "3af41e8a-1cb0-40e4-a93e-4a9f0a7cd97c",
+  "key_insight": "GitHub renders Mermaid diagrams in PR body descriptions as well as in markdown files — add diagram code blocks to PR descriptions to validate rendering before merging to main",
+  "affected_areas": ["docs", "mermaid", "workflow"],
+  "status": "validated",
+  "confidence": 0.99,
+  "source_module": "chronicle",
+  "evidence_cited": [],
+  "work_ref": { "type": "pr", "ref": "PR #7" },
+  "timestamp": "2026-05-12T00:00:00.000Z"
+}
