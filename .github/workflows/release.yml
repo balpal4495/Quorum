@@ -18,7 +18,12 @@ jobs:
         with:
           node-version: 22
 
-      - run: npm config set registry https://registry.npmjs.org/
+      - name: Debug npm + OIDC environment
+        run: |
+          npm --version
+          node --version
+          echo "OIDC URL set: ${{ env.ACTIONS_ID_TOKEN_REQUEST_URL != '' }}"
+          node -e "console.log('OIDC available:', !!process.env.ACTIONS_ID_TOKEN_REQUEST_URL)"
 
       - run: npm ci
 
