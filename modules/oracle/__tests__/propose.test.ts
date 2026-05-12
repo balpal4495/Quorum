@@ -129,4 +129,22 @@ describe("oracle/propose + commit", () => {
       "Proposal not found",
     )
   })
+
+  it("commit writes the full entry to .chronicle/committed/<entry.id>.json", async () => {
+    const { proposalId } = await propose(makePartialEntry(), deps)
+    const entry = await commit(proposalId, deps)
+    const committedPath = path.join(tmpDir, "committed", `${entry.id}.json`)
+    const exists = await fs.access(committedPath).then(() => true).catch(() => false)
+    expect(exists).toBe(true)
+    const stored = JSON.parse(await fs.readFile(committedPath, "utf8"))
+    expect(stored.id).toBe(entry.id)
+    expect(stored.key_insight).toBe(entry.key_insight)
+    expect(stored.timestamp).toBe(entry.timestamp)
+  })
+
+  it("commit continues if git add fails (not a git repo)", async () => {
+    const { proposalId } = await propose(makePartialEntry(), deps)
+    // tmpDir is not a git repo — git add will fail but commit must not throw
+    await expect(commit(proposalId, deps)).resolves.toBeDefined()
+  })
 })
