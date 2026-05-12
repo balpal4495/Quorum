@@ -1,4 +1,5 @@
 import type { LLMProvider, OracleResult } from "../shared/types"
+import { entryText } from "../shared/types"
 import type { AdvisorPersona } from "./personas"
 
 export interface AdvisorResponse {
@@ -12,7 +13,9 @@ function formatEvidence(evidence: OracleResult[]): string {
   }
   return evidence
     .map(e =>
-      `[${e.id}] (${e.status})\n${e.key_insight}\nAreas: ${e.affected_areas.join(", ")}`,
+      `[${e.id}] (${e.status})
+${entryText(e)}
+Areas: ${e.affected_areas.join(", ")}${e.scope ? " | " + e.scope.join(", ") : ""}`,
     )
     .join("\n\n")
 }

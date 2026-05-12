@@ -1,6 +1,7 @@
 import { promises as fs } from "fs"
 import path from "path"
 import type { ChronicleEntry } from "../shared/types"
+import { entryText } from "../shared/types"
 
 const SUMMARY_WEEKS = 12
 const DIRECTIVE =
@@ -29,7 +30,7 @@ function workRefLabel(entry: ChronicleEntry): string {
 function renderEntry(entry: ChronicleEntry): string {
   const areas = entry.affected_areas.join(", ")
   const id = entry.id.slice(0, 8)
-  return `- **[${id}]** ${areas} — \`${entry.status}\` (${entry.confidence.toFixed(2)}) — ${entry.key_insight}`
+  return `- **[${id}]** ${areas} — \`${entry.status}\` (${entry.confidence.toFixed(2)}) — ${entryText(entry)}`
 }
 
 /**

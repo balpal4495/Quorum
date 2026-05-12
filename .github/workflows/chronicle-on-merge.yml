@@ -1,0 +1,37 @@
+name: Chronicle on Merge
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+jobs:
+  chronicle:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Create Chronicle proposal
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: node scripts/chronicle-pr.js
+
+      - name: Commit proposal to Chronicle
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .chronicle/proposals/
+          git diff --staged --quiet && echo "No new proposals" && exit 0
+          git commit -m "chore: chronicle proposal for PR #${{ github.event.pull_request.number }}"
+          git push

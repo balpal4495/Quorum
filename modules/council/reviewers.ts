@@ -1,4 +1,5 @@
 import type { LLMProvider, OracleResult } from "../shared/types"
+import { entryText } from "../shared/types"
 import type { AdvisorResponse } from "./advisors"
 
 export interface ReviewerResponse {
@@ -20,7 +21,7 @@ function anonymise(responses: AdvisorResponse[]): string {
 function formatEvidenceSummary(evidence: OracleResult[]): string {
   if (evidence.length === 0) return "No Oracle evidence available."
   return evidence
-    .map(e => `[${e.id}] (${e.status}) ${e.key_insight}`)
+    .map(e => `[${e.id}] (${e.status}) ${entryText(e)}`)
     .join("\n")
 }
 

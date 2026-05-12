@@ -1,0 +1,39 @@
+{
+  "schema_version": 2,
+  "topic": "PR #9 — Sentinel module",
+  "decision": "Coverage tests are deterministic and can fail CI; drift tests skip gracefully without an LLM — advisory never blocking — consistent with the warn-not-hard-block principle",
+  "key_insight": "Coverage tests are deterministic and can fail CI; drift tests skip gracefully without an LLM — advisory never blocking — consistent with the warn-not-hard-block principle",
+  "affected_areas": [
+    "modules/sentinel/coverage.ts",
+    "modules/sentinel/drift.ts",
+    "modules/sentinel/assert.ts",
+    "modules/sentinel/index.ts"
+  ],
+  "scope": [
+    "sentinel",
+    "ci",
+    "coverage",
+    "drift"
+  ],
+  "alternatives_considered": [
+    "LLM-based coverage scoring",
+    "hard-failing drift tests"
+  ],
+  "rejected_reason": [
+    "LLM coverage scoring is non-deterministic and would destabilise CI",
+    "hard-failing drift tests block builds when LLM is unavailable"
+  ],
+  "supersedes": null,
+  "superseded_by": null,
+  "status": "validated",
+  "confidence": 0.92,
+  "source_module": "pr-merge",
+  "evidence_cited": [
+    "b0ae359a-953a-49a6-b7d0-6ae5b2eaf3f6"
+  ],
+  "work_ref": {
+    "type": "pr",
+    "ref": "PR #9"
+  },
+  "timestamp": "2026-05-12T22:44:25.792Z"
+}

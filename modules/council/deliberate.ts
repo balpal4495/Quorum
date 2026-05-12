@@ -82,8 +82,13 @@ export async function deliberate(
     .slice(0, 200)
 
   await oracle.propose({
+    schema_version: 2,
+    topic: input.outcome.slice(0, 80),
+    decision: keyInsight,
     key_insight: keyInsight,
     affected_areas: extractAffectedAreas(input.outcome, input.design),
+    alternatives_considered: verdict.challenges,
+    rejected_reason: verdict.satisfied ? [] : [verdict.verdict.slice(0, 200)],
     status: "open",
     confidence: input.jury_output.confidence,
     source_module: "council",

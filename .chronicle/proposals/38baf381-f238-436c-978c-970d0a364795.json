@@ -1,0 +1,30 @@
+{
+  "schema_version": 2,
+  "topic": "PR #12 — README for AI agent mode",
+  "decision": "README leads with AI agent mode workflow (Claude Code, Copilot, Cursor) not TypeScript API examples; code examples moved to secondary section for custom pipeline builders",
+  "key_insight": "README leads with AI agent mode workflow (Claude Code, Copilot, Cursor) not TypeScript API examples; code examples moved to secondary section for custom pipeline builders",
+  "affected_areas": [
+    "README.md"
+  ],
+  "scope": [
+    "docs"
+  ],
+  "alternatives_considered": [
+    "API-first README",
+    "separate docs site"
+  ],
+  "rejected_reason": [
+    "API-first README misrepresents the primary use case which is AI agent integration not library usage"
+  ],
+  "supersedes": null,
+  "superseded_by": null,
+  "status": "validated",
+  "confidence": 0.82,
+  "source_module": "pr-merge",
+  "evidence_cited": [],
+  "work_ref": {
+    "type": "pr",
+    "ref": "PR #12"
+  },
+  "timestamp": "2026-05-12T22:44:25.794Z"
+}
