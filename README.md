@@ -10,16 +10,18 @@ From that point, every AI agent working in the codebase queries Chronicle before
 
 ## What's inside
 
-Three portable TypeScript modules:
+Four portable TypeScript modules:
 
 | Module | What it does |
 |---|---|
 | **Oracle** | Query and write interface to Chronicle. No LLM required. |
 | **Jury** | Evaluates a proposed design against Oracle evidence. Returns a confidence score. |
 | **Council** | Adversarial validation via a parallel panel of advisors and reviewers. Returns a verdict. |
+| **Sentinel** | Chronicle coverage and drift detection. Surfaces gaps and stale knowledge as Vitest assertions. |
 
 ```
 oracle.query()  →  jury.evaluate()  →  council.deliberate()  →  human gate  →  Executor
+sentinel.coverage() + sentinel.detectDrift()  →  advisory test output
 ```
 
 ---
@@ -36,6 +38,8 @@ flowchart LR
     Council -->|verdict| Gate[Human Gate]
     Oracle -. reads .-> Chronicle[(Chronicle)]
     Gate -. approved commit .-> Chronicle
+    Chronicle -. coverage + drift .-> Sentinel
+    Sentinel -. advisory report .-> CI([CI / Developer])
 ```
 
 **Sequence — one full decision cycle:**
@@ -112,6 +116,42 @@ The LLM provider is injectable — Quorum defines a simple function interface an
 ## Designed to be dropped in — not installed
 
 Quorum is intentionally a folder, not an npm package. The source lives in your repo, the modules are readable by any AI agent working in the codebase, and the instruction files (`AGENTS.md`, `CLAUDE.md`) travel with the code. Nothing is hidden inside `node_modules`.
+
+---
+
+## Sentinel
+
+Sentinel answers two questions Chronicle cannot answer about itself:
+
+- **Coverage** — which files in the codebase have no Chronicle entries? These are the blind spots: areas where AI agents have no prior knowledge to draw on.
+- **Drift** — do the existing Chronicle entries still accurately describe the code? Code changes; documented insights can become stale without anyone noticing.
+
+Both surface as Vitest assertions alongside your unit tests:
+
+```typescript
+import { describe } from "vitest"
+import { sentinelAssertions } from "./modules/sentinel/assert"
+
+const assertions = sentinelAssertions({
+  chronicleDir: ".chronicle",
+  codebasePath: "modules",
+  llm: myLLMProvider, // optional — drift tests skip gracefully when absent
+})
+
+describe("sentinel", () => { assertions.forEach(a => a()) })
+```
+
+**Coverage tests** are deterministic — no LLM required, always run, can fail CI.
+
+**Drift tests** are advisory — they skip when no LLM is configured, and their failures are visible in test output without hard-blocking the build by default.
+
+```mermaid
+flowchart LR
+    Chronicle[(Chronicle)] -->|committed entries| Sentinel
+    Codebase[Codebase] -->|source files| Sentinel
+    LLM[LLM Provider] -. drift eval .-> Sentinel
+    Sentinel --> Report([coverage + drift report])
+```
 
 ---
 

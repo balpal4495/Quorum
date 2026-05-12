@@ -1,0 +1,5 @@
+export { coverage } from "./coverage"
+export { detectDrift } from "./drift"
+export { sentinelAssertions } from "./assert"
+export type { CoverageReport, FileCoverage, DriftReport, DriftFlag } from "../shared/types"
+export type { SentinelAssertOptions } from "./assert"
