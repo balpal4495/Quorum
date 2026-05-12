@@ -1,0 +1,11 @@
+{
+  "id": "10b848a2-480f-4c5d-8b96-2b97146c74d9",
+  "key_insight": "Mermaid node labels do not support \\n line breaks — the escape is parsed literally and causes the entire diagram to fail silently on GitHub with a blank render and no error message",
+  "affected_areas": ["docs", "README.md", "mermaid"],
+  "status": "validated",
+  "confidence": 0.97,
+  "source_module": "chronicle",
+  "evidence_cited": [],
+  "work_ref": { "type": "pr", "ref": "PR #6" },
+  "timestamp": "2026-05-12T00:00:00.000Z"
+}

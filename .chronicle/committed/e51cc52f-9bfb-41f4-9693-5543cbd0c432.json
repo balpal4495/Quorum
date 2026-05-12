@@ -1,0 +1,11 @@
+{
+  "id": "e51cc52f-9bfb-41f4-9693-5543cbd0c432",
+  "key_insight": "Mermaid sequence diagram activation markers inside alt/else blocks trigger GitHub's 'svg element not in render tree' error — strip all plus/minus activation syntax for reliable rendering",
+  "affected_areas": ["docs", "README.md", "mermaid"],
+  "status": "validated",
+  "confidence": 0.95,
+  "source_module": "chronicle",
+  "evidence_cited": [],
+  "work_ref": { "type": "pr", "ref": "PR #6" },
+  "timestamp": "2026-05-12T00:00:00.000Z"
+}
