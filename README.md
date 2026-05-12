@@ -30,15 +30,16 @@ oracle.query()  →  jury.evaluate()  →  council.deliberate()  →  human gate
 
 ```mermaid
 flowchart TD
-    Agent[AI Agent] -->|"1 — query"| Oracle
-    Oracle <-->|"vector search + read"| Chronicle[(Chronicle\n.chronicle/)]
-    Oracle -->|"evidence"| Jury
-    Jury -->|"evaluation"| Council
-    Council -->|"satisfied: false — revise"| Agent
-    Council -->|"satisfied: true"| Gate[Human Gate]
-    Gate -->|"reject — revise"| Agent
-    Gate -->|"approve → commit"| Oracle
-    Oracle -->|"SUMMARY.md\ntemporal context"| Agent
+    Agent[AI Agent] -->|query| Oracle
+    Oracle -->|search| Chronicle[(Chronicle)]
+    Chronicle -->|entries| Oracle
+    Oracle -->|evidence| Jury
+    Jury -->|evaluation| Council
+    Council -->|not satisfied| Agent
+    Council -->|satisfied| Gate[Human Gate]
+    Gate -->|reject| Agent
+    Gate -->|approve and commit| Oracle
+    Oracle -->|SUMMARY.md| Agent
 ```
 
 **Sequence — one full decision cycle:**
@@ -52,24 +53,24 @@ sequenceDiagram
     participant Human
     participant Chronicle
 
-    Agent->>+Oracle: query(text)
-    Oracle->>+Chronicle: vector search
-    Chronicle-->>-Oracle: ranked entries
-    Oracle-->>-Agent: OracleResult[]
+    Agent->>Oracle: query(text)
+    Oracle->>Chronicle: vector search
+    Chronicle-->>Oracle: ranked entries
+    Oracle-->>Agent: OracleResult[]
 
-    Agent->>+Jury: evaluate(design, evidence)
-    Jury-->>-Agent: score, flags, passed
+    Agent->>Jury: evaluate(design, evidence)
+    Jury-->>Agent: score, flags, passed
 
-    Agent->>+Council: deliberate(design, evaluations)
-    Council-->>-Agent: satisfied, verdict, proposal
+    Agent->>Council: deliberate(design, evaluations)
+    Council-->>Agent: satisfied, verdict, proposal
 
-    alt satisfied: false
-        Agent->>Agent: revise design
-    else satisfied: true
-        Agent->>Human: surface verdict + proposal
-        Human->>+Oracle: commit(proposalId)
-        Oracle->>Chronicle: upsert + write committed entry
-        Oracle-->>-Human: ChronicleEntry
+    alt Council not satisfied
+        Note over Agent: revise design and retry
+    else Council satisfied
+        Agent->>Human: surface verdict and proposal
+        Human->>Oracle: commit(proposalId)
+        Oracle->>Chronicle: upsert entry
+        Oracle-->>Human: ChronicleEntry
     end
 ```
 
