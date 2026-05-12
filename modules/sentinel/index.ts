@@ -1,5 +1,6 @@
 export { coverage } from "./coverage"
 export { detectDrift } from "./drift"
+export { reviewContext } from "./review"
 export { sentinelAssertions } from "./assert"
 export type { CoverageReport, FileCoverage, DriftReport, DriftFlag } from "../shared/types"
 export type { SentinelAssertOptions } from "./assert"
