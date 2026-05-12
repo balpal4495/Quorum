@@ -14,6 +14,7 @@
 import { promises as fs } from "fs"
 import path from "path"
 import { fileURLToPath } from "url"
+import { execSync } from "child_process"
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const QUORUM_ROOT = path.resolve(__dirname, "..")
@@ -57,6 +58,15 @@ async function exists(p) {
 
 async function readJson(p) {
   return JSON.parse(await fs.readFile(p, "utf8"))
+}
+
+function geminiAvailable() {
+  try {
+    execSync("which gemini", { stdio: "ignore" })
+    return true
+  } catch {
+    return false
+  }
 }
 
 // ── Steps ──────────────────────────────────────────────────────────────────
@@ -133,15 +143,38 @@ async function mergeAgentsMd() {
 }
 
 async function mergeClaudeMd() {
-  const dest    = path.join(TARGET, "CLAUDE.md")
-  const section = [
-    "",
-    "## Quorum modules",
-    "",
-    "See [quorum/modules/CLAUDE.md](quorum/modules/CLAUDE.md) for Oracle, Jury, and Council internals.",
-    "See [.github/copilot-instructions.md](.github/copilot-instructions.md) for workflow rules.",
-    "",
-  ].join("\n")
+  const dest = path.join(TARGET, "CLAUDE.md")
+  const section = `
+## Quorum modules
+
+See [quorum/modules/CLAUDE.md](quorum/modules/CLAUDE.md) for Oracle, Jury, and Council internals.
+See [.github/copilot-instructions.md](.github/copilot-instructions.md) for workflow rules.
+
+## Gemini CLI (optional assistant)
+
+Before attempting any Gemini call, check availability:
+
+\`\`\`bash
+which gemini 2>/dev/null
+\`\`\`
+
+If the command returns empty, skip this section entirely. The project is fully functional
+without Gemini. Never try to install it or ask the user to install it mid-task.
+
+If Gemini is available, use it as a large-context assistant for tasks that require
+surveying many files at once — it can hold the entire codebase in a single context window.
+
+\`\`\`bash
+# Broad survey before narrowing
+GEMINI_CLI_TRUST_WORKSPACE=true gemini -p "Summarise the public API across all modules"
+
+# Second opinion on a design
+GEMINI_CLI_TRUST_WORKSPACE=true gemini -p "I'm about to change X. What should I watch out for?"
+\`\`\`
+
+You reason about Gemini's output — it assists, you decide. Never pass its response to the
+user unfiltered. If Gemini contradicts what you know from reading the code, trust your reading.
+`
 
   if (await exists(dest)) {
     const existing = await fs.readFile(dest, "utf8")
@@ -154,6 +187,26 @@ async function mergeClaudeMd() {
   } else {
     await fs.writeFile(dest, `# Claude Instructions\n${section}`, "utf8")
     log.created("CLAUDE.md")
+  }
+}
+
+async function mergeGeminiMd() {
+  const dest = path.join(TARGET, "GEMINI.md")
+
+  if (await exists(dest)) {
+    log.skipped("GEMINI.md (already present)")
+    return
+  }
+
+  if (!geminiAvailable()) {
+    log.skipped("GEMINI.md (Gemini CLI not detected — install it later to enable)")
+    return
+  }
+
+  const src = path.join(QUORUM_ROOT, "GEMINI.md")
+  if (await exists(src)) {
+    await fs.copyFile(src, dest)
+    log.created("GEMINI.md")
   }
 }
 
@@ -249,9 +302,12 @@ async function main() {
   await mergeCopilotInstructions()
   await mergeAgentsMd()
   await mergeClaudeMd()
+  await mergeGeminiMd()
   await updatePackageJson()
   await updateGitignore()
   await createChronicle()
+
+  const hasGemini = geminiAvailable()
 
   console.log(`\n${c.green("✓ Quorum initialized.")}`)
   console.log("\nNext steps:")
@@ -259,7 +315,17 @@ async function main() {
   console.log("  2. Wire setup() into your entry point:\n")
   console.log(c.dim('     import { setup } from "./quorum/modules/setup"'))
   console.log(c.dim('     const { oracle, evaluate, deliberate } = await setup({ llm: yourProvider })'))
-  console.log("\n  Or tell your AI: \"follow quorum/SETUP.md\"\n")
+  console.log("\n  Or tell your AI: \"follow quorum/SETUP.md\"")
+
+  if (!hasGemini) {
+    console.log(`\n  ${c.dim("Optional: install Gemini CLI for large-context assistance")}`)
+    console.log(c.dim("  npm install -g @google/gemini-cli  +  set GEMINI_API_KEY"))
+    console.log(c.dim("  See quorum/SETUP.md Step 10 for details."))
+  } else {
+    console.log(`\n  ${c.green("✓ Gemini CLI detected")} — GEMINI.md written. Set GEMINI_API_KEY if not already set.`)
+  }
+
+  console.log("")
 }
 
 main().catch((err) => {
