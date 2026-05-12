@@ -18,12 +18,10 @@ jobs:
         with:
           node-version: 22
 
-      - name: Debug npm + OIDC environment
-        run: |
-          npm --version
-          node --version
-          echo "OIDC URL set: ${{ env.ACTIONS_ID_TOKEN_REQUEST_URL != '' }}"
-          node -e "console.log('OIDC available:', !!process.env.ACTIONS_ID_TOKEN_REQUEST_URL)"
+      - run: npm install -g npm@11
+        name: Upgrade to npm v11 (required for OIDC Trusted Publishing)
+
+      - run: npm --version
 
       - run: npm ci
 
