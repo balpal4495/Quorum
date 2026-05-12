@@ -1,0 +1,13 @@
+{
+  "id": "55278b3d-1e4b-403b-bfb1-d65f321034b8",
+  "key_insight": "SUMMARY.md gives agents temporal sequence that vector search cannot — what work happened and in what order; Oracle query gives semantic relevance; both are needed",
+  "affected_areas": ["oracle/propose.ts", "shared/types.ts", "chronicle/write-path"],
+  "status": "open",
+  "confidence": 0.78,
+  "source_module": "council",
+  "evidence_cited": [
+    "716ab32b-9f8f-4228-9c00-305758d543c7",
+    "30bdc1c1-d776-4888-9244-02c8a5990436"
+  ],
+  "timestamp": "2026-05-12T00:00:00.000Z"
+}

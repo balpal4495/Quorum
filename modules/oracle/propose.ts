@@ -5,6 +5,7 @@ import { exec } from "child_process"
 import { promisify } from "util"
 import type { ChronicleEntry, SimilarityWarning } from "../shared/types"
 import type { OracleDeps } from "./types"
+import { updateSummary } from "./summary"
 
 const execAsync = promisify(exec)
 
@@ -131,6 +132,13 @@ export async function commit(
     await execAsync(`git add "${committedPath}"`)
   } catch {
     // Not in a git repo, or git is unavailable — silently continue
+  }
+
+  // Rebuild SUMMARY.md — best-effort, never fail a commit
+  try {
+    await updateSummary(chronicleDir)
+  } catch {
+    // Summary generation failure must not fail a commit
   }
 
   // Remove the proposal — it has been committed
