@@ -87,6 +87,53 @@ export type QueryOptions = {
   scoreThreshold?: number
 }
 
+// ── Sentinel types ────────────────────────────────────────────────────────────
+
+/** Per-file result from sentinel.coverage(). */
+export type FileCoverage = {
+  file: string
+  covered: boolean
+  /** IDs of Chronicle entries that reference this file in affected_areas. */
+  entryIds: string[]
+}
+
+/** Returned by sentinel.coverage(). */
+export type CoverageReport = {
+  totalFiles: number
+  coveredFiles: number
+  uncoveredFiles: string[]
+  coverageByFile: FileCoverage[]
+  /** Integer 0–100. Treat as directional signal, not a precision metric. */
+  percentage: number
+}
+
+/**
+ * Advisory result for a single Chronicle entry from sentinel.detectDrift().
+ * Never auto-updates an entry — human reviews the flag and decides.
+ */
+export type DriftFlag = {
+  entryId: string
+  keyInsight: string
+  affectedFiles: string[]
+  stillValid: boolean
+  /** 0–1 confidence in the LLM's verdict. Low confidence = needs closer human review. */
+  confidence: number
+  reasoning: string
+}
+
+/** Returned by sentinel.detectDrift(). */
+export type DriftReport = {
+  checkedAt: string
+  /** Entries the LLM judged as no longer accurate — review and consider updating status. */
+  flags: DriftFlag[]
+  /** Entries the LLM judged as still current. */
+  confirmed: DriftFlag[]
+  /** Entry IDs skipped because no affected_areas value resolved to a local file. */
+  skipped: string[]
+}
+
+// ── Oracle client ─────────────────────────────────────────────────────────────
+
 /**
  * The public interface any module uses to interact with Chronicle.
  * Inject this into Jury and Council — do not couple them to Oracle internals.
