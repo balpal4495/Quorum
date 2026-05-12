@@ -1,10 +1,11 @@
-# Oracle · Jury · Council
+# Oracle · Jury · Council · Sentinel
 
-Three portable modules for the knowledge and reasoning layer of any agentic workflow.
+Four portable modules for the knowledge and reasoning layer of any agentic workflow.
 Drop the `modules/` folder into your project and wire up the dependencies.
 
 ```
 Oracle  →  Jury  →  Council  →  human gate  →  Executor
+Sentinel  →  coverage + drift + PR coverage map
 ```
 
 ---
@@ -16,6 +17,7 @@ Oracle  →  Jury  →  Council  →  human gate  →  Executor
 | **Oracle** | Query and write interface to Chronicle (the persistent knowledge store) | No |
 | **Jury** | Evaluate a design against Oracle evidence — produces a confidence score | Yes |
 | **Council** | Adversarial validation via parallel advisor/reviewer fan-out — produces a verdict | Yes |
+| **Sentinel** | Chronicle coverage reporting, drift detection, and PR coverage maps | Optional |
 
 ---
 
@@ -25,9 +27,9 @@ Chronicle is the data that underpins the system. It is not a module — it lives
 
 ```
 .chronicle/
-  entries/        ← LanceDB vector store (indexed entries)
-  proposals/      ← pending human-approval writes (JSON files)
-  query-log.jsonl ← append-only query audit log
+  committed/      ← approved entries as JSON (committed to git, source of truth)
+  proposals/      ← staged entries awaiting human approval (JSON, not indexed yet)
+  SUMMARY.md      ← auto-generated agent context, rebuilt on every commit
 ```
 
 Every entry goes through `oracle.propose()` → human approval → `oracle.commit()`. There are no auto-commits.
@@ -170,6 +172,60 @@ const anthropicProvider: LLMProvider = async (messages, model = "claude-3-5-sonn
 | `true` | `proceed` | Human gate → Executor |
 | `false` | `redesign` | Return to Designer with `verdict` |
 | `false` | `investigate-more` | Return to Detective with `juryOutput.gaps` |
+
+---
+
+## Sentinel
+
+Sentinel is the health and visibility layer. It operates independently of the Oracle → Jury → Council pipeline and has no LLM dependency for its core functions.
+
+### Coverage
+
+Reports which source files have Chronicle entries and which are blind spots.
+
+```typescript
+import { coverage } from "./modules/sentinel"
+
+const report = await coverage(".chronicle", "src", {
+  excludeTestFiles: true, // default — __tests__/, *.test.ts, *.spec.ts are excluded
+})
+// report.percentage, report.uncoveredFiles, report.coverageByFile
+```
+
+### Drift detection
+
+For each Chronicle entry, asks the LLM whether the `key_insight` still accurately describes the current code. Advisory only — never modifies entries.
+
+```typescript
+import { detectDrift } from "./modules/sentinel"
+
+const report = await detectDrift(".chronicle", "src", llmProvider)
+// report.flags (potentially stale), report.confirmed, report.skipped
+```
+
+### Vitest assertions
+
+Drop into any Vitest suite to get coverage and drift as named tests.
+
+```typescript
+import { describe } from "vitest"
+import { sentinelAssertions } from "./modules/sentinel"
+
+const assertions = sentinelAssertions({
+  chronicleDir: ".chronicle",
+  codebasePath: "src",       // defaults to "." — scan from project root
+  llm: myLLMProvider,        // omit to skip drift tests
+  minCoveragePercent: 50,    // default 0 = advisory only, never fails CI
+})
+
+describe("sentinel", () => { assertions.forEach(a => a()) })
+```
+
+`minCoveragePercent: 0` (the default) means the coverage test is purely advisory — it logs gaps to the console but never fails the build. Raise it as the project matures.
+
+### PR coverage map
+
+`sentinel/review.ts` exports `reviewContext(changedFiles, chronicleDir, codebasePath)` — used by the `sentinel-pr.yml` GitHub Actions workflow to post a PR comment showing the full-project coverage table and a colour-coded Mermaid heatmap. Test files are excluded from the scan.
 
 ---
 

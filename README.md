@@ -127,7 +127,9 @@ Sentinel answers three questions Chronicle cannot answer about itself.
 
 **Drift** — do existing Chronicle entries still accurately describe the code? Insights become stale without anyone noticing.
 
-**PR knowledge map** — when a PR is opened, which modules does it touch, and what does Chronicle know about them? Surfaces context for reviewers at exactly the right moment.
+**PR coverage map** — when a PR is opened, every module in the codebase is shown with its Chronicle coverage percentage, risk colour, and how many files the PR touches. Reviewers see exactly where the knowledge is solid and where it goes dark — as a table and a colour-coded heatmap, not a prose summary.
+
+Sentinel is designed for both new and established projects. On a brand-new project with no Chronicle entries it surfaces a bootstrap prompt rather than a wall of red. As the project matures, coverage thresholds can be raised to enforce standards in CI.
 
 ### In CI — coverage and drift as Vitest assertions
 
@@ -137,44 +139,51 @@ import { sentinelAssertions } from "./modules/sentinel/assert"
 
 const assertions = sentinelAssertions({
   chronicleDir: ".chronicle",
-  codebasePath: "modules",
-  llm: myLLMProvider, // optional — drift tests skip gracefully when absent
+  codebasePath: "src",          // path to your source tree — defaults to "."
+  llm: myLLMProvider,           // optional — drift tests skip gracefully when absent
+  minCoveragePercent: 50,       // optional — 0 (default) = advisory only, never fails CI
 })
 
 describe("sentinel", () => { assertions.forEach(a => a()) })
 ```
 
-Coverage tests are deterministic — no LLM required, always run, can fail CI. Drift tests are advisory — they skip when no LLM is configured and never hard-block the build.
+Coverage tests are deterministic — no LLM required, always run. By default (`minCoveragePercent: 0`) gaps are logged but CI never fails, which is right for a new project. Raise the threshold as Chronicle matures. Drift tests are always advisory — they skip when no LLM is configured and never hard-block the build.
 
-### In PRs — the knowledge map
+Test files (`__tests__/`, `*.test.ts`, `*.spec.ts`) are excluded from tracking by default — only source files count toward coverage.
 
-The `sentinel-pr.yml` workflow runs on every PR and posts a comment showing the path the PR walks through Chronicle's knowledge:
+### In PRs — the coverage map
+
+The `sentinel-pr.yml` workflow runs on every PR and posts a comment with a full-project coverage table and a colour-coded Mermaid heatmap. Changed modules are bolded. The comment updates in place on each push — one comment per PR, never a thread of duplicates.
 
 ```
-## Sentinel — PR Knowledge Map
+## Sentinel — Chronicle Coverage Map — 2026-W20
 
-1 of 3 modules touched have Chronicle coverage.
+| Module   | Coverage | Entries | Files | PR Changes  | Risk   |
+|----------|----------|---------|-------|-------------|--------|
+| council/ | 0%       | 0       | 8     | —           | high   |
+| jury/    | 0%       | 0       | 4     | —           | high   |
+| oracle/  | 22%      | 4       | 9     | —           | medium |
+| scripts/ | 0%       | 0       | 1     | **1 files** | high   |
+| sentinel/| 0%       | 0       | 5     | **2 files** | high   |
+| shared/  | 100%     | 2       | 1     | —           | low    |
 
-[mermaid diagram — touched modules + coverage state per module]
+[mermaid heatmap — Chronicle root → all modules, nodes coloured red/yellow/green by risk,
+ changed modules labelled with file count]
 
-### What Chronicle knows about this path
+### Chronicle context for changed modules
 **oracle/**
-- [30bdc1c1] schema constraints not LLM self-evaluation — validated (0.88)
-
-### Where the path goes dark
-- **council/** — 2 files changed, no Chronicle coverage.
-  Consider proposing an entry once this lands.
+- `[30bdc1c1]` schema constraints not LLM self-evaluation — validated (0.88)
 ```
 
-The comment updates in place on each new push — one comment per PR, never a thread of duplicates.
+On a new project with no Chronicle entries, the comment instead shows a bootstrap prompt guiding the team toward their first `oracle.propose()` call.
 
 ```mermaid
 flowchart LR
     Chronicle[(Chronicle)] -->|committed entries| Sentinel
-    Codebase[Codebase] -->|source files| Sentinel
+    Codebase[Codebase] -->|source files, excl. tests| Sentinel
     LLM[LLM Provider] -. drift eval .-> Sentinel
     Sentinel --> Vitest([Vitest assertions])
-    Sentinel --> PRComment([PR comment])
+    Sentinel --> PRComment([PR coverage map])
 ```
 
 ---
