@@ -18,13 +18,9 @@ jobs:
         with:
           node-version: 22
 
-      - run: npm install -g npm@11
-        name: Upgrade to npm v11 (required for OIDC Trusted Publishing)
-
-      - run: npm --version
-
       - run: npm ci
 
       - run: npm test
 
-      - run: npm publish --provenance --access public
+      - name: Publish via npm v11 (OIDC Trusted Publishing)
+        run: npx --package=npm@11 --yes -- npm publish --provenance --access public
