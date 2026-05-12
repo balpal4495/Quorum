@@ -84,7 +84,13 @@ async function copyModules() {
 
   const src  = path.join(QUORUM_ROOT, "modules")
   const dest = path.join(TARGET, "quorum", "modules")
-  await fs.cp(src, dest, { recursive: true })
+  await fs.cp(src, dest, {
+    recursive: true,
+    filter: (src) =>
+      !src.includes("__tests__") &&
+      !src.includes(".test.ts") &&
+      !src.includes(".spec.ts"),
+  })
   log.created("quorum/modules/")
 
   await fs.copyFile(
@@ -165,11 +171,9 @@ If Gemini is available, use it as a large-context assistant for tasks that requi
 surveying many files at once — it can hold the entire codebase in a single context window.
 
 \`\`\`bash
-# Broad survey before narrowing
-GEMINI_CLI_TRUST_WORKSPACE=true gemini -p "Summarise the public API across all modules"
-
-# Second opinion on a design
-GEMINI_CLI_TRUST_WORKSPACE=true gemini -p "I'm about to change X. What should I watch out for?"
+# The Bash tool does not auto-source shell profiles — always prefix with source:
+source ~/.zshrc && gemini -p "Summarise the public API across all modules"
+source ~/.zshrc && gemini -p "I'm about to change X. What should I watch out for?"
 \`\`\`
 
 You reason about Gemini's output — it assists, you decide. Never pass its response to the
@@ -330,7 +334,33 @@ async function main() {
   console.log("")
 }
 
-main().catch((err) => {
-  console.error(c.red("\nQuorum init failed:"), err.message)
+async function cli() {
+  const command = process.argv[2] ?? ""
+
+  if (!command || command === "help" || command === "--help" || command === "-h") {
+    console.log(`\n${c.bold("quorum")} — portable reasoning layer for agentic codebases\n`)
+    console.log("Usage:")
+    console.log(`  ${c.blue("npx @balpal4495/quorum init")}        Scaffold Quorum into a project (or meld into an existing one)`)
+    console.log(`  ${c.blue("npx quorum --version")}   Print version\n`)
+    return
+  }
+
+  if (command === "--version" || command === "-v" || command === "version") {
+    console.log("0.1.0")
+    return
+  }
+
+  if (command === "init") {
+    await main()
+    return
+  }
+
+  console.error(c.red(`\nUnknown command: ${command}`))
+  console.error("Run 'npx quorum help' for usage.")
+  process.exit(1)
+}
+
+cli().catch((err) => {
+  console.error(c.red("\nQuorum failed:"), err.message)
   process.exit(1)
 })

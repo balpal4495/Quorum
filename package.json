@@ -1,11 +1,26 @@
 {
-  "name": "quorum",
+  "name": "@balpal4495/quorum",
   "version": "0.1.0",
-  "description": "Portable reasoning layer for agentic codebases — Oracle, Jury, Council",
-  "private": true,
+  "description": "Portable reasoning layer for agentic codebases — Oracle, Jury, Council, Sentinel",
   "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/balpal4495/Quorum.git"
+  },
+  "homepage": "https://github.com/balpal4495/Quorum#readme",
+  "keywords": [
+    "ai",
+    "agents",
+    "agentic",
+    "reasoning",
+    "knowledge",
+    "chronicle",
+    "oracle",
+    "llm"
+  ],
   "bin": {
-    "quorum": "./bin/init.js"
+    "quorum": "bin/init.js"
   },
   "scripts": {
     "init": "node bin/init.js",

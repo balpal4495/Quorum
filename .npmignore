@@ -1,0 +1,14 @@
+# Test files
+modules/**/__tests__/
+modules/**/*.test.ts
+modules/**/*.spec.ts
+
+# Dev tooling
+scripts/
+tsconfig.json
+.github/workflows/
+sentinel-report.md
+
+# Runtime data
+.chronicle/
+node_modules/
