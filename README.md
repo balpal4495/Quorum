@@ -29,17 +29,13 @@ oracle.query()  →  jury.evaluate()  →  council.deliberate()  →  human gate
 **Flow — system components and connections:**
 
 ```mermaid
-flowchart TD
+flowchart LR
     Agent[AI Agent] -->|query| Oracle
-    Oracle -->|search| Chronicle[(Chronicle)]
-    Chronicle -->|entries| Oracle
     Oracle -->|evidence| Jury
-    Jury -->|evaluation| Council
-    Council -->|not satisfied| Agent
-    Council -->|satisfied| Gate[Human Gate]
-    Gate -->|reject| Agent
-    Gate -->|approve and commit| Oracle
-    Oracle -->|SUMMARY.md| Agent
+    Jury -->|scores| Council
+    Council -->|verdict| Gate[Human Gate]
+    Oracle -. reads .-> Chronicle[(Chronicle)]
+    Gate -. approved commit .-> Chronicle
 ```
 
 **Sequence — one full decision cycle:**
