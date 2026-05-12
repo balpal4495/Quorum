@@ -33,17 +33,21 @@ codebase in a single context window where you work best on focused, precise task
 - You want to trace a pattern, type, or call across the whole codebase
 - You want a second opinion on an architecture decision before proposing it to the user
 
+**Important:** The Bash tool does not auto-source shell profiles. Always prefix Gemini
+calls with `source ~/.zshrc &&` so that `GEMINI_API_KEY` and `GEMINI_CLI_TRUST_WORKSPACE`
+are loaded from the user's profile before invoking the CLI.
+
 **Patterns:**
 
 ```bash
 # Broad survey before narrowing
-GEMINI_CLI_TRUST_WORKSPACE=true gemini -p "What are all the public exports across modules/ and what does each do?"
+source ~/.zshrc && gemini -p "What are all the public exports across modules/ and what does each do?"
 
 # Trace a pattern across many files
-find . -name "*.ts" | xargs cat | GEMINI_CLI_TRUST_WORKSPACE=true gemini -p "Find every place oracle.commit() is called"
+source ~/.zshrc && find . -name "*.ts" | xargs cat | gemini -p "Find every place oracle.commit() is called"
 
 # Second opinion on a design
-GEMINI_CLI_TRUST_WORKSPACE=true gemini -p "I'm about to add streaming to oracle/query.ts. Given the full codebase, what should I watch out for?"
+source ~/.zshrc && gemini -p "I'm about to add streaming to oracle/query.ts. Given the full codebase, what should I watch out for?"
 ```
 
 **Processing Gemini responses:**
