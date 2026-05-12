@@ -39,8 +39,8 @@ async function resolveLocalFiles(areas: string[], codebasePath: string): Promise
     }
     // Walk up to two levels to find files whose relative path contains the area string
     try {
-      const all = await fs.readdir(codebasePath, { recursive: true } as Parameters<typeof fs.readdir>[1])
-      for (const f of all as string[]) {
+      const all = await fs.readdir(codebasePath, { recursive: true, encoding: "utf8" })
+      for (const f of all) {
         const normalised = f.replace(/\\/g, "/")
         if (normalised.includes(area.replace(/\\/g, "/")) && normalised.endsWith(".ts")) {
           resolved.push(path.join(codebasePath, f))

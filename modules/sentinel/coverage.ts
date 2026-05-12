@@ -1,4 +1,4 @@
-import { promises as fs } from "fs"
+import { promises as fs, Dirent } from "fs"
 import path from "path"
 import type { ChronicleEntry, CoverageReport, FileCoverage } from "../shared/types"
 
@@ -8,9 +8,9 @@ async function walkFiles(dir: string, extensions: string[]): Promise<string[]> {
   const results: string[] = []
 
   async function recurse(current: string): Promise<void> {
-    let entries: Awaited<ReturnType<typeof fs.readdir>>
+    let entries: Dirent<string>[]
     try {
-      entries = await fs.readdir(current, { withFileTypes: true })
+      entries = await fs.readdir(current, { withFileTypes: true, encoding: "utf8" })
     } catch {
       return
     }
