@@ -2,9 +2,14 @@ import { promises as fs, Dirent } from "fs"
 import path from "path"
 import type { ChronicleEntry, CoverageReport, FileCoverage } from "../shared/types"
 
-const IGNORED_DIRS = new Set(["node_modules", "dist", ".git", ".chronicle", "coverage"])
+const IGNORED_DIRS = new Set(["node_modules", "dist", ".git", ".chronicle", "coverage", "__tests__"])
+const TEST_SUFFIXES = [".test.ts", ".spec.ts", ".test.js", ".spec.js"]
 
-async function walkFiles(dir: string, extensions: string[]): Promise<string[]> {
+async function walkFiles(
+  dir: string,
+  extensions: string[],
+  excludeTestFiles: boolean,
+): Promise<string[]> {
   const results: string[] = []
 
   async function recurse(current: string): Promise<void> {
@@ -18,6 +23,7 @@ async function walkFiles(dir: string, extensions: string[]): Promise<string[]> {
       if (entry.isDirectory()) {
         if (!IGNORED_DIRS.has(entry.name)) await recurse(path.join(current, entry.name))
       } else if (extensions.some(ext => entry.name.endsWith(ext))) {
+        if (excludeTestFiles && TEST_SUFFIXES.some(s => entry.name.endsWith(s))) continue
         results.push(path.join(current, entry.name))
       }
     }
@@ -72,12 +78,13 @@ function isCovered(relativePath: string, entries: ChronicleEntry[]): { covered: 
 export async function coverage(
   chronicleDir: string,
   codebasePath: string,
-  options: { extensions?: string[] } = {},
+  options: { extensions?: string[]; excludeTestFiles?: boolean } = {},
 ): Promise<CoverageReport> {
   const extensions = options.extensions ?? [".ts"]
+  const excludeTestFiles = options.excludeTestFiles ?? true
   const [entries, files] = await Promise.all([
     readCommittedEntries(chronicleDir),
-    walkFiles(codebasePath, extensions),
+    walkFiles(codebasePath, extensions, excludeTestFiles),
   ])
 
   const coverageByFile: FileCoverage[] = files.map(absolute => {
