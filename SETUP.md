@@ -176,6 +176,16 @@ It must be called once before any `oracle.query()`, `evaluate()`, or `deliberate
 
 If no entry point exists yet, note that `setup()` must be called before first use — do not inline it.
 
+**Approving Chronicle proposals:** after an agent calls `oracle.propose()`, approve and index the entry from the terminal:
+
+```bash
+quorum commit --list         # see pending proposals
+quorum commit <id>           # approve and index a proposal
+quorum commit <id> --dry-run # preview without writing
+```
+
+Requires `@xenova/transformers` and `vectordb` (both added in Step 3).
+
 ---
 
 ## Step 7 — Verify Chronicle is created
@@ -260,3 +270,17 @@ Key reminders:
 - **Query Oracle before proposing anything.** `oracle.query("what you're about to do")` first.
 - **Never call `oracle.commit()` autonomously.** Only `oracle.propose()`. A human commits.
 - **Chronicle entries are ground truth.** Respect `refuted` entries — do not retry what has already failed.
+
+### CLI quick reference
+
+These commands are available globally after `npm install -g @balpal4495/quorum`:
+
+| Command | What it does |
+|---|---|
+| `quorum status` | Chronicle health — pending proposals, committed entries |
+| `quorum check --outcome X --design Y` | Preflight + risk classifier (no LLM) |
+| `quorum commit --list` | List pending proposals |
+| `quorum commit <id>` | Approve and index a proposal |
+| `quorum sentinel coverage [--path <dir>]` | Chronicle coverage of source files |
+
+`quorum check` exit codes: `0` = low/medium risk · `1` = high · `2` = critical

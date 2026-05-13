@@ -22,6 +22,97 @@ That's the whole setup. Quorum copies its modules into `quorum/`, merges instruc
 
 ---
 
+## CLI commands
+
+After `npm install -g @balpal4495/quorum` (or `npx @balpal4495/quorum`), you get:
+
+| Command | What it does | LLM? |
+|---|---|---|
+| `quorum init` | Scaffold Quorum into a project | No |
+| `quorum status` | Chronicle health — pending proposals, committed entries, recent activity | No |
+| `quorum check --outcome X --design Y` | Deterministic preflight + risk classifier | No |
+| `quorum commit <id>` | Approve and index a pending proposal | No |
+| `quorum sentinel [coverage]` | Chronicle coverage of your source files | No |
+
+### `quorum check` — instant risk triage before the full pipeline
+
+```bash
+quorum check \
+  --outcome "migrate auth from sessions to JWT" \
+  --design "replace session middleware with HS256 tokens on all routes"
+```
+
+```
+Preflight
+  ⚠  Sensitive areas: auth
+  ✗  No rollback strategy mentioned
+  ✗  No test strategy mentioned
+
+Risk
+  Level:        CRITICAL
+  Council mode: full
+  Reasons:
+    · authentication or authorisation logic
+
+  ⚠  Critical risk — human architecture review required before proceeding.
+```
+
+Exit codes: `0` = low/medium, `1` = high, `2` = critical — pipe into CI scripts directly.
+Also accepts JSON on stdin: `echo '{"outcome":"…","design":"…"}' | quorum check --json`
+
+### `quorum status` — see what's pending and what's been learned
+
+```bash
+quorum status
+```
+
+```
+Chronicle status  .chronicle/
+
+     8  committed entries  (6 accepted, 1 refuted, 1 other)
+     2  pending proposals
+
+Pending proposals  (awaiting quorum commit <id>)
+  a1b2c3d4  JWT key rotation approach needs RS256 not HS256
+            oracle/propose.ts, modules/auth/
+
+Recent entries
+  e5f6a7b8  [accepted]  Shadow column migration avoids exclusive lock on 50M rows  2d ago
+```
+
+### `quorum commit <id>` — the human gate from your terminal
+
+```bash
+quorum commit --list        # see pending proposals with full detail
+quorum commit a1b2c3d4      # approve and index (supports partial ID prefix)
+quorum commit a1b2c3d4 --dry-run  # preview without writing
+```
+
+Embeds the entry via the local ONNX model, upserts to LanceDB, writes to `.chronicle/committed/`, updates `SUMMARY.md`, and removes the proposal — the full oracle commit in one command. Requires `@xenova/transformers` and `vectordb` to be installed (both are optional deps from `quorum init`).
+
+### `quorum sentinel coverage` — see where Chronicle goes dark
+
+```bash
+quorum sentinel coverage --path modules
+```
+
+```
+Chronicle coverage  modules/
+
+  ████░░░░░░░░░░░░░░░░  20%  (6/30 files)
+
+Covered
+  ✓  oracle/propose.ts  (3 entries)
+  ✓  oracle/query.ts    (1 entry)
+
+Uncovered  (no Chronicle entries reference these files)
+  ✗  council/chairman.ts
+  ✗  jury/evaluate.ts
+  …
+```
+
+---
+
 ## Then just talk to your AI
 
 Once initialized, open your AI in agent mode and tell it:
@@ -54,7 +145,14 @@ Every proposal goes through Jury (confidence scoring against evidence) and Counc
 
 ### You approve what gets remembered
 
-When a decision is made, your AI stages a Chronicle entry using `oracle.propose()`. You approve it with `oracle.commit(proposalId)`. Nothing is indexed without your explicit sign-off.
+When a decision is made, your AI stages a Chronicle entry using `oracle.propose()`. You approve it from the terminal:
+
+```bash
+quorum commit --list        # see what's pending
+quorum commit <id>          # approve and index
+```
+
+Nothing is indexed without your explicit sign-off.
 
 ```
 .chronicle/
@@ -253,7 +351,12 @@ Sentinel surfaces two things Chronicle can't tell you about itself.
 
 **Coverage** — which parts of your codebase has the AI never documented?
 
-**Drift** — do existing Chronicle entries still accurately describe the code, or have they gone stale?
+```bash
+quorum sentinel coverage --path src   # quick check from the terminal
+quorum sentinel coverage --json       # machine-readable, for scripts
+```
+
+**Drift** — do existing Chronicle entries still accurately describe the code, or have they gone stale? Drift detection requires an LLM; use `sentinelAssertions({ llm })` in your test suite (the CLI surfaces the message and directs you there).
 
 Add `sentinel-pr.yml` (included in `quorum/`) to your GitHub Actions and every PR gets a comment showing a full-project coverage table and a colour-coded heatmap. Changed modules are highlighted. Reviewers see exactly where knowledge is solid and where it goes dark.
 

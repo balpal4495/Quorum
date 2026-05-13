@@ -20,7 +20,7 @@
     "llm"
   ],
   "bin": {
-    "quorum": "bin/init.js"
+    "quorum": "bin/quorum.js"
   },
   "scripts": {
     "init": "node bin/init.js",
