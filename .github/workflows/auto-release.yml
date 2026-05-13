@@ -69,7 +69,7 @@ jobs:
           git add package.json
           git commit -m "chore: release ${{ steps.version.outputs.new_version }}"
           git tag "${{ steps.version.outputs.new_version }}"
-          git pull --rebase origin main
+          git pull --rebase --autostash origin main
           git push origin main
           git push origin "${{ steps.version.outputs.new_version }}"
 
