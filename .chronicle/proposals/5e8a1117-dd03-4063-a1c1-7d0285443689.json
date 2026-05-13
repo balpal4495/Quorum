@@ -1,0 +1,39 @@
+{
+  "schema_version": 2,
+  "topic": "PR #14",
+  "decision": "feat: calibrated Jury, structured Council, risk classifier, preflight, eval suite",
+  "key_insight": "feat: calibrated Jury, structured Council, risk classifier, preflight, eval suite",
+  "affected_areas": [
+    ".github/workflows/auto-release.yml",
+    "README.md",
+    "SETUP.md",
+    "evals/__tests__/eval.test.ts",
+    "evals/cases/auth_hs256_rejected.json",
+    "evals/cases/auth_rs256_valid.json",
+    "evals/cases/cache_missing_lock.json",
+    "evals/cases/db_naive_not_null.json",
+    "evals/cases/logging_pii_leak.json",
+    "evals/cases/migration_with_rollback.json"
+  ],
+  "scope": [
+    "jury",
+    "council",
+    "shared",
+    "ci",
+    "docs",
+    "npm"
+  ],
+  "alternatives_considered": [],
+  "rejected_reason": [],
+  "supersedes": null,
+  "superseded_by": null,
+  "status": "open",
+  "confidence": 0.7,
+  "source_module": "pr-merge",
+  "evidence_cited": [],
+  "work_ref": {
+    "type": "pr",
+    "ref": "PR #14"
+  },
+  "outcome": "## What this PR does\n\nAddresses the \"AI theater\" critique by making Jury and Council produce verifiable, calibrated output rather than confident-sounding text. Seven concrete improvements, all with tests.\n\n---\n\n## Changes\n\n### Jury — calibrated confidence\n\nPreviously: a single `confidence` float the LLM invented.\n\nNow: four scored dimensions with a deterministic recompute.\n\n```\nconfidence_breakdown: {\n  evidence_support  — do validated Chronicle entries confirm this approach?\n  feasibility      "
+}
