@@ -1,0 +1,36 @@
+{
+  "schema_version": 2,
+  "topic": "PR #15",
+  "decision": "feat: quorum CLI — status, check, commit, sentinel",
+  "key_insight": "feat: quorum CLI — status, check, commit, sentinel",
+  "affected_areas": [
+    "README.md",
+    "SETUP.md",
+    "bin/commands/check.js",
+    "bin/commands/commit.js",
+    "bin/commands/init.js",
+    "bin/commands/sentinel.js",
+    "bin/commands/status.js",
+    "bin/quorum.js",
+    "bin/shared/chronicle.js",
+    "bin/shared/colors.js"
+  ],
+  "scope": [
+    "cli",
+    "docs",
+    "npm"
+  ],
+  "alternatives_considered": [],
+  "rejected_reason": [],
+  "supersedes": null,
+  "superseded_by": null,
+  "status": "open",
+  "confidence": 0.7,
+  "source_module": "pr-merge",
+  "evidence_cited": [],
+  "work_ref": {
+    "type": "pr",
+    "ref": "PR #15"
+  },
+  "outcome": "## Summary\n\n- **`quorum status`** — Chronicle health at a glance: pending proposal count, committed entry count with status breakdown, truncated key insights, relative timestamps. `--json` flag for scripting.\n- **`quorum check --outcome X --design Y`** — Deterministic preflight + risk classifier with zero LLM calls. Accepts `--outcome`/`--design` flags or JSON piped from stdin. Exit codes: `0` = low/medium, `1` = high, `2` = critical — directly scriptable in CI.\n- **`quorum commit <id>`** — The "
+}
