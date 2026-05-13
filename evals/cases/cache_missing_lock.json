@@ -1,0 +1,31 @@
+{
+  "id": "cache_missing_lock",
+  "description": "Cache implementation missing stampede protection — should warn or block",
+  "outcome": "Cache expensive product catalogue queries in Redis",
+  "design": "On cache miss, fetch from database and write to Redis with a 5-minute TTL. No locking strategy.",
+  "oracle_evidence": [
+    {
+      "id": "cache-008",
+      "key_insight": "Redis cache without stampede protection caused DB overload during peak traffic",
+      "decision": "Redis cache without stampede protection caused DB overload — all cache misses hit DB simultaneously during spikes",
+      "schema_version": 2,
+      "affected_areas": ["src/cache/", "src/api/products.ts"],
+      "scope": ["cache", "performance"],
+      "status": "refuted",
+      "confidence": 0.85,
+      "source_module": "council",
+      "evidence_cited": [],
+      "timestamp": "2025-02-20T14:00:00Z"
+    }
+  ],
+  "expected": {
+    "jury_max_confidence": 0.60,
+    "council_recommendation": "redesign",
+    "must_flag": ["stampede", "lock"],
+    "must_cite": ["cache-008"],
+    "risk_level": "medium",
+    "preflight_expects": {
+      "chronicle_conflicts": ["cache-008"]
+    }
+  }
+}

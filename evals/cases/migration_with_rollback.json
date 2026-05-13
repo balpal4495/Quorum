@@ -1,0 +1,43 @@
+{
+  "id": "migration_with_rollback",
+  "description": "DB migration that explicitly addresses rollback and uses safe pattern — should proceed",
+  "outcome": "Add a NOT NULL region column to the users table",
+  "design": "Use shadow column pattern: add region TEXT NULLABLE, backfill via batched update, then add NOT NULL constraint after 100% fill confirmed. Rollback: drop shadow column. Uses pg_repack to avoid exclusive locks.",
+  "oracle_evidence": [
+    {
+      "id": "db-017",
+      "key_insight": "Avoid naive locking migrations on large tables — use shadow column pattern or pg_repack",
+      "decision": "Avoid naive locking migrations on large tables — use shadow column pattern or pg_repack",
+      "schema_version": 2,
+      "affected_areas": ["db/migrations", "src/models/user.ts"],
+      "scope": ["database", "migrations"],
+      "status": "refuted",
+      "confidence": 0.91,
+      "source_module": "council",
+      "evidence_cited": [],
+      "timestamp": "2025-01-10T10:00:00Z"
+    },
+    {
+      "id": "db-019",
+      "key_insight": "Shadow column pattern with batched backfill is the approved approach for NOT NULL migrations",
+      "decision": "Shadow column pattern with batched backfill is the approved approach for large NOT NULL migrations",
+      "schema_version": 2,
+      "affected_areas": ["db/migrations"],
+      "scope": ["database", "migrations"],
+      "status": "validated",
+      "confidence": 0.87,
+      "source_module": "council",
+      "evidence_cited": ["db-017"],
+      "timestamp": "2025-02-01T12:00:00Z"
+    }
+  ],
+  "expected": {
+    "jury_min_confidence": 0.65,
+    "council_recommendation": "proceed",
+    "risk_level": "high",
+    "preflight_expects": {
+      "rollback_mentioned": true,
+      "chronicle_conflicts": ["db-017"]
+    }
+  }
+}

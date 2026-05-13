@@ -57,12 +57,18 @@ type ChronicleEntry = {
   rejected_reason?: string[]
   supersedes?: string | null        // ID of the entry this replaces
   superseded_by?: string | null     // ID of the entry that replaced this
+
+  // Outcome tracking fields (optional — filled in post-execution)
+  outcome?: string                  // what actually happened when acted on
+  validation_plan?: string[]        // steps that confirm the decision was correct
+  review_after?: string             // ISO date to re-evaluate for drift
+  post_merge_result?: "successful" | "bug" | "partial" | "rolled-back"
 }
 ```
 
 Use `entryText(entry)` from `shared/types` whenever you need to read the primary text — it returns `entry.decision ?? entry.key_insight` and works across both schema versions.
 
-New entries created by Council automatically include `decision`, `topic`, `alternatives_considered`, and `rejected_reason` from the deliberation output.
+New entries created by Council automatically include `decision`, `topic`, `alternatives_considered`, `rejected_reason`, and `scope` (from the risk classifier) from the deliberation output.
 
 ---
 
@@ -185,23 +191,127 @@ const anthropicProvider: LLMProvider = async (messages, model = "claude-3-5-sonn
 
 ---
 
-## Output routing
+## Jury output
 
-### Jury
+```typescript
+interface JuryOutput {
+  confidence: number              // exact average of the four breakdown scores
+  confidence_breakdown: {
+    evidence_support: number      // do validated entries confirm this approach?
+    feasibility: number           // is this achievable given what Chronicle knows?
+    risk: number                  // how well does the design address failure modes?
+    completeness: number          // does it cover the full outcome?
+  }
+  assessment: string
+  gaps: string[]                  // all missing evidence
+  blocking_gaps: string[]         // subset of gaps that are hard blockers
+  council_brief: "challenge" | "pressure-test"
+  recommendation: "proceed" | "investigate-more" | "redesign"
+}
+```
+
+`confidence` is always recomputed from the breakdown average — the LLM's stated value is discarded. `council_brief` is derived from `confidence` (< 0.6 → challenge, ≥ 0.6 → pressure-test).
+
+### Preflight (no LLM)
+
+Before the LLM runs, Jury executes a deterministic preflight:
+
+```typescript
+import { runPreflight } from "./modules/jury"
+
+const preflight = runPreflight(outcome, design, evidence)
+// preflight.touches_sensitive_area
+// preflight.sensitive_areas      — ["auth", "database", ...]
+// preflight.rollback_mentioned
+// preflight.test_strategy_mentioned
+// preflight.chronicle_conflicts  — refuted entry IDs that overlap with the design
+```
+
+Results are injected into the Jury prompt as hard facts. Auth, database migrations, crypto, payments, PII, and secrets are the detected sensitive areas.
+
+### Jury output routing
 
 | `recommendation` | Next step |
 |---|---|
 | `proceed` | Pass to Council |
-| `investigate-more` | Return to Detective with `gaps` |
+| `investigate-more` | Return to Detective with `blocking_gaps` |
 | `redesign` | Return to Designer |
 
-### Council
+---
+
+## Council output
+
+```typescript
+interface CouncilOutput {
+  satisfied: boolean
+  verdict: string
+  blockers: Array<{              // must be resolved before proceeding
+    issue: string
+    evidence: string[]           // Oracle entry IDs that evidence this blocker
+    required_fix: string
+  }>
+  warnings: Array<{              // should be addressed, does not block
+    issue: string
+    suggested_fix?: string
+  }>
+  challenges: string[]           // flat list of all issues — backwards compatible
+  evidence_cited: string[]
+  citation_validation: {
+    valid_ids: string[]          // cited IDs that were in the evidence pack
+    hallucinated_ids: string[]   // cited IDs that were NOT — hallucinated
+  }
+  advisor_split: {               // how advisors split on recommendation
+    proceed: number
+    redesign: number
+    "investigate-more": number
+  }
+  recommendation: "proceed" | "redesign" | "investigate-more"
+}
+```
+
+Only `citation_validation.valid_ids` are written to the Chronicle proposal — hallucinated IDs are stripped automatically.
+
+### Risk classifier (no LLM)
+
+Before running the panel, Council classifies risk and scales fan-out accordingly:
+
+```typescript
+import { classifyRisk } from "./modules/council"
+
+const risk = classifyRisk(outcome, design, evidence)
+// risk.level          — "low" | "medium" | "high" | "critical"
+// risk.reasons        — ["authentication or authorisation logic", ...]
+// risk.council_mode   — "jury-only" | "lite" | "full"
+```
+
+| Risk | Triggers | Advisor + Reviewer count |
+|---|---|---|
+| Low | Nothing sensitive detected | 1 + 1 |
+| Medium | Cache, queues, deployments, rate limiting | 1 + 2 |
+| High | DB migrations, permissions, PII, secrets | 5 + 5 |
+| Critical | Auth, payments, crypto, data deletion | 5 + 5 |
+
+Refuted entries in the evidence pack always elevate risk by at least one level.
+
+### Council output routing
 
 | `satisfied` | `recommendation` | Next step |
 |---|---|---|
 | `true` | `proceed` | Human gate → Executor |
-| `false` | `redesign` | Return to Designer with `verdict` |
-| `false` | `investigate-more` | Return to Detective with `juryOutput.gaps` |
+| `false` | `redesign` | Return to Designer with `blockers` |
+| `false` | `investigate-more` | Return to Detective with `juryOutput.blocking_gaps` |
+
+---
+
+## Eval suite
+
+`evals/` contains canonical test cases — known-bad proposals that should block and known-good ones that should pass. Deterministic assertions run on every CI pass:
+
+```bash
+npx vitest run evals/
+```
+
+Each case defines the proposal, expected risk level, expected preflight signals, and (optionally) expected Council recommendation for LLM-gated assertions. See `evals/cases/` for the full set and `evals/runner.ts` for the runner API.
 
 ---
 
@@ -264,7 +374,14 @@ describe("sentinel", () => { assertions.forEach(a => a()) })
 Tests use [Vitest](https://vitest.dev/). Add to your project's test config or run directly:
 
 ```bash
+# Module unit tests
 npx vitest run modules/
+
+# Eval suite (deterministic assertions — no LLM required)
+npx vitest run evals/
+
+# Eval suite with LLM-gated assertions (jury confidence + council recommendation)
+EVAL_LLM=1 OPENAI_API_KEY=sk-... npx vitest run evals/
 ```
 
 ---

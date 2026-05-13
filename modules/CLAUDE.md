@@ -17,14 +17,23 @@ The entry point for a host application is `setup.ts`. Everything else is interna
 ### Dependency injection throughout
 No module imports a specific LLM provider, vector store, or embedder. All external dependencies are passed in as function arguments or via a deps object. If you add a new capability, follow this pattern — do not hardcode providers.
 
-### council_brief is computed, not trusted
-In `jury/evaluate.ts`, the `council_brief` field in the LLM response is **always overridden** based on the numeric `confidence` value after parsing. The LLM is not trusted to compute this correctly. Do not remove this override.
+### Confidence is recomputed from the breakdown — never trusted from the LLM
+In `jury/evaluate.ts`, after parsing the LLM response, `confidence` is recomputed as the exact average of the four `confidence_breakdown` dimensions. The LLM's stated `confidence` value is discarded. `council_brief` is then derived from this recomputed value. Do not remove either override.
 
 ### Throw on bad LLM output — never default to passing
 Both `jury/evaluate.ts` and `council/chairman.ts` throw if the LLM returns non-JSON or output that fails Zod validation. This is intentional. A silently passing Jury score is worse than an error. Do not add fallbacks or defaults.
 
 ### oracle.commit() is a human gate
 `council/deliberate.ts` calls `oracle.propose()` at the end of every deliberation. It never calls `oracle.commit()`. If you see a code path that calls `oracle.commit()` without explicit human input, that is a bug.
+
+### Oracle proposals use only validated citation IDs
+`deliberate.ts` passes `verdict.citation_validation.valid_ids` as `evidence_cited` when calling `oracle.propose()` — not the raw `evidence_cited` array from the Chairman. Hallucinated IDs (cited but not in the evidence pack) are stripped before the proposal is written.
+
+### Preflight runs before every Jury LLM call — do not remove it
+`jury/evaluate.ts` calls `runPreflight()` before building the user prompt. The preflight result is injected as the `## Deterministic Preflight` section. This gives the LLM hard facts to reason over rather than discovering them itself. Do not move this call after the LLM invocation.
+
+### Risk classifier determines fan-out counts — do not hardcode them
+`deliberate.ts` reads `risk.council_mode` from `classifyRisk()` to set advisor and reviewer counts. Do not hardcode `advisorCount` or `reviewerCount` defaults inside `deliberate.ts` — the risk classifier owns these defaults.
 
 ### Query logging is best-effort
 `oracle/log.ts` writes to a JSONL file. The `query()` function wraps this in a try/catch that swallows errors silently. This is correct behaviour — a log write failure must never fail a query.
@@ -47,14 +56,27 @@ The pipeline order is fixed: `frameQuestion → fanOutAdvisors → fanOutReviewe
 
 Anonymisation of advisor responses happens inside `fanOutReviewers()` before any reviewer sees them. It must stay there.
 
+The risk classifier runs at the start of `deliberate()` before any LLM calls. It sets advisor/reviewer counts and is logged in the Chronicle proposal's `scope` field. Do not move it.
+
+---
+
+## When modifying jury/preflight.ts
+
+`SENSITIVE_PATTERNS` and the risk rules in `council/risk.ts` are separate but related. Preflight detects patterns for the Jury prompt; the risk classifier uses its own pattern set to determine Council mode. They are intentionally independent — changing one does not update the other. Keep them in sync when adding new sensitive area categories.
+
+The eval suite in `evals/cases/` has `preflight_expects` and `risk_level` assertions. When changing patterns, run `npx vitest run evals/` to verify existing cases still pass.
+
 ---
 
 ## Safe to change
 
 - `council/personas.ts` — add or adjust personas freely
+- `jury/preflight.ts` `SENSITIVE_PATTERNS` — extend with new categories; run evals after
+- `council/risk.ts` `RISK_RULES` — add new risk patterns; run evals after
 - `models` defaults in `setup.ts` — adjust model names as providers evolve
 - BM25 constants (`K1`, `B`) in `oracle/bm25.ts` — tunable, well-commented
 - `CANDIDATE_MULTIPLIER` and `RRF_K` in `oracle/query.ts` — tunable retrieval parameters
+- `evals/cases/` — add new eval cases freely; they run in CI automatically
 
 ## Do not change without strong reason
 
@@ -62,3 +84,4 @@ Anonymisation of advisor responses happens inside `fanOutReviewers()` before any
 - The `ChronicleEntry` type in `shared/types.ts` — changing it breaks stored data
 - The Zod schemas in `jury/schema.ts` and `council/chairman.ts` — these are the output contracts
 - The `OracleClient` interface in `shared/types.ts` — Jury and Council depend on it
+- The confidence recomputation in `jury/evaluate.ts` — it makes confidence calibrated and deterministic

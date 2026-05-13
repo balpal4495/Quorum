@@ -6,24 +6,27 @@ import type { JuryOutput } from "../../jury/types"
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function makeEvidence(id: string): OracleResult {
+function makeEvidence(id: string, status: OracleResult["status"] = "validated"): OracleResult {
   return {
     id,
     key_insight: `Finding ${id}: the pattern works at scale`,
     affected_areas: ["api"],
-    status: "validated",
+    status,
     confidence: 0.8,
     source_module: "detective",
     evidence_cited: [],
     timestamp: new Date().toISOString(),
     score: 0.6,
+    tier: "primary",
   }
 }
 
 const mockJuryOutput: JuryOutput = {
   confidence: 0.75,
+  confidence_breakdown: { evidence_support: 0.8, feasibility: 0.7, risk: 0.75, completeness: 0.75 },
   assessment: "Evidence broadly supports this approach with one unresolved gap.",
   gaps: ["No data on token refresh handling in this codebase"],
+  blocking_gaps: [],
   council_brief: "pressure-test",
   recommendation: "proceed",
 }
@@ -40,8 +43,12 @@ const validChairmanJson = JSON.stringify({
   verdict:
     "The design is sound. Entry [e1] confirms this pattern works at scale. " +
     "The refresh token gap noted by Jury remains unresolved but does not block proceed.",
-  challenges: ["Refresh token storage strategy not yet validated in this codebase"],
+  blockers: [],
+  warnings: [
+    { issue: "Refresh token storage strategy not yet validated in this codebase", suggested_fix: "Add an integration test" },
+  ],
   evidence_cited: ["e1", "e2"],
+  advisor_split: { proceed: 2, redesign: 0, "investigate-more": 0 },
   recommendation: "proceed",
 })
 
@@ -76,28 +83,81 @@ describe("council/deliberate", () => {
     expect(result.recommendation).toBe("proceed")
   })
 
-  it("populates challenges and evidence_cited arrays", async () => {
+  it("returns structured blockers and warnings", async () => {
+    const deps = makeDeps()
+    const result = await deliberate(baseInput, deps)
+    expect(Array.isArray(result.blockers)).toBe(true)
+    expect(Array.isArray(result.warnings)).toBe(true)
+  })
+
+  it("populates challenges as flat backwards-compat array from blockers + warnings", async () => {
     const deps = makeDeps()
     const result = await deliberate(baseInput, deps)
     expect(Array.isArray(result.challenges)).toBe(true)
-    expect(Array.isArray(result.evidence_cited)).toBe(true)
+    // warnings map to challenges directly; blockers are prefixed with [BLOCKER]
+    expect(result.challenges.some(c => c.includes("Refresh token"))).toBe(true)
+  })
+
+  it("returns citation_validation with valid and hallucinated IDs", async () => {
+    const deps = makeDeps()
+    const result = await deliberate(baseInput, deps)
+    expect(result.citation_validation).toBeDefined()
+    expect(Array.isArray(result.citation_validation.valid_ids)).toBe(true)
+    expect(Array.isArray(result.citation_validation.hallucinated_ids)).toBe(true)
+    // e1 and e2 are in the evidence pack — should be valid
+    expect(result.citation_validation.valid_ids).toContain("e1")
+    expect(result.citation_validation.valid_ids).toContain("e2")
+    expect(result.citation_validation.hallucinated_ids).toHaveLength(0)
+  })
+
+  it("flags hallucinated citation IDs not in the evidence pack", async () => {
+    const jsonWithHallucination = JSON.stringify({
+      satisfied: true,
+      verdict: "Citing [e1] and [ghost-id] which does not exist.",
+      blockers: [],
+      warnings: [],
+      evidence_cited: ["e1", "ghost-id"],
+      advisor_split: { proceed: 2, redesign: 0, "investigate-more": 0 },
+      recommendation: "proceed",
+    })
+    const deps = makeDeps(jsonWithHallucination)
+    const result = await deliberate(baseInput, deps)
+    expect(result.citation_validation.hallucinated_ids).toContain("ghost-id")
+    expect(result.citation_validation.valid_ids).toContain("e1")
+  })
+
+  it("returns advisor_split with counts", async () => {
+    const deps = makeDeps()
+    const result = await deliberate(baseInput, deps)
+    expect(result.advisor_split).toBeDefined()
+    expect(typeof result.advisor_split.proceed).toBe("number")
+    expect(typeof result.advisor_split.redesign).toBe("number")
+    expect(typeof result.advisor_split["investigate-more"]).toBe("number")
   })
 
   it("calls oracle.propose once with source_module = council", async () => {
     const deps = makeDeps()
     await deliberate(baseInput, deps)
     expect(deps.oracle.propose).toHaveBeenCalledOnce()
-    const proposedEntry = (deps.oracle.propose as ReturnType<typeof vi.fn>).mock
-      .calls[0][0]
+    const proposedEntry = (deps.oracle.propose as ReturnType<typeof vi.fn>).mock.calls[0][0]
     expect(proposedEntry.source_module).toBe("council")
   })
 
-  it("copies evidence_cited from chairman verdict into the Oracle proposal", async () => {
-    const deps = makeDeps()
+  it("proposes only validated citation IDs (not hallucinated) to Oracle", async () => {
+    const jsonWithHallucination = JSON.stringify({
+      satisfied: true,
+      verdict: "Citing [e1] and [ghost-id].",
+      blockers: [],
+      warnings: [],
+      evidence_cited: ["e1", "ghost-id"],
+      advisor_split: { proceed: 2, redesign: 0, "investigate-more": 0 },
+      recommendation: "proceed",
+    })
+    const deps = makeDeps(jsonWithHallucination)
     await deliberate(baseInput, deps)
-    const proposedEntry = (deps.oracle.propose as ReturnType<typeof vi.fn>).mock
-      .calls[0][0]
-    expect(proposedEntry.evidence_cited).toEqual(["e1", "e2"])
+    const proposed = (deps.oracle.propose as ReturnType<typeof vi.fn>).mock.calls[0][0]
+    expect(proposed.evidence_cited).toContain("e1")
+    expect(proposed.evidence_cited).not.toContain("ghost-id")
   })
 
   it("calls the LLM the correct number of times", async () => {
@@ -114,12 +174,10 @@ describe("council/deliberate", () => {
   })
 
   it("throws when the chairman LLM response is not valid JSON", async () => {
-    // All advisor/reviewer/frame calls return plain text — only chairman parses JSON
     let callCount = 0
     const deps: CouncilDeps = {
       llm: vi.fn().mockImplementation(async () => {
         callCount++
-        // The last call is the chairman — return invalid JSON
         return callCount >= 6 ? "not valid json" : "Advisory response text."
       }),
       oracle: mockOracle(),
@@ -145,23 +203,42 @@ describe("council/deliberate", () => {
     }
     await deliberate(baseInput, deps)
     const calls = llm.mock.calls as [unknown[], string | undefined][]
-    // frame call uses frame model
     expect(calls[0][1]).toBe("gpt-4o-mini")
-    // chairman call (last) uses chairman model
     expect(calls[calls.length - 1][1]).toBe("gpt-4o")
   })
 
-  it("routes satisfied=false correctly in the output", async () => {
+  it("routes satisfied=false with blockers correctly", async () => {
     const unsatisfiedJson = JSON.stringify({
       satisfied: false,
       verdict: "The design has fundamental gaps that must be resolved first.",
-      challenges: ["No evidence for token storage strategy"],
+      blockers: [
+        { issue: "No evidence for token storage strategy", evidence: ["e1"], required_fix: "Document the token storage approach" },
+      ],
+      warnings: [],
       evidence_cited: ["e1"],
+      advisor_split: { proceed: 0, redesign: 1, "investigate-more": 1 },
       recommendation: "investigate-more",
     })
     const deps = makeDeps(unsatisfiedJson)
     const result = await deliberate(baseInput, deps)
     expect(result.satisfied).toBe(false)
     expect(result.recommendation).toBe("investigate-more")
+    expect(result.blockers).toHaveLength(1)
+    expect(result.blockers[0].required_fix).toBeDefined()
+  })
+
+  it("risk classifier reduces advisor/reviewer count for low-risk designs", async () => {
+    const llm = vi.fn().mockResolvedValue(validChairmanJson)
+    const lowRiskInput: CouncilInput = {
+      outcome: "Rename internal helper functions in the reporting module",
+      design: "Rename generateCsv to exportCsv. No behaviour change.",
+      evidence: [],
+      jury_output: mockJuryOutput,
+    }
+    const deps: CouncilDeps = { llm, oracle: mockOracle() }
+    await deliberate(lowRiskInput, deps)
+    // Low risk → jury-only mode → advisorCount=1, reviewerCount=1
+    // frame(1) + advisors(1) + reviewers(1) + chairman(1) = 4
+    expect(llm.mock.calls.length).toBe(4)
   })
 })

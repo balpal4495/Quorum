@@ -1,0 +1,32 @@
+{
+  "id": "db_naive_not_null",
+  "description": "Naive NOT NULL migration on a large table — should block",
+  "outcome": "Add a NOT NULL region column to the users table",
+  "design": "Run ALTER TABLE users ADD COLUMN region TEXT NOT NULL DEFAULT 'uk'",
+  "oracle_evidence": [
+    {
+      "id": "db-017",
+      "key_insight": "Avoid naive locking migrations on large tables",
+      "decision": "Avoid naive locking migrations on large tables — use shadow column pattern or pg_repack",
+      "schema_version": 2,
+      "affected_areas": ["db/migrations", "src/models/user.ts"],
+      "scope": ["database", "migrations"],
+      "status": "refuted",
+      "confidence": 0.91,
+      "source_module": "council",
+      "evidence_cited": [],
+      "timestamp": "2025-01-10T10:00:00Z"
+    }
+  ],
+  "expected": {
+    "jury_max_confidence": 0.55,
+    "council_recommendation": "redesign",
+    "must_flag": ["lock strategy", "rollback"],
+    "must_cite": ["db-017"],
+    "risk_level": "high",
+    "preflight_expects": {
+      "rollback_mentioned": false,
+      "chronicle_conflicts": ["db-017"]
+    }
+  }
+}

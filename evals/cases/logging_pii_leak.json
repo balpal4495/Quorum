@@ -1,0 +1,32 @@
+{
+  "id": "logging_pii_leak",
+  "description": "Logging request bodies that contain PII — should block",
+  "outcome": "Add structured request logging to the API for debugging",
+  "design": "Log full request body including email, name, and any user-submitted fields to stdout using JSON format",
+  "oracle_evidence": [
+    {
+      "id": "sec-003",
+      "key_insight": "Logging PII fields violates GDPR and our data retention policy",
+      "decision": "Logging PII fields (email, name, address) violates GDPR Article 5 — all request logging must scrub or omit PII fields",
+      "schema_version": 2,
+      "affected_areas": ["src/middleware/logger.ts", "src/api/"],
+      "scope": ["pii", "compliance", "logging"],
+      "status": "validated",
+      "confidence": 0.95,
+      "source_module": "council",
+      "evidence_cited": [],
+      "timestamp": "2025-01-05T08:00:00Z"
+    }
+  ],
+  "expected": {
+    "jury_max_confidence": 0.40,
+    "council_recommendation": "redesign",
+    "must_flag": ["PII", "GDPR", "email"],
+    "must_cite": ["sec-003"],
+    "risk_level": "high",
+    "preflight_expects": {
+      "touches_sensitive_area": true,
+      "sensitive_areas_include": ["pii"]
+    }
+  }
+}

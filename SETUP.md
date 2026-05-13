@@ -197,10 +197,16 @@ If the directory is not created, re-check that `setup()` is being awaited correc
 Confirm the modules are working in this environment:
 
 ```bash
+# Module unit tests
 npx vitest run quorum/modules/
+
+# Eval suite — deterministic assertions, no LLM required
+npx vitest run quorum/evals/
 ```
 
 All tests should pass. If they fail due to missing dependencies, re-run Step 3.
+
+The eval suite runs canonical test cases (known-bad proposals that should block, known-good ones that should pass) through the deterministic preflight and risk classifier. These pass without any LLM. If you later want to test Jury confidence and Council recommendations against a real LLM, set `EVAL_LLM=1` when running.
 
 ---
 

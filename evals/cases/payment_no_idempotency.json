@@ -1,0 +1,33 @@
+{
+  "id": "payment_no_idempotency",
+  "description": "Payment charge without idempotency key — should block",
+  "outcome": "Implement one-click repurchase for customers",
+  "design": "On button click, POST /api/charge with the stored card token and amount. Retry on network failure up to 3 times.",
+  "oracle_evidence": [
+    {
+      "id": "pay-004",
+      "key_insight": "Payment charges without idempotency keys caused duplicate charges during network retries",
+      "decision": "All payment charge requests must include a Stripe idempotency key — retries without idempotency keys caused duplicate charges in production",
+      "schema_version": 2,
+      "affected_areas": ["src/payments/", "src/api/checkout.ts"],
+      "scope": ["payments", "stripe"],
+      "status": "refuted",
+      "confidence": 0.97,
+      "source_module": "council",
+      "evidence_cited": [],
+      "timestamp": "2025-04-01T16:00:00Z"
+    }
+  ],
+  "expected": {
+    "jury_max_confidence": 0.40,
+    "council_recommendation": "redesign",
+    "must_flag": ["idempotency", "duplicate charge"],
+    "must_cite": ["pay-004"],
+    "risk_level": "critical",
+    "preflight_expects": {
+      "touches_sensitive_area": true,
+      "sensitive_areas_include": ["payments"],
+      "chronicle_conflicts": ["pay-004"]
+    }
+  }
+}

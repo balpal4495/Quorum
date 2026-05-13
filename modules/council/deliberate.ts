@@ -4,9 +4,14 @@ import { frameQuestion } from "./frame"
 import { fanOutAdvisors } from "./advisors"
 import { fanOutReviewers } from "./reviewers"
 import { chairman } from "./chairman"
+import { classifyRisk } from "./risk"
 
 const DEFAULT_ADVISOR_COUNT = 5
 const DEFAULT_REVIEWER_COUNT = 5
+const LITE_ADVISOR_COUNT = 1
+const LITE_REVIEWER_COUNT = 2
+const JURY_ONLY_ADVISOR_COUNT = 1
+const JURY_ONLY_REVIEWER_COUNT = 1
 
 /**
  * Run the Council deliberation pipeline.
@@ -34,10 +39,22 @@ export async function deliberate(
   const {
     llm,
     oracle,
-    advisorCount = DEFAULT_ADVISOR_COUNT,
-    reviewerCount = DEFAULT_REVIEWER_COUNT,
     models = {},
   } = deps
+
+  // Classify risk to determine Council mode and advisor/reviewer counts
+  const risk = classifyRisk(input.outcome, input.design, input.evidence)
+  let defaultAdvisors = DEFAULT_ADVISOR_COUNT
+  let defaultReviewers = DEFAULT_REVIEWER_COUNT
+  if (risk.council_mode === "lite") {
+    defaultAdvisors = LITE_ADVISOR_COUNT
+    defaultReviewers = LITE_REVIEWER_COUNT
+  } else if (risk.council_mode === "jury-only") {
+    defaultAdvisors = JURY_ONLY_ADVISOR_COUNT
+    defaultReviewers = JURY_ONLY_REVIEWER_COUNT
+  }
+  const advisorCount = deps.advisorCount ?? defaultAdvisors
+  const reviewerCount = deps.reviewerCount ?? defaultReviewers
 
   // Select personas — cycle DEFAULT_PERSONAS if advisorCount > 5
   const personas = Array.from(
@@ -88,11 +105,14 @@ export async function deliberate(
     key_insight: keyInsight,
     affected_areas: extractAffectedAreas(input.outcome, input.design),
     alternatives_considered: verdict.challenges,
-    rejected_reason: verdict.satisfied ? [] : [verdict.verdict.slice(0, 200)],
+    rejected_reason: verdict.satisfied
+      ? []
+      : verdict.blockers.map(b => b.issue).slice(0, 3),
     status: "open",
     confidence: input.jury_output.confidence,
     source_module: "council",
-    evidence_cited: verdict.evidence_cited,
+    evidence_cited: verdict.citation_validation.valid_ids,
+    scope: risk.reasons.slice(0, 3),
   })
 
   return verdict

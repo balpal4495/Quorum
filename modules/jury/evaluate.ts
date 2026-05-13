@@ -2,6 +2,7 @@ import type { JuryInput, JuryOutput, JuryDeps } from "./types"
 import type { OracleResult } from "../shared/types"
 import { entryText } from "../shared/types"
 import { JuryOutputSchema } from "./schema"
+import { runPreflight, formatPreflight } from "./preflight"
 
 const CONFIDENCE_THRESHOLD = 0.6
 
@@ -25,14 +26,21 @@ function formatEvidence(evidence: OracleResult[]): string {
 
 const SYSTEM_PROMPT = `You are the Jury — an evidence-based evaluator for agentic development workflows.
 
-Your job is to evaluate a proposed design against Oracle evidence and produce a structured confidence score.
+Your job is to evaluate a proposed design against Oracle evidence and produce a calibrated confidence score.
 You do NOT make decisions. You assess and score. Your output determines the Council's brief.
 
-Score the design across these four dimensions (equally weighted to produce a final confidence in [0, 1]):
-1. Evidence support   — do validated Oracle entries confirm this approach works in this codebase?
-2. Feasibility        — do Oracle entries (or their absence) suggest this is achievable?
-3. Risk               — what do refuted entries reveal about failure modes? Has this been tried and failed?
-4. Completeness       — does the design address the full outcome, or only part of it?
+Score the design across four dimensions, each 0–1:
+1. evidence_support  — do validated Oracle entries confirm this approach works in this codebase?
+2. feasibility       — do Oracle entries (or their absence) suggest this is achievable?
+3. risk              — how well does the design address known failure modes? (1 = fully addressed, 0 = ignored)
+4. completeness      — does the design cover the full outcome, or only part of it?
+
+confidence = average of the four scores (you must compute this yourself — do not round or adjust it).
+
+Gaps fall into two categories:
+- gaps: any missing evidence that would improve confidence
+- blocking_gaps: a SUBSET of gaps that are hard blockers — must be resolved before proceeding
+  (examples: no rollback plan for a destructive change, no auth strategy for a security-sensitive feature)
 
 council_brief is determined by confidence only (do not invent a value):
   confidence < 0.6  → council_brief = "challenge"
@@ -41,8 +49,15 @@ council_brief is determined by confidence only (do not invent a value):
 Return ONLY valid JSON that matches this schema exactly — no markdown fences, no explanation:
 {
   "confidence": <number 0–1>,
+  "confidence_breakdown": {
+    "evidence_support": <number 0–1>,
+    "feasibility": <number 0–1>,
+    "risk": <number 0–1>,
+    "completeness": <number 0–1>
+  },
   "assessment": <string — what the evidence supports or contradicts>,
-  "gaps": [<string — each missing piece of evidence from Oracle>],
+  "gaps": [<string — each missing piece of evidence>],
+  "blocking_gaps": [<string — gaps that are hard blockers only>],
   "council_brief": "challenge" | "pressure-test",
   "recommendation": "proceed" | "investigate-more" | "redesign"
 }`
@@ -63,6 +78,8 @@ export async function evaluate(
 ): Promise<JuryOutput> {
   const { llm, model } = deps
   const evidenceText = formatEvidence(input.evidence)
+  const preflight = runPreflight(input.outcome, input.design, input.evidence)
+  const preflightText = formatPreflight(preflight)
 
   const userPrompt = [
     "## Outcome",
@@ -70,6 +87,8 @@ export async function evaluate(
     "",
     "## Proposed Design",
     input.design,
+    "",
+    preflightText,
     "",
     "## Oracle Evidence",
     evidenceText,
@@ -105,7 +124,12 @@ export async function evaluate(
 
   const output = result.data
 
-  // Enforce council_brief from confidence — do not trust the LLM to compute this correctly
+  // Recompute confidence as the exact average of breakdown dimensions
+  // This makes confidence deterministic and calibrated regardless of what the LLM returned
+  const { evidence_support, feasibility, risk, completeness } = output.confidence_breakdown
+  output.confidence = Math.round(((evidence_support + feasibility + risk + completeness) / 4) * 100) / 100
+
+  // Enforce council_brief from recomputed confidence — do not trust the LLM to compute this correctly
   output.council_brief =
     output.confidence < CONFIDENCE_THRESHOLD ? "challenge" : "pressure-test"
 
