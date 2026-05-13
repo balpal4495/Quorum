@@ -56,6 +56,14 @@ export type ChronicleEntry = {
   work_ref?: WorkRef
   timestamp: string
 
+  // ── outcome tracking fields (optional — filled in post-execution) ────────────
+  /** Steps that must pass to confirm this decision was correct. */
+  validation_plan?: string[]
+  /** ISO date after which this entry should be re-evaluated for drift. */
+  review_after?: string
+  /** What actually happened after the decision was acted on in production. */
+  post_merge_result?: "successful" | "bug" | "partial" | "rolled-back"
+
   // ── v2 fields (optional — absent on legacy entries) ──────────────────────
   /** 2 = decision record format. Absent = v1 legacy entry. */
   schema_version?: 2

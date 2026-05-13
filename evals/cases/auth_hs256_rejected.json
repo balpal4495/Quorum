@@ -1,0 +1,46 @@
+{
+  "id": "auth_hs256_rejected",
+  "description": "Proposing HS256 JWT when RS256 was already chosen — should block",
+  "outcome": "Add JWT authentication to the API",
+  "design": "Use HS256 symmetric JWT tokens with a shared secret stored in environment variables",
+  "oracle_evidence": [
+    {
+      "id": "auth-022",
+      "key_insight": "HS256 JWT rejected — no way to rotate keys without invalidating all active sessions",
+      "decision": "HS256 JWT rejected — no way to rotate keys without invalidating all active sessions. Use RS256.",
+      "schema_version": 2,
+      "affected_areas": ["src/auth/", "src/middleware/"],
+      "scope": ["auth", "sessions"],
+      "status": "refuted",
+      "confidence": 0.91,
+      "source_module": "council",
+      "evidence_cited": [],
+      "timestamp": "2025-03-01T09:00:00Z"
+    },
+    {
+      "id": "auth-031",
+      "key_insight": "RS256 with short-lived tokens and refresh rotation in httpOnly cookies is the approved pattern",
+      "decision": "RS256 with 15-min access tokens and refresh rotation stored in httpOnly cookies is the approved auth pattern",
+      "schema_version": 2,
+      "affected_areas": ["src/auth/", "src/middleware/"],
+      "scope": ["auth", "sessions"],
+      "status": "validated",
+      "confidence": 0.88,
+      "source_module": "council",
+      "evidence_cited": ["auth-022"],
+      "timestamp": "2025-03-15T11:00:00Z"
+    }
+  ],
+  "expected": {
+    "jury_max_confidence": 0.45,
+    "council_recommendation": "redesign",
+    "must_flag": ["key rotation", "HS256"],
+    "must_cite": ["auth-022"],
+    "risk_level": "critical",
+    "preflight_expects": {
+      "touches_sensitive_area": true,
+      "sensitive_areas_include": ["auth"],
+      "chronicle_conflicts": ["auth-022"]
+    }
+  }
+}

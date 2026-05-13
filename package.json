@@ -24,7 +24,7 @@
   },
   "scripts": {
     "init": "node bin/init.js",
-    "test": "vitest run modules/",
+    "test": "vitest run modules/ evals/",
     "test:watch": "vitest modules/",
     "typecheck": "tsc --noEmit"
   },

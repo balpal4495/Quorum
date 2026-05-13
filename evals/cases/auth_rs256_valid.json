@@ -1,0 +1,30 @@
+{
+  "id": "auth_rs256_valid",
+  "description": "Proposing the already-approved RS256 pattern — should proceed",
+  "outcome": "Add JWT authentication to the API",
+  "design": "RS256 tokens with 15-minute expiry and refresh rotation stored in httpOnly cookies, matching the approved pattern in Chronicle",
+  "oracle_evidence": [
+    {
+      "id": "auth-031",
+      "key_insight": "RS256 with short-lived tokens and refresh rotation in httpOnly cookies is the approved pattern",
+      "decision": "RS256 with 15-min access tokens and refresh rotation stored in httpOnly cookies is the approved auth pattern",
+      "schema_version": 2,
+      "affected_areas": ["src/auth/", "src/middleware/"],
+      "scope": ["auth", "sessions"],
+      "status": "validated",
+      "confidence": 0.88,
+      "source_module": "council",
+      "evidence_cited": [],
+      "timestamp": "2025-03-15T11:00:00Z"
+    }
+  ],
+  "expected": {
+    "jury_min_confidence": 0.65,
+    "council_recommendation": "proceed",
+    "must_not_flag": ["key rotation problem"],
+    "risk_level": "critical",
+    "preflight_expects": {
+      "touches_sensitive_area": true
+    }
+  }
+}

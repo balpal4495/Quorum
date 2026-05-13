@@ -1,0 +1,32 @@
+{
+  "id": "redis_session_rejected",
+  "description": "Proposing Redis sessions when they were already removed — should block",
+  "outcome": "Implement user session management",
+  "design": "Store session data in Redis with a 30-minute TTL and auto-extend on activity. Use express-session with connect-redis.",
+  "oracle_evidence": [
+    {
+      "id": "auth-015",
+      "key_insight": "Redis sessions removed due to memory overhead at scale and operational complexity",
+      "decision": "Redis sessions removed — memory overhead at scale was unsustainable and operational complexity (Redis cluster, failover) added too much risk",
+      "schema_version": 2,
+      "affected_areas": ["src/auth/", "src/middleware/session.ts"],
+      "scope": ["auth", "sessions", "infrastructure"],
+      "status": "refuted",
+      "confidence": 0.89,
+      "source_module": "council",
+      "evidence_cited": [],
+      "timestamp": "2025-02-10T15:00:00Z"
+    }
+  ],
+  "expected": {
+    "jury_max_confidence": 0.50,
+    "council_recommendation": "redesign",
+    "must_flag": ["memory overhead", "Redis"],
+    "must_cite": ["auth-015"],
+    "risk_level": "critical",
+    "preflight_expects": {
+      "touches_sensitive_area": true,
+      "chronicle_conflicts": ["auth-015"]
+    }
+  }
+}

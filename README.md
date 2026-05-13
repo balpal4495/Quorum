@@ -117,15 +117,24 @@ gaps: ["no lock strategy documented", "no rollback plan"]
 council_brief: challenge
 ```
 
-Council's Chairman gives a verdict:
+Council's Chairman gives a structured verdict:
 
-```
-satisfied: false
-verdict: "On a table this size, a naive ALTER TABLE takes an exclusive lock for minutes.
-          Specify a shadow column pattern or pg_repack. No rollback plan documented."
+```json
+{
+  "satisfied": false,
+  "blockers": [
+    {
+      "issue": "Naive ALTER TABLE takes an exclusive lock for minutes on a 50M-row table",
+      "evidence": ["db-017"],
+      "required_fix": "Use shadow column pattern or pg_repack. Add rollback path."
+    }
+  ],
+  "warnings": [],
+  "advisor_split": { "proceed": 0, "redesign": 4, "investigate-more": 1 }
+}
 ```
 
-The agent revises the plan. You approve the Chronicle entry once it's solid. The reasoning — including the alternatives considered and why they were rejected — is on record for the next time someone touches that table:
+The agent revises the plan. You approve the Chronicle entry once it's solid. The reasoning — including alternatives considered and why they were rejected — is on record for the next time someone touches that table:
 
 ```json
 {
@@ -133,7 +142,9 @@ The agent revises the plan. You approve the Chronicle entry once it's solid. The
   "alternatives_considered": ["naive ALTER TABLE", "pg_repack"],
   "rejected_reason": ["ALTER TABLE takes exclusive lock for minutes on 50M rows"],
   "scope": ["database", "migrations"],
-  "affected_areas": ["db/migrations/", "src/models/user.ts"]
+  "affected_areas": ["db/migrations/", "src/models/user.ts"],
+  "validation_plan": ["Confirm 100% backfill before applying NOT NULL constraint", "Test rollback path on staging"],
+  "review_after": "2026-08-01"
 }
 ```
 
@@ -146,11 +157,93 @@ Four portable TypeScript modules installed into `quorum/modules/`:
 | Module | What it does |
 |---|---|
 | **Oracle** | Query and write interface to Chronicle. No LLM required. |
-| **Jury** | Evaluates a proposed design against Chronicle evidence. Returns a confidence score. |
-| **Council** | A panel of advisors challenges the design independently, reviewers critique anonymously, a Chairman gives a final verdict. |
+| **Jury** | Evaluates a proposed design against Chronicle evidence. Returns a decomposed confidence score and hard-blocker gaps. |
+| **Council** | A panel of advisors challenges the design independently, reviewers critique anonymously, a Chairman gives a structured verdict with blockers and warnings. |
 | **Sentinel** | Shows which files the AI knows nothing about, flags stale knowledge, and posts a coverage map on every PR. |
 
 The modules live in your repo — readable by any AI working in the codebase. Nothing is hidden in `node_modules`.
+
+---
+
+## How Jury works
+
+Before calling the LLM, Jury runs a **deterministic preflight** — no LLM required — that checks whether the design touches sensitive areas (auth, database migrations, crypto, payments, PII, secrets), mentions a rollback strategy, and whether any refuted Chronicle entries conflict with the design. These facts are injected into the Jury prompt as hard ground truth.
+
+The LLM then scores the design across four dimensions:
+
+| Dimension | What it measures |
+|---|---|
+| Evidence support | Do validated Chronicle entries confirm this approach works here? |
+| Feasibility | Do Chronicle entries suggest this is achievable? |
+| Risk | How well does the design address known failure modes? |
+| Completeness | Does the design cover the full outcome? |
+
+Confidence is recomputed as the exact average of those four scores — the LLM's stated confidence is discarded. Jury also separates `blocking_gaps` (must resolve before proceeding) from `gaps` (useful but not critical).
+
+---
+
+## How Council works
+
+Before running the full panel, a **risk classifier** reads the design text and Chronicle evidence and assigns a risk level:
+
+| Risk | Council mode | LLM calls |
+|---|---|---|
+| Low | 1 advisor + 1 reviewer | 4 |
+| Medium | 1 advisor + 2 reviewers | 5 |
+| High | 5 advisors + 5 reviewers | 12 |
+| Critical | 5 advisors + 5 reviewers (+ human architecture flag) | 12 |
+
+Auth, crypto, payments, and data deletion trigger Critical. Database migrations, PII, permissions trigger High. Cache, queues, deployments trigger Medium. Everything else is Low.
+
+The Chairman's verdict is **structured**:
+
+```json
+{
+  "blockers": [
+    {
+      "issue": "No rollback plan for destructive migration",
+      "evidence": ["db-017"],
+      "required_fix": "Add shadow-column migration and rollback path before execution"
+    }
+  ],
+  "warnings": [
+    {
+      "issue": "No integration test for token expiry edge case",
+      "suggested_fix": "Add test covering token rotation during concurrent requests"
+    }
+  ],
+  "advisor_split": { "proceed": 2, "redesign": 2, "investigate-more": 1 }
+}
+```
+
+Blockers must be resolved before the human gate. Warnings can be ticketed. High `advisor_split` disagreement is surfaced explicitly — it means genuine uncertainty, not a safe proceed.
+
+Every Oracle ID cited in the verdict is also validated against the evidence pack that was actually sent. Hallucinated citations are flagged in `citation_validation.hallucinated_ids` and stripped from the Chronicle proposal.
+
+---
+
+## Eval suite
+
+`evals/` contains canonical test cases — known-bad proposals that Council should block and known-good ones it should pass:
+
+| Case | Expected outcome |
+|---|---|
+| Naive NOT NULL migration on large table | Block — no lock strategy |
+| HS256 JWT when RS256 was already chosen | Block — cites refuted entry auth-022 |
+| PII fields logged to stdout | Block — GDPR violation in evidence |
+| Payment charge without idempotency key | Block — duplicate charge risk |
+| Redis sessions (previously removed) | Block — memory overhead already documented |
+| Cache without stampede protection | Block — prior incident in Chronicle |
+| Safe internal rename | Proceed — low risk, no conflicts |
+| RS256 JWT (approved pattern) | Proceed — matches validated Chronicle entry |
+| Migration with rollback + shadow column | Proceed — addresses documented failure mode |
+| Novel WebSocket design, no evidence | Investigate-more — no Chronicle evidence either way |
+
+Deterministic assertions (preflight, risk classifier) run on every CI pass. LLM-dependent assertions (confidence bounds, Council recommendation) activate with `EVAL_LLM=1`.
+
+```bash
+npx vitest run evals/
+```
 
 ---
 

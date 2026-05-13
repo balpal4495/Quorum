@@ -1,3 +1,5 @@
 export { evaluate } from "./evaluate"
-export type { JuryInput, JuryOutput, JuryDeps } from "./types"
+export type { JuryInput, JuryOutput, JuryDeps, ConfidenceBreakdown } from "./types"
 export { JuryOutputSchema } from "./schema"
+export { runPreflight, formatPreflight } from "./preflight"
+export type { PreflightResult } from "./preflight"

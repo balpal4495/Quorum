@@ -1,0 +1,16 @@
+{
+  "id": "no_evidence_novel_design",
+  "description": "Novel design with no Chronicle evidence either way — should investigate-more",
+  "outcome": "Implement real-time collaboration features using WebSockets",
+  "design": "Use Socket.io for bi-directional communication, Redis pub/sub for multi-instance message fanout, and optimistic UI updates with conflict resolution via last-write-wins",
+  "oracle_evidence": [],
+  "expected": {
+    "jury_max_confidence": 0.65,
+    "council_recommendation": "investigate-more",
+    "risk_level": "medium",
+    "preflight_expects": {
+      "touches_sensitive_area": false,
+      "chronicle_conflicts": []
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "id": "safe_refactor",
+  "description": "Low-risk internal refactor with no sensitive areas — should proceed without friction",
+  "outcome": "Rename internal helper functions in the reporting module for consistency",
+  "design": "Rename generateCsvReport to exportReportAsCsv and generatePdfReport to exportReportAsPdf in src/reports/. Update all callers. No behaviour change.",
+  "oracle_evidence": [],
+  "expected": {
+    "jury_min_confidence": 0.70,
+    "council_recommendation": "proceed",
+    "risk_level": "low",
+    "preflight_expects": {
+      "touches_sensitive_area": false,
+      "rollback_mentioned": false,
+      "chronicle_conflicts": []
+    }
+  }
+}
