@@ -1,0 +1,28 @@
+{
+  "schema_version": 2,
+  "topic": "PR #19",
+  "decision": "fix: add registry-url to setup-node for npm OIDC authentication",
+  "key_insight": "fix: add registry-url to setup-node for npm OIDC authentication",
+  "affected_areas": [
+    ".github/workflows/auto-release.yml",
+    ".github/workflows/release.yml"
+  ],
+  "scope": [
+    "ci"
+  ],
+  "alternatives_considered": [],
+  "rejected_reason": [],
+  "supersedes": null,
+  "superseded_by": null,
+  "status": "open",
+  "confidence": 0.4,
+  "source_quality": "metadata-derived",
+  "needs_human_summary": true,
+  "source_module": "pr-merge",
+  "evidence_cited": [],
+  "work_ref": {
+    "type": "pr",
+    "ref": "PR #19"
+  },
+  "outcome": "## Summary\n\nBoth `release.yml` and `auto-release.yml` were missing `registry-url: 'https://registry.npmjs.org'` in their `setup-node` steps. Without it, npm has no registry context to exchange the GitHub OIDC token against and returns `ENEEDAUTH`.\n\n## Test plan\n\n- [ ] After merge: dispatch `release.yml` on `v0.4.2` — should publish successfully\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)"
+}
