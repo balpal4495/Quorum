@@ -1,6 +1,6 @@
 import { c } from "../shared/colors.js"
 import { findChronicleDir, readCommitted } from "../shared/chronicle.js"
-import { detectLLM, detectLLMName } from "../shared/llm.js"
+import { detectProvider } from "../shared/llm.js"
 
 const SATISFACTION_THRESHOLD = 0.7
 const MAX_RETRIES = 2
@@ -192,15 +192,18 @@ function renderBrief(allEntries) {
 // ── Subcommand handlers ───────────────────────────────────────────────────────
 
 async function cmdAsk(question, chronicleDir) {
-  const llm = await detectLLM()
-  if (!llm) {
-    console.error(`\n${c.red("No LLM configured.")} Set ${c.bold("ANTHROPIC_API_KEY")} or ${c.bold("OPENAI_API_KEY")}.\n`)
+  const provider = await detectProvider()
+  if (!provider) {
+    console.error(`\n${c.red("No LLM configured.")}`)
+    console.error(c.dim("  Set ANTHROPIC_API_KEY, OPENAI_API_KEY, GEMINI_API_KEY, OPENAI_BASE_URL, or OLLAMA_HOST."))
+    console.error(c.dim("  Ollama at localhost:11434 is also auto-detected if running.\n"))
     process.exit(1)
   }
+  const { llm, name: llmName } = provider
   const allEntries = await readCommitted(chronicleDir)
   const evidence   = findRelevant(allEntries, question)
 
-  process.stdout.write(c.dim(`\n  Thinking (${detectLLMName()})…`))
+  process.stdout.write(c.dim(`\n  Thinking (${llmName})…`))
   try {
     const result = await runAdvisor(llm, question, evidence)
     process.stdout.write("\r" + " ".repeat(50) + "\r")

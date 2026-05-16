@@ -3,7 +3,7 @@ import path from "path"
 import { randomUUID } from "crypto"
 import { c } from "../shared/colors.js"
 import { findChronicleDir, readCommitted, entryText } from "../shared/chronicle.js"
-import { detectLLM, detectLLMName } from "../shared/llm.js"
+import { detectProvider } from "../shared/llm.js"
 
 function parseArgs(argv) {
   const args = { dryRun: false, json: false }
@@ -103,12 +103,14 @@ function spinner(msg) {
 export async function run(argv) {
   const args = parseArgs(argv)
 
-  const llm     = await detectLLM()
-  const llmName = detectLLMName()
-  if (!llm) {
-    console.error(`\n${c.red("No LLM available.")} Set ${c.bold("ANTHROPIC_API_KEY")} or ${c.bold("OPENAI_API_KEY")}.\n`)
+  const provider = await detectProvider()
+  if (!provider) {
+    console.error(`\n${c.red("No LLM available.")}`)
+    console.error(c.dim("  Set ANTHROPIC_API_KEY, OPENAI_API_KEY, GEMINI_API_KEY, OPENAI_BASE_URL, or OLLAMA_HOST."))
+    console.error(c.dim("  Ollama at localhost:11434 is also auto-detected if running.\n"))
     process.exit(1)
   }
+  const { llm, name: llmName } = provider
 
   const chronicleDir = await findChronicleDir(process.cwd())
   if (!chronicleDir) {
