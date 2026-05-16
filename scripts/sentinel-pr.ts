@@ -15,5 +15,5 @@ const changedFiles = raw
 
 const codebasePath = process.env.SENTINEL_CODEBASE_PATH ?? "modules"
 const report = await reviewContext(changedFiles, ".chronicle", codebasePath)
-await writeFile("sentinel-report.md", report, "utf8")
+await writeFile(".chronicle/sentinel-report.md", report, "utf8")
 console.log(`Sentinel: reviewed ${changedFiles.length} changed file(s)`)

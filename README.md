@@ -432,7 +432,7 @@ Quorum finds whichever LLM is available: `ANTHROPIC_API_KEY` → `OPENAI_API_KEY
 ## For custom agent pipelines
 
 ```typescript
-import { setup } from "./quorum/modules/setup"
+import { setup } from "@balpal4495/quorum"
 
 const { oracle, evaluate, deliberate, ask } = await setup({ llm: myLLMProvider })
 

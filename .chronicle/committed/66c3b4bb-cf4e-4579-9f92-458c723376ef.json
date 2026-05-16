@@ -1,0 +1,31 @@
+{
+  "schema_version": 2,
+  "topic": "ci/pr-growth-comment",
+  "decision": "chronicle-on-merge.yml posts a PR comment on every merge showing Chronicle entry count delta and which entries were committed during that PR — team-visible proof of learning attached to specific work.",
+  "key_insight": "chronicle-on-merge.yml posts a PR comment on every merge showing Chronicle entry count delta and which entries were committed during that PR — team-visible proof of learning attached to specific work.",
+  "affected_areas": [
+    "scripts/chronicle-growth.js",
+    ".github/workflows/chronicle-on-merge.yml"
+  ],
+  "scope": [
+    "ci",
+    "github-actions",
+    "chronicle"
+  ],
+  "alternatives_considered": [
+    "Posting to Slack or external dashboard"
+  ],
+  "rejected_reason": [
+    "PR comment is attached to the exact work that drove the learning — co-located context"
+  ],
+  "status": "validated",
+  "confidence": 0.91,
+  "source_module": "council",
+  "evidence_cited": [],
+  "work_ref": {
+    "type": "pr",
+    "ref": "PR #21"
+  },
+  "id": "66c3b4bb-cf4e-4579-9f92-458c723376ef",
+  "timestamp": "2026-05-16T19:41:31.065Z"
+}

@@ -1,0 +1,30 @@
+{
+  "schema_version": 2,
+  "topic": "cli/growth",
+  "decision": "quorum growth shows STALLED/SLOW/HEALTHY/THRIVING status with weekly sparkline and recent learnings — visibility into whether Chronicle is actually being used.",
+  "key_insight": "quorum growth shows STALLED/SLOW/HEALTHY/THRIVING status with weekly sparkline and recent learnings — visibility into whether Chronicle is actually being used.",
+  "affected_areas": [
+    "bin/commands/growth.js"
+  ],
+  "scope": [
+    "cli",
+    "chronicle",
+    "growth"
+  ],
+  "alternatives_considered": [
+    "Embedding growth stats in quorum status"
+  ],
+  "rejected_reason": [
+    "growth is a first-class concern deserving its own command with richer output"
+  ],
+  "status": "validated",
+  "confidence": 0.95,
+  "source_module": "council",
+  "evidence_cited": [],
+  "work_ref": {
+    "type": "pr",
+    "ref": "PR #21"
+  },
+  "id": "7ad64411-a297-441f-a0ca-a1f149ebc772",
+  "timestamp": "2026-05-16T19:41:34.258Z"
+}

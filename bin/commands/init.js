@@ -10,12 +10,6 @@ const _require = createRequire(import.meta.url)
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const QUORUM_ROOT = path.resolve(__dirname, "../..")
 
-const DEPS = { zod: "^3.23.0" }
-const OPTIONAL_DEPS = {
-  vectordb: "^0.4.0",
-  "@xenova/transformers": "^2.17.0",
-}
-
 async function exists(p) {
   return fs.access(p).then(() => true).catch(() => false)
 }
@@ -29,25 +23,24 @@ function geminiAvailable() {
 }
 
 async function guardAlreadyInitialized(target) {
-  if (await exists(path.join(target, "quorum", "modules"))) {
+  if (await exists(path.join(target, ".quorum-version"))) {
     console.log(c.yellow("\nQuorum is already initialized in this project."))
-    console.log("Remove quorum/ first if you want to reinitialize.\n")
+    console.log("Run 'npm update @balpal4495/quorum' to upgrade to the latest version.\n")
     process.exit(0)
   }
 }
 
-async function copyModules(target) {
-  log.section("Copying modules")
-  const src  = path.join(QUORUM_ROOT, "modules")
-  const dest = path.join(target, "quorum", "modules")
-  await fs.cp(src, dest, {
-    recursive: true,
-    filter: (src) =>
-      !src.includes("__tests__") &&
-      !src.includes(".test.ts") &&
-      !src.includes(".spec.ts"),
-  })
-  log.created("quorum/modules/")
+async function writeQuorumDocs(target) {
+  log.section("Writing Quorum docs")
+  await fs.mkdir(path.join(target, "quorum"), { recursive: true })
+  for (const file of ["CLAUDE.md", "AGENTS.md"]) {
+    const src  = path.join(QUORUM_ROOT, "modules", file)
+    const dest = path.join(target, "quorum", file)
+    if (await exists(src)) {
+      await fs.copyFile(src, dest)
+      log.created(`quorum/${file}`)
+    }
+  }
   await fs.copyFile(
     path.join(QUORUM_ROOT, "SETUP.md"),
     path.join(target, "quorum", "SETUP.md"),
@@ -55,11 +48,9 @@ async function copyModules(target) {
   log.created("quorum/SETUP.md")
 }
 
-async function copyEvals(target) {
-  const src  = path.join(QUORUM_ROOT, "evals")
-  const dest = path.join(target, "quorum", "evals")
-  await fs.cp(src, dest, { recursive: true })
-  log.created("quorum/evals/")
+async function writeQuorumVersion(target, version) {
+  await fs.writeFile(path.join(target, ".quorum-version"), version + "\n", "utf8")
+  log.created(".quorum-version")
 }
 
 async function mergeCopilotInstructions(target) {
@@ -67,14 +58,15 @@ async function mergeCopilotInstructions(target) {
   const src     = path.join(QUORUM_ROOT, ".github", "copilot-instructions.md")
   const dest    = path.join(target, ".github", "copilot-instructions.md")
   const content = await fs.readFile(src, "utf8")
+  const block   = `<!-- quorum:start -->\n${content}\n<!-- quorum:end -->`
   await fs.mkdir(path.join(target, ".github"), { recursive: true })
   if (await exists(dest)) {
     const existing = await fs.readFile(dest, "utf8")
-    if (existing.includes("<!-- quorum -->")) { log.skipped(".github/copilot-instructions.md (already present)"); return }
-    await fs.appendFile(dest, `\n\n---\n\n<!-- quorum -->\n${content}`, "utf8")
+    if (existing.includes("<!-- quorum:start -->")) { log.skipped(".github/copilot-instructions.md (already present)"); return }
+    await fs.appendFile(dest, `\n\n---\n\n${block}`, "utf8")
     log.appended(".github/copilot-instructions.md")
   } else {
-    await fs.writeFile(dest, content, "utf8")
+    await fs.writeFile(dest, block, "utf8")
     log.created(".github/copilot-instructions.md")
   }
 }
@@ -82,13 +74,18 @@ async function mergeCopilotInstructions(target) {
 async function mergeAgentsMd(target) {
   const dest    = path.join(target, "AGENTS.md")
   const section = [
-    "", "## Quorum modules", "",
-    "See [quorum/modules/AGENTS.md](quorum/modules/AGENTS.md) for Oracle, Jury, and Council internals.",
-    "See [.github/copilot-instructions.md](.github/copilot-instructions.md) for workflow rules.", "",
+    "",
+    "<!-- quorum:start -->",
+    "## Quorum",
+    "",
+    "See [quorum/AGENTS.md](quorum/AGENTS.md) for module file ownership and internals.",
+    "See [.github/copilot-instructions.md](.github/copilot-instructions.md) for workflow rules.",
+    "<!-- quorum:end -->",
+    "",
   ].join("\n")
   if (await exists(dest)) {
     const existing = await fs.readFile(dest, "utf8")
-    if (existing.includes("quorum/modules/AGENTS.md")) { log.skipped("AGENTS.md (already present)"); return }
+    if (existing.includes("<!-- quorum:start -->")) { log.skipped("AGENTS.md (already present)"); return }
     await fs.appendFile(dest, section, "utf8")
     log.appended("AGENTS.md")
   } else {
@@ -98,11 +95,12 @@ async function mergeAgentsMd(target) {
 }
 
 async function mergeClaudeMd(target) {
-  const dest = path.join(target, "CLAUDE.md")
+  const dest    = path.join(target, "CLAUDE.md")
   const section = `
-## Quorum modules
+<!-- quorum:start -->
+## Quorum
 
-See [quorum/modules/CLAUDE.md](quorum/modules/CLAUDE.md) for Oracle, Jury, and Council internals.
+See [quorum/CLAUDE.md](quorum/CLAUDE.md) for design decisions and invariants.
 See [.github/copilot-instructions.md](.github/copilot-instructions.md) for workflow rules.
 
 ## Gemini CLI (optional assistant)
@@ -127,10 +125,11 @@ source ~/.zshrc && gemini -p "I'm about to change X. What should I watch out for
 
 You reason about Gemini's output — it assists, you decide. Never pass its response to the
 user unfiltered. If Gemini contradicts what you know from reading the code, trust your reading.
+<!-- quorum:end -->
 `
   if (await exists(dest)) {
     const existing = await fs.readFile(dest, "utf8")
-    if (existing.includes("quorum/modules/CLAUDE.md")) { log.skipped("CLAUDE.md (already present)"); return }
+    if (existing.includes("<!-- quorum:start -->")) { log.skipped("CLAUDE.md (already present)"); return }
     await fs.appendFile(dest, section, "utf8")
     log.appended("CLAUDE.md")
   } else {
@@ -147,7 +146,7 @@ async function mergeGeminiMd(target) {
   if (await exists(src)) { await fs.copyFile(src, dest); log.created("GEMINI.md") }
 }
 
-async function updatePackageJson(target) {
+async function updatePackageJson(target, version) {
   log.section("Updating package.json")
   const pkgPath = path.join(target, "package.json")
   let pkg
@@ -157,30 +156,27 @@ async function updatePackageJson(target) {
     pkg = { name: path.basename(target), version: "0.1.0", private: true }
     log.warn("No package.json found — creating a minimal one")
   }
-  pkg.dependencies         = pkg.dependencies         ?? {}
-  pkg.optionalDependencies = pkg.optionalDependencies ?? {}
-  const added = []
-  for (const [name, version] of Object.entries(DEPS)) {
-    if (!pkg.dependencies[name]) { pkg.dependencies[name] = version; added.push(name) }
+  pkg.devDependencies = pkg.devDependencies ?? {}
+  const quorumRange = `^${version}`
+  if (pkg.devDependencies["@balpal4495/quorum"] || pkg.dependencies?.["@balpal4495/quorum"]) {
+    log.skipped("package.json (@balpal4495/quorum already present)")
+    return
   }
-  for (const [name, version] of Object.entries(OPTIONAL_DEPS)) {
-    if (!pkg.optionalDependencies[name]) { pkg.optionalDependencies[name] = version; added.push(`${name} (optional)`) }
-  }
+  pkg.devDependencies["@balpal4495/quorum"] = quorumRange
   await fs.writeFile(pkgPath, JSON.stringify(pkg, null, 2) + "\n", "utf8")
-  if (added.length > 0) {
-    log.appended(`package.json — added: ${added.join(", ")}`)
-  } else {
-    log.skipped("package.json (all deps already present)")
-  }
+  log.appended(`package.json — added @balpal4495/quorum@${quorumRange} to devDependencies`)
 }
 
 async function updateGitignore(target) {
   log.section("Updating .gitignore")
   const dest  = path.join(target, ".gitignore")
   const block = [
-    "", "# Quorum — Chronicle",
+    "",
+    "# Quorum — Chronicle",
     "# entries/ is a binary vector store — do not commit",
-    ".chronicle/entries/", ".chronicle/query-log.jsonl", "",
+    ".chronicle/entries/",
+    ".chronicle/query-log.jsonl",
+    "",
   ].join("\n")
   if (await exists(dest)) {
     const existing = await fs.readFile(dest, "utf8")
@@ -195,7 +191,7 @@ async function updateGitignore(target) {
 
 async function createChronicle(target) {
   log.section("Creating Chronicle")
-  await fs.mkdir(path.join(target, ".chronicle", "proposals"),  { recursive: true })
+  await fs.mkdir(path.join(target, ".chronicle", "proposals"), { recursive: true })
   log.created(".chronicle/proposals/")
   await fs.mkdir(path.join(target, ".chronicle", "committed"), { recursive: true })
   log.created(".chronicle/committed/")
@@ -213,30 +209,33 @@ export async function run(PKG_VERSION) {
   }
 
   await guardAlreadyInitialized(target)
-  await copyModules(target)
-  await copyEvals(target)
+  await writeQuorumDocs(target)
   await mergeCopilotInstructions(target)
   await mergeAgentsMd(target)
   await mergeClaudeMd(target)
   await mergeGeminiMd(target)
-  await updatePackageJson(target)
+  await updatePackageJson(target, PKG_VERSION)
   await updateGitignore(target)
   await createChronicle(target)
+  await writeQuorumVersion(target, PKG_VERSION)
 
   const hasGemini = geminiAvailable()
 
-  console.log(`\n${c.green("✓ Quorum initialized.")}`)
+  console.log(`\n${c.green("✓ Quorum initialized.")} ${c.dim(`(v${PKG_VERSION})`)}`)
   console.log("\nNext steps:")
   console.log("  1. npm install")
-  console.log("  2. Wire setup() into your entry point:\n")
-  console.log(c.dim('     import { setup } from "./quorum/modules/setup"'))
+  console.log("  2. Use the CLI:")
+  console.log(c.dim("     quorum advisor brief"))
+  console.log(c.dim('     quorum advisor "what has the team decided about X?"'))
+  console.log(c.dim("     quorum check --outcome '...' --design '...'"))
+  console.log("\n  For programmatic use:")
+  console.log(c.dim('     import { setup } from "@balpal4495/quorum"'))
   console.log(c.dim('     const { oracle, evaluate, deliberate } = await setup({ llm: yourProvider })'))
   console.log("\n  Or tell your AI: \"follow quorum/SETUP.md\"")
 
   if (!hasGemini) {
     console.log(`\n  ${c.dim("Optional: install Gemini CLI for large-context assistance")}`)
     console.log(c.dim("  npm install -g @google/gemini-cli  +  set GEMINI_API_KEY"))
-    console.log(c.dim("  See quorum/SETUP.md Step 10 for details."))
   } else {
     console.log(`\n  ${c.green("✓ Gemini CLI detected")} — GEMINI.md written. Set GEMINI_API_KEY if not already set.`)
   }
