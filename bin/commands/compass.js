@@ -269,19 +269,20 @@ function summarizeBehaviorMap(map) {
 // ── Score computation ─────────────────────────────────────────────────────────
 
 function computeScore(dims) {
+  const d = dims ?? {}
   const raw =
-    dims.strategic_fit         * 20 +
-    dims.user_problem_clarity  * 15 +
-    dims.evidence_strength     * 20 +
-    dims.leverage              * 10 +
-    dims.feasibility           * 15 +
-    dims.time_to_signal        * 10 +
-    dims.reversibility         * 10 -
-    dims.complexity_penalty    * 10 -
-    dims.dependency_penalty    *  8 -
-    dims.contradiction_penalty * 15 -
-    dims.evidence_gap_penalty  * 12
-  return { ...dims, total: Math.max(0, Math.min(100, Math.round(raw))) }
+    (d.strategic_fit         ?? 0) * 20 +
+    (d.user_problem_clarity  ?? 0) * 15 +
+    (d.evidence_strength     ?? 0) * 20 +
+    (d.leverage              ?? 0) * 10 +
+    (d.feasibility           ?? 0) * 15 +
+    (d.time_to_signal        ?? 0) * 10 +
+    (d.reversibility         ?? 0) * 10 -
+    (d.complexity_penalty    ?? 0) * 10 -
+    (d.dependency_penalty    ?? 0) *  8 -
+    (d.contradiction_penalty ?? 0) * 15 -
+    (d.evidence_gap_penalty  ?? 0) * 12
+  return { ...d, total: Math.max(0, Math.min(100, Math.round(raw))) }
 }
 
 // ── Prompts ───────────────────────────────────────────────────────────────────
@@ -672,9 +673,21 @@ function renderProductBrief(brief) {
   }
 }
 
-// ── Last-run artifact cache (used by --from-last) ─────────────────────────────
+// ── Last-run artifact cache (persisted to disk so propose --from-last works across invocations) ─
 
-let _lastArtifact = null
+async function saveLastArtifact(chronicleDir, artifact) {
+  try {
+    await fs.mkdir(chronicleDir, { recursive: true })
+    await fs.writeFile(path.join(chronicleDir, "compass-last.json"), JSON.stringify(artifact, null, 2), "utf8")
+  } catch { /* best-effort */ }
+}
+
+async function loadLastArtifact(chronicleDir) {
+  try {
+    const raw = await fs.readFile(path.join(chronicleDir, "compass-last.json"), "utf8")
+    return JSON.parse(raw)
+  } catch { return null }
+}
 
 // ── Main ─────────────────────────────────────────────────────────────────────
 
@@ -718,7 +731,7 @@ export async function run(argv) {
     process.exit(1)
   }
 
-  const NO_LLM_CMDS = new Set(["map", "opportunities"])
+  const NO_LLM_CMDS = new Set(["map", "opportunities", "behavior", "propose", "outcome"])
   const provider = NO_LLM_CMDS.has(subcommand) ? null : await detectProvider()
   const llm = provider?.llm
 
@@ -831,7 +844,7 @@ export async function run(argv) {
         let parsed
         try { parsed = parseLLMJson(raw) } catch { throw new Error(`Compass pathways: LLM returned non-JSON. Raw: ${raw.slice(0, 300)}`) }
         const data = (parsed.pathways ?? []).map(p => ({ ...p, scores: computeScore(p.scores ?? {}) }))
-        _lastArtifact = { kind: "product_pathway", items: data }
+        await saveLastArtifact(chronicleDir, { kind: "product_pathway", items: data })
         if (jsonMode) { console.log(JSON.stringify(data, null, 2)); break }
         renderPathways(data)
         console.log(c.dim("\nTip: run 'quorum compass propose --from-last' to stage a Chronicle entry."))
@@ -844,7 +857,7 @@ export async function run(argv) {
         let parsed
         try { parsed = parseLLMJson(raw) } catch { throw new Error(`Compass bets: LLM returned non-JSON. Raw: ${raw.slice(0, 300)}`) }
         const data = (parsed.bets ?? []).map(b => ({ ...b, scores: computeScore(b.scores ?? {}) }))
-        _lastArtifact = { kind: "product_bet", items: data }
+        await saveLastArtifact(chronicleDir, { kind: "product_bet", items: data })
         if (jsonMode) { console.log(JSON.stringify(data, null, 2)); break }
         renderBets(data)
         console.log(c.dim("\nTip: run 'quorum compass propose --from-last' to stage a Chronicle entry."))
@@ -862,7 +875,7 @@ export async function run(argv) {
         let data
         try { data = parseLLMJson(raw) } catch { throw new Error(`Compass score: LLM returned non-JSON. Raw: ${raw.slice(0, 300)}`) }
         if (data.scores) data.scores = computeScore(data.scores)
-        _lastArtifact = { kind: "product_idea_score", items: [data] }
+        await saveLastArtifact(chronicleDir, { kind: "product_idea_score", items: [data] })
         if (jsonMode) { console.log(JSON.stringify(data, null, 2)); break }
         renderScore(data)
         break
@@ -894,12 +907,13 @@ Return ONLY valid JSON: { "title":"${title}","problem":"<problem>","target_user"
 
       case "propose": {
         if (flags["from-last"]) {
-          if (!_lastArtifact?.items?.length) {
-            console.error(c.red("Error: no Compass artifact in memory. Run pathways/bets/score first in the same session."))
+          const last = await loadLastArtifact(chronicleDir)
+          if (!last?.items?.length) {
+            console.error(c.red("Error: no prior Compass artifact found. Run 'quorum compass pathways', 'bets', or 'score' first."))
             process.exit(1)
           }
-          const item = _lastArtifact.items[0]
-          const res = await stageProposal(chronicleDir, _lastArtifact.kind, item)
+          const item = last.items[0]
+          const res = await stageProposal(chronicleDir, last.kind, item)
           console.log(c.green(`\n✓ ${res.message}`))
           break
         }
