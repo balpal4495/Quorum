@@ -1,0 +1,35 @@
+{
+  "schema_version": 2,
+  "topic": "init/architecture: modules in node_modules, not vendored",
+  "decision": "Quorum modules live in node_modules (@balpal4495/quorum), not copied into host repos. init writes only quorum/CLAUDE.md, quorum/AGENTS.md, quorum/SETUP.md as documentation. evals stay in the package.",
+  "key_insight": "Vendoring solved AI visibility of module source, but the CLI now handles the main interaction surface. Docs give agents what they need; source in node_modules gives teams clean npm update upgrades.",
+  "affected_areas": [
+    "bin/commands/init.js",
+    "SETUP.md",
+    "package.json",
+    "scripts/sentinel-pr.ts"
+  ],
+  "scope": [
+    "init",
+    "architecture",
+    "breaking-change"
+  ],
+  "alternatives_considered": [
+    "Keep vendoring modules (v0.x approach)",
+    "Symlink node_modules/quorum/modules into project tree"
+  ],
+  "rejected_reason": [
+    "Vendoring blocked upgrades — no quorum upgrade command, users stuck on installed version",
+    "Symlinks are fragile across platforms and confuse many tools"
+  ],
+  "status": "validated",
+  "confidence": 0.95,
+  "source_module": "council",
+  "evidence_cited": [],
+  "work_ref": {
+    "type": "pr",
+    "ref": "v2.0.0 breaking change"
+  },
+  "id": "4af1fb64-d0cf-4b24-83f7-04e6e68a2121",
+  "timestamp": "2026-05-16T19:41:30.618Z"
+}

@@ -1,0 +1,31 @@
+{
+  "schema_version": 2,
+  "topic": "cli/evolve",
+  "decision": "quorum evolve sends all committed entries to an LLM for consolidate/resolve/promote analysis, staging every proposed change through the human gate — Chronicle improves without bypassing human approval.",
+  "key_insight": "quorum evolve sends all committed entries to an LLM for consolidate/resolve/promote analysis, staging every proposed change through the human gate — Chronicle improves without bypassing human approval.",
+  "affected_areas": [
+    "bin/commands/evolve.js"
+  ],
+  "scope": [
+    "cli",
+    "chronicle",
+    "evolve"
+  ],
+  "alternatives_considered": [
+    "Auto-committing LLM improvements",
+    "Periodic background cron"
+  ],
+  "rejected_reason": [
+    "human gate is a core invariant — nothing enters Chronicle without user sign-off"
+  ],
+  "status": "validated",
+  "confidence": 0.95,
+  "source_module": "council",
+  "evidence_cited": [],
+  "work_ref": {
+    "type": "pr",
+    "ref": "PR #21"
+  },
+  "id": "17c26113-2bfe-4b22-a794-84cef4c88e58",
+  "timestamp": "2026-05-16T19:41:33.291Z"
+}

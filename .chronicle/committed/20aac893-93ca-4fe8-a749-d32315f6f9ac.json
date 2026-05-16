@@ -1,0 +1,27 @@
+{
+  "schema_version": 2,
+  "key_insight": "quorum growth command provides Chronicle learning health monitoring with growth rate, days-since-last-commit, and actionable advice when stalled.",
+  "decision": "quorum growth is a standalone CLI command (not a sentinel subcommand) that measures Chronicle growth rate, flags SLOW (7d) / STALLED (14d) status, shows a weekly sparkline, and surfaces pending proposals with commit instructions.",
+  "topic": "chronicle/growth-monitoring",
+  "affected_areas": [
+    "bin/commands/growth.js",
+    "bin/quorum.js"
+  ],
+  "scope": [
+    "chronicle",
+    "cli",
+    "observability"
+  ],
+  "status": "validated",
+  "confidence": 0.95,
+  "source_module": "sentinel",
+  "evidence_cited": [],
+  "alternatives_considered": [
+    "quorum sentinel learning subcommand"
+  ],
+  "rejected_reason": [
+    "top-level command is more discoverable and matches the concept weight"
+  ],
+  "timestamp": "2026-05-16T19:41:31.497Z",
+  "id": "20aac893-93ca-4fe8-a749-d32315f6f9ac"
+}

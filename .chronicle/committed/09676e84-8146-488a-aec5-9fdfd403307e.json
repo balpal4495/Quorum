@@ -1,0 +1,31 @@
+{
+  "schema_version": 2,
+  "topic": "cli/llm-passthrough",
+  "decision": "When no LLM is configured, advisor and evolve output Chronicle evidence + a synthesis request to stdout (exit 0) rather than erroring — the parent AI agent (Claude Code, Copilot, Codex) answers inline.",
+  "key_insight": "When no LLM is configured, advisor and evolve output Chronicle evidence + a synthesis request to stdout (exit 0) rather than erroring — the parent AI agent (Claude Code, Copilot, Codex) answers inline.",
+  "affected_areas": [
+    "bin/commands/advisor.js",
+    "bin/commands/evolve.js"
+  ],
+  "scope": [
+    "cli",
+    "llm",
+    "passthrough"
+  ],
+  "alternatives_considered": [
+    "Hard exit with error when no LLM found"
+  ],
+  "rejected_reason": [
+    "blocks usage in agent environments where the parent agent is the LLM"
+  ],
+  "status": "validated",
+  "confidence": 0.93,
+  "source_module": "council",
+  "evidence_cited": [],
+  "work_ref": {
+    "type": "pr",
+    "ref": "PR #21"
+  },
+  "id": "09676e84-8146-488a-aec5-9fdfd403307e",
+  "timestamp": "2026-05-16T19:41:32.858Z"
+}

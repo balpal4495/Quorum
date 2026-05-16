@@ -1,0 +1,30 @@
+{
+  "schema_version": 2,
+  "topic": "cli/llm-autodetect",
+  "decision": "LLM detection priority: ANTHROPIC_API_KEY → OPENAI_API_KEY → GEMINI_API_KEY → OPENAI_BASE_URL keyless → Ollama probe → Gemini CLI with auth check; implemented as single detectProvider() returning { llm, name }.",
+  "key_insight": "LLM detection priority: ANTHROPIC_API_KEY → OPENAI_API_KEY → GEMINI_API_KEY → OPENAI_BASE_URL keyless → Ollama probe → Gemini CLI with auth check; implemented as single detectProvider() returning { llm, name }.",
+  "affected_areas": [
+    "bin/shared/llm.js"
+  ],
+  "scope": [
+    "cli",
+    "llm",
+    "detection"
+  ],
+  "alternatives_considered": [
+    "Separate detectLLM() and detectLLMName() functions"
+  ],
+  "rejected_reason": [
+    "single function eliminates drift between name and provider returned"
+  ],
+  "status": "validated",
+  "confidence": 0.92,
+  "source_module": "council",
+  "evidence_cited": [],
+  "work_ref": {
+    "type": "pr",
+    "ref": "PR #21"
+  },
+  "id": "a183c37e-17bc-4b4e-b210-eb603978a0da",
+  "timestamp": "2026-05-16T19:41:31.943Z"
+}

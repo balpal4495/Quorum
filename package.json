@@ -22,8 +22,10 @@
   "bin": {
     "quorum": "bin/quorum.js"
   },
+  "exports": {
+    ".": "./modules/setup.ts"
+  },
   "scripts": {
-    "init": "node bin/init.js",
     "test": "vitest run modules/ evals/",
     "test:watch": "vitest modules/",
     "typecheck": "tsc --noEmit"
