@@ -1,9 +1,9 @@
-import type { OracleClient } from "../shared/types"
+import type { OracleClient } from "../shared/types.js"
 import type {
   CompassProposalInput, CompassProposalResult,
   CompassOutcomeInput, CompassOutcomeResultPayload,
   ProductPathway, ProductBet, ProductPathwayPhase,
-} from "./types"
+} from "./types.js"
 
 /**
  * Stage a Compass-generated artifact as a Chronicle proposal.

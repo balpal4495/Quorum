@@ -1,4 +1,4 @@
-import type { OracleResult, LLMProvider } from "../shared/types"
+import type { OracleResult, LLMProvider } from "../shared/types.js"
 
 export interface JuryInput {
   /** What needs to be achieved. */

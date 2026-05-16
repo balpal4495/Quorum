@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto"
-import type { LLMProvider } from "../shared/types"
+import type { LLMProvider } from "../shared/types.js"
 import type {
   Compass, CreateCompassOptions,
   CompassBrief, CompassBriefInput,
@@ -12,21 +12,21 @@ import type {
   ProductBrief, ProductBriefInput,
   CompassProposalInput, CompassProposalResult,
   CompassOutcomeInput, CompassOutcomeResultPayload,
-} from "./types"
-import { defaultSources } from "./sources/index"
-import { collectBearings, collectTerrain, formatBearingsForPrompt, formatTerrainForPrompt } from "./evidence/collect"
-import { mapBehaviorsFromFindings, summarizeBehaviorMap } from "./behavior"
-import { computeScore, scoreToRecommendation, explainScore } from "./score"
-import { stageProposal, stageOutcome } from "./propose"
-import { COMPASS_SYSTEM_PROMPT } from "./prompts/system"
+} from "./types.js"
+import { defaultSources } from "./sources/index.js"
+import { collectBearings, collectTerrain, formatBearingsForPrompt, formatTerrainForPrompt } from "./evidence/collect.js"
+import { mapBehaviorsFromFindings, summarizeBehaviorMap } from "./behavior.js"
+import { computeScore, scoreToRecommendation, explainScore } from "./score.js"
+import { stageProposal, stageOutcome } from "./propose.js"
+import { COMPASS_SYSTEM_PROMPT } from "./prompts/system.js"
 import {
   buildBriefPrompt, buildPathwaysPrompt,
   buildBetsPrompt, buildScorePrompt,
-} from "./prompts/index"
+} from "./prompts/index.js"
 import {
   CompassBriefLLMSchema, PathwaysLLMSchema,
   BetsLLMSchema, ProductIdeaScoreSchema,
-} from "./schemas"
+} from "./schemas.js"
 
 function parseLLMJson(raw: string): unknown {
   const cleaned = raw.replace(/^```(?:json)?\s*/m, "").replace(/\s*```$/m, "").trim()

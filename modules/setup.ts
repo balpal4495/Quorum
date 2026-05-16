@@ -1,19 +1,19 @@
 import path from "path"
 import { promises as fs } from "fs"
-import { createOracleClient } from "./oracle/index"
-import { xenovaEmbed, warmEmbedder } from "./oracle/adapters/xenova-embedder"
-import { createLanceDBStore } from "./oracle/adapters/lance-db"
-import { evaluate } from "./jury/evaluate"
-import { deliberate } from "./council/deliberate"
-import { ask as advisorAsk } from "./advisor/ask"
-import type { LLMProvider, OracleClient } from "./shared/types"
-import { entryText } from "./shared/types"
-import type { JuryInput, JuryOutput, JuryDeps } from "./jury/types"
-import type { CouncilInput, CouncilOutput, CouncilDeps, CouncilModels } from "./council/types"
-import type { AdvisorOutput } from "./advisor/types"
-import { createCompass } from "./compass/create"
-import { defaultSources } from "./compass/sources/index"
-import type { Compass, CreateCompassOptions } from "./compass/types"
+import { createOracleClient } from "./oracle/index.js"
+import { xenovaEmbed, warmEmbedder } from "./oracle/adapters/xenova-embedder.js"
+import { createLanceDBStore } from "./oracle/adapters/lance-db.js"
+import { evaluate } from "./jury/evaluate.js"
+import { deliberate } from "./council/deliberate.js"
+import { ask as advisorAsk } from "./advisor/ask.js"
+import type { LLMProvider, OracleClient } from "./shared/types.js"
+import { entryText } from "./shared/types.js"
+import type { JuryInput, JuryOutput, JuryDeps } from "./jury/types.js"
+import type { CouncilInput, CouncilOutput, CouncilDeps, CouncilModels } from "./council/types.js"
+import type { AdvisorOutput } from "./advisor/types.js"
+import { createCompass } from "./compass/create.js"
+import { defaultSources } from "./compass/sources/index.js"
+import type { Compass, CreateCompassOptions } from "./compass/types.js"
 
 export interface SetupOptions {
   /**
@@ -108,7 +108,7 @@ export interface Modules {
  * Wire up all three modules from a single call.
  *
  * @example
- * import { setup } from "./modules/setup"
+ * import { setup } from "./modules/setup.js"
  *
  * const { oracle, evaluate, deliberate } = await setup({
  *   llm: myLLMProvider,
@@ -158,7 +158,7 @@ export async function setup(options: SetupOptions): Promise<Modules> {
       console.log(`[Chronicle] Rebuilding index from ${missing.length} committed ${missing.length === 1 ? "entry" : "entries"}…`)
       for (const file of missing) {
         const raw = await fs.readFile(path.join(committedDir, file), "utf8")
-        const entry = JSON.parse(raw) as import("./shared/types").ChronicleEntry
+        const entry = JSON.parse(raw) as import("./shared/types.js").ChronicleEntry
         const embeddingText = [entryText(entry), ...entry.affected_areas, ...(entry.scope ?? [])].join(" ")
         const vector = await embedder(embeddingText)
         await vectorStore.upsert(entry.id, vector, entry)

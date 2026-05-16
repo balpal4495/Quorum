@@ -1,8 +1,8 @@
 import { promises as fs } from "fs"
 import path from "path"
-import type { ChronicleEntry } from "../shared/types"
-import { entryText } from "../shared/types"
-import { coverage as runCoverage } from "./coverage"
+import type { ChronicleEntry } from "../shared/types.js"
+import { entryText } from "../shared/types.js"
+import { coverage as runCoverage } from "./coverage.js"
 
 function extractModule(filePath: string): string {
   const normalised = filePath.replace(/\\/g, "/").replace(/^\/+/, "")

@@ -1,7 +1,7 @@
 import { promises as fs } from "fs"
 import path from "path"
-import type { ChronicleEntry, DriftFlag, DriftReport, LLMProvider } from "../shared/types"
-import { entryText } from "../shared/types"
+import type { ChronicleEntry, DriftFlag, DriftReport, LLMProvider } from "../shared/types.js"
+import { entryText } from "../shared/types.js"
 
 const FILE_CONTENT_LIMIT = 3000
 

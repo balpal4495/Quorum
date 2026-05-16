@@ -1,5 +1,5 @@
-import type { OracleClient, OracleResult } from "../../shared/types"
-import type { CompassEvidenceRef, ProductBearing, ProductSource, ProductSourceFinding } from "../types"
+import type { OracleClient, OracleResult } from "../../shared/types.js"
+import type { CompassEvidenceRef, ProductBearing, ProductSource, ProductSourceFinding } from "../types.js"
 import { randomUUID } from "crypto"
 
 // ── Bearings from Chronicle ───────────────────────────────────────────────────

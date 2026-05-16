@@ -1,5 +1,5 @@
-import type { OracleResult } from "../shared/types"
-import { entryText } from "../shared/types"
+import type { OracleResult } from "../shared/types.js"
+import { entryText } from "../shared/types.js"
 
 export const SYSTEM_PROMPT = `You are the Quorum Advisor — the plain-language interface to a team's collective knowledge.
 

@@ -1,8 +1,8 @@
-import type { JuryInput, JuryOutput, JuryDeps } from "./types"
-import type { OracleResult } from "../shared/types"
-import { entryText } from "../shared/types"
-import { JuryOutputSchema } from "./schema"
-import { runPreflight, formatPreflight } from "./preflight"
+import type { JuryInput, JuryOutput, JuryDeps } from "./types.js"
+import type { OracleResult } from "../shared/types.js"
+import { entryText } from "../shared/types.js"
+import { JuryOutputSchema } from "./schema.js"
+import { runPreflight, formatPreflight } from "./preflight.js"
 
 const CONFIDENCE_THRESHOLD = 0.6
 

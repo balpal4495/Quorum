@@ -1,5 +1,5 @@
-import type { OracleResult, LLMProvider, OracleClient } from "../shared/types"
-import type { JuryOutput } from "../jury/types"
+import type { OracleResult, LLMProvider, OracleClient } from "../shared/types.js"
+import type { JuryOutput } from "../jury/types.js"
 
 export interface CouncilInput {
   /** What needs to be achieved. */

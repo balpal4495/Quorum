@@ -3,10 +3,10 @@ import path from "path"
 import { randomUUID } from "crypto"
 import { exec } from "child_process"
 import { promisify } from "util"
-import type { ChronicleEntry, SimilarityWarning } from "../shared/types"
-import { entryText } from "../shared/types"
-import type { OracleDeps } from "./types"
-import { updateSummary } from "./summary"
+import type { ChronicleEntry, SimilarityWarning } from "../shared/types.js"
+import { entryText } from "../shared/types.js"
+import type { OracleDeps } from "./types.js"
+import { updateSummary } from "./summary.js"
 
 const execAsync = promisify(exec)
 

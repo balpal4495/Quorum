@@ -1,4 +1,4 @@
-import type { ChronicleEntry } from "../shared/types"
+import type { ChronicleEntry } from "../shared/types.js"
 
 /**
  * Abstract vector store interface.
