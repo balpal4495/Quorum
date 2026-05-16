@@ -711,7 +711,7 @@ export async function run(argv) {
   // ── Setup ─────────────────────────────────────────────────────────────────
 
   const rootDir      = process.cwd()
-  const chronicleDir = findChronicleDir(rootDir)
+  const chronicleDir = await findChronicleDir(rootDir)
 
   if (!chronicleDir) {
     console.error(c.red("Error: Chronicle not found. Run 'quorum init' first."))
@@ -719,7 +719,8 @@ export async function run(argv) {
   }
 
   const NO_LLM_CMDS = new Set(["map", "opportunities"])
-  const llm = NO_LLM_CMDS.has(subcommand) ? undefined : detectProvider()
+  const provider = NO_LLM_CMDS.has(subcommand) ? null : await detectProvider()
+  const llm = provider?.llm
 
   // ── Shared context helper ─────────────────────────────────────────────────
 
