@@ -163,11 +163,11 @@ Nothing is indexed without your explicit sign-off.
 
 Commit `.chronicle/committed/` to git. Future sessions — and your teammates' sessions — start with that context.
 
-### Every merged PR creates a Chronicle proposal automatically
+### Every merged PR can create a Chronicle proposal automatically
 
-A GitHub Actions workflow fires when any PR merges to main. It creates a Chronicle proposal capturing the decision, which files changed, and any explicitly deferred items from the PR description. The proposal sits in `proposals/` until you commit it — nothing is auto-indexed.
+Quorum ships a GitHub Actions workflow (`chronicle-on-merge.yml`) that fires when any PR merges to main. It creates a Chronicle proposal capturing the decision, which files changed, and any explicitly deferred items from the PR description. The proposal sits in `proposals/` until you commit it — nothing is auto-indexed.
 
-This means the gap between "PR merged" and "Chronicle knows about it" is now zero.
+To enable this in your project, copy `.github/workflows/chronicle-on-merge.yml` and `scripts/chronicle-pr.js` from the [Quorum repo](https://github.com/balpal4495/Quorum) into your own repo.
 
 ---
 
@@ -358,7 +358,7 @@ quorum sentinel coverage --json       # machine-readable, for scripts
 
 **Drift** — do existing Chronicle entries still accurately describe the code, or have they gone stale? Drift detection requires an LLM; use `sentinelAssertions({ llm })` in your test suite (the CLI surfaces the message and directs you there).
 
-Add `sentinel-pr.yml` (included in `quorum/`) to your GitHub Actions and every PR gets a comment showing a full-project coverage table and a colour-coded heatmap. Changed modules are highlighted. Reviewers see exactly where knowledge is solid and where it goes dark.
+To get a coverage comment on every PR, copy `.github/workflows/sentinel-pr.yml` from the [Quorum repo](https://github.com/balpal4495/Quorum) into your project. Every PR then gets a comment showing a full-project coverage table and a colour-coded heatmap. Changed modules are highlighted. Reviewers see exactly where knowledge is solid and where it goes dark.
 
 ---
 
