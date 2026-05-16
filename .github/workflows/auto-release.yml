@@ -87,3 +87,5 @@ jobs:
 
       - name: Publish to npm (OIDC Trusted Publishing)
         run: npx --package=npm@11 --yes -- npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
