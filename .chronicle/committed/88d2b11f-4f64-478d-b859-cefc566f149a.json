@@ -1,0 +1,32 @@
+{
+  "schema_version": 2,
+  "topic": "chronicle-pr.js — auto-proposal confidence",
+  "decision": "PR merge Chronicle proposals use confidence 0.4 with source_quality: metadata-derived and needs_human_summary: true — they are drafts, not validated knowledge",
+  "key_insight": "PR merge Chronicle proposals use confidence 0.4 with source_quality: metadata-derived and needs_human_summary: true — they are drafts, not validated knowledge",
+  "affected_areas": [
+    "scripts/chronicle-pr.js",
+    ".github/workflows/chronicle-on-merge.yml"
+  ],
+  "scope": [
+    "chronicle",
+    "ci",
+    "workflow"
+  ],
+  "alternatives_considered": [
+    "Confidence 0.7 for PR proposals",
+    "No auto-proposals at all"
+  ],
+  "rejected_reason": [
+    "High confidence on metadata-derived proposals misleads future sessions; no proposals means missed capture of merge context"
+  ],
+  "status": "validated",
+  "confidence": 0.88,
+  "source_module": "council",
+  "evidence_cited": [],
+  "work_ref": {
+    "type": "pr",
+    "ref": "PR #16"
+  },
+  "id": "88d2b11f-4f64-478d-b859-cefc566f149a",
+  "timestamp": "2026-05-16T14:35:42.924Z"
+}

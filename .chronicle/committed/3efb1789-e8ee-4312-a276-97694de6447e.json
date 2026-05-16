@@ -1,0 +1,31 @@
+{
+  "schema_version": 2,
+  "topic": "advisor/ask — validation loop design",
+  "decision": "Advisor validates its own answers before returning — retries up to 2 times when confidence < 0.7 or blockers are present, passing the previous answer as context",
+  "key_insight": "Advisor validates its own answers before returning — retries up to 2 times when confidence < 0.7 or blockers are present, passing the previous answer as context",
+  "affected_areas": [
+    "modules/advisor/ask.ts",
+    "modules/advisor/prompt.ts"
+  ],
+  "scope": [
+    "advisor",
+    "architecture"
+  ],
+  "alternatives_considered": [
+    "Return first answer always",
+    "Let the caller decide whether to retry"
+  ],
+  "rejected_reason": [
+    "First-answer-only produces poor answers when Chronicle evidence is thin; caller retry puts loop logic in every consumer"
+  ],
+  "status": "validated",
+  "confidence": 0.92,
+  "source_module": "council",
+  "evidence_cited": [],
+  "work_ref": {
+    "type": "pr",
+    "ref": "PR #21"
+  },
+  "id": "3efb1789-e8ee-4312-a276-97694de6447e",
+  "timestamp": "2026-05-16T14:35:42.011Z"
+}
