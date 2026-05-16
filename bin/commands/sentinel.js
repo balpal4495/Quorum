@@ -1,4 +1,4 @@
-import { promises as fs, Dirent } from "fs"
+import { promises as fs } from "fs"
 import path from "path"
 import { c } from "../shared/colors.js"
 import { findChronicleDir, readCommitted } from "../shared/chronicle.js"

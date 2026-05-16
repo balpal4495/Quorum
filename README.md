@@ -36,6 +36,7 @@ After `npm install -g @balpal4495/quorum` (or `npx @balpal4495/quorum`), you get
 | `quorum check --outcome X --design Y` | Deterministic preflight + risk classifier | No |
 | `quorum commit <id>` | Approve and index a pending proposal | No |
 | `quorum sentinel [coverage]` | Chronicle coverage of your source files | No |
+| `quorum growth` | Chronicle learning health — growth rate, days since last commit, pending proposals | No |
 
 ### `quorum check` — instant risk triage before the full pipeline
 
@@ -91,7 +92,7 @@ quorum commit a1b2c3d4      # approve and index (supports partial ID prefix)
 quorum commit a1b2c3d4 --dry-run  # preview without writing
 ```
 
-Embeds the entry via the local ONNX model, upserts to LanceDB, writes to `.chronicle/committed/`, updates `SUMMARY.md`, and removes the proposal — the full oracle commit in one command. Requires `@xenova/transformers` and `vectordb` to be installed (both are optional deps from `quorum init`).
+Writes the entry to `.chronicle/committed/`, updates `SUMMARY.md`, and removes the proposal. Always works — no extra dependencies required. If `@xenova/transformers` and `vectordb` are installed, also embeds and indexes in the vector store for semantic search.
 
 ### `quorum sentinel coverage` — see where Chronicle goes dark
 

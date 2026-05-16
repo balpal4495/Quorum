@@ -28,6 +28,7 @@ ${c.bold("Usage:")}
   ${c.cyan("quorum check")} --outcome <x> --design <y>  Preflight + risk (no LLM)
   ${c.cyan("quorum commit")} <id>                   Approve and index a Chronicle proposal
   ${c.cyan("quorum sentinel")} [coverage]           Chronicle coverage of source files
+  ${c.cyan("quorum growth")}                        Chronicle learning health and growth rate
   ${c.cyan("quorum --version")}                     Print version
 
 ${c.bold("quorum advisor")} subcommands:
@@ -102,6 +103,12 @@ async function cli() {
 
   if (command === "sentinel") {
     const { run } = await import(path.join(__dirname, "commands/sentinel.js"))
+    await run(rest)
+    return
+  }
+
+  if (command === "growth") {
+    const { run } = await import(path.join(__dirname, "commands/growth.js"))
     await run(rest)
     return
   }
