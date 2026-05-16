@@ -74,7 +74,7 @@ function formatBearings(bearings) {
 function inferTags(text) {
   const tags = []
   const lower = text.toLowerCase()
-  const keywords = ["oracle","advisor","jury","council","sentinel","compass","cli","api","auth","test","docs","config","chronicle","llm","module"]
+  const keywords = ["cli","api","auth","test","docs","config","llm","module","route","page","component","schema","database","db","webhook","deploy","ui","middleware","service"]
   for (const kw of keywords) if (lower.includes(kw)) tags.push(kw)
   return tags
 }
@@ -82,7 +82,7 @@ function inferTags(text) {
 async function scanDocs(rootDir, area) {
   const findings = []
   let idx = 0
-  const targets = ["README.md","SETUP.md","CLAUDE.md","AGENTS.md","modules/README.md","quorum/CLAUDE.md","docs"]
+  const SKIP_DIRS = new Set(["node_modules",".git","dist","build","out",".next",".chronicle","coverage",".cache",".turbo",".vercel"])
   async function scanMd(filePath) {
     let content
     try { content = await fs.readFile(filePath, "utf8") } catch { return }
@@ -96,10 +96,6 @@ async function scanDocs(rootDir, area) {
         const context = lines.slice(i + 1, i + 4).join(" ").replace(/```[^`]*```/g, "").trim().slice(0, 200)
         findings.push({ id: `docs-${idx++}`, kind: "docs", source: rel, path: rel, line: i + 1, title: heading, summary: context || heading, confidence: 0.8, tags: inferTags(heading + " " + context) })
       }
-      const trimmed = line.trim()
-      if (trimmed.startsWith("quorum ") || trimmed.startsWith("npx quorum")) {
-        findings.push({ id: `docs-cmd-${idx++}`, kind: "docs", source: rel, path: rel, line: i + 1, title: `CLI usage: ${trimmed.slice(0, 60)}`, summary: `Documented command: ${trimmed}`, confidence: 0.85, tags: ["cli", "command", ...inferTags(trimmed)] })
-      }
     }
   }
   async function scanDir(dir) {
@@ -107,18 +103,24 @@ async function scanDocs(rootDir, area) {
     try { entries = await fs.readdir(dir, { withFileTypes: true }) } catch { return }
     for (const entry of entries) {
       const full = path.join(dir, entry.name)
-      if (entry.isDirectory() && !["node_modules",".git","dist"].includes(entry.name)) await scanDir(full)
+      if (entry.isDirectory() && !SKIP_DIRS.has(entry.name)) await scanDir(full)
       else if (entry.isFile() && entry.name.endsWith(".md")) await scanMd(full)
     }
   }
-  for (const target of targets) {
-    const full = path.join(rootDir, target)
+  // Scan all .md files at project root (non-recursive)
+  let rootEntries
+  try { rootEntries = await fs.readdir(rootDir, { withFileTypes: true }) } catch { rootEntries = [] }
+  for (const entry of rootEntries) {
+    if (entry.isFile() && entry.name.endsWith(".md")) await scanMd(path.join(rootDir, entry.name))
+  }
+  // Scan standard documentation directories
+  for (const d of ["docs","documentation","doc",".github","wiki"]) {
+    const full = path.join(rootDir, d)
     let stat
     try { stat = await fs.stat(full) } catch { continue }
     if (stat.isDirectory()) await scanDir(full)
-    else await scanMd(full)
   }
-  return area ? findings.filter(f => !area || f.tags.includes(area.toLowerCase()) || f.summary.toLowerCase().includes(area.toLowerCase())) : findings
+  return area ? findings.filter(f => f.tags.includes(area.toLowerCase()) || f.summary.toLowerCase().includes(area.toLowerCase())) : findings
 }
 
 async function scanPackage(rootDir) {
@@ -138,24 +140,59 @@ async function scanPackage(rootDir) {
 async function scanCli(rootDir, area) {
   const findings = []
   let idx = 0
-  const binDir = path.join(rootDir, "bin", "commands")
-  let files
-  try { files = (await fs.readdir(binDir)).filter(f => f.endsWith(".js")) } catch { return findings }
-  for (const file of files) {
-    const cmdName = file.replace(".js", "")
-    let content
-    try { content = await fs.readFile(path.join(binDir, file), "utf8") } catch { continue }
-    const rel = `bin/commands/${file}`
-    const subcmds = [...content.matchAll(/case ["']([a-z-]+)["']/g)].map(m => m[1])
-    const flags = [...new Set([...content.matchAll(/["'](--[a-z-]+)["']/g)].map(m => m[1]))]
-    const usesLLM = /llm|LLM|provider|model/.test(content)
-    const readsChronicle = /readCommitted|findChronicleDir|committed/.test(content)
-    findings.push({
-      id: `cli-${idx++}`, kind: "cli", source: rel, path: rel, title: `Command: quorum ${cmdName}`,
-      summary: [`quorum ${cmdName}`, subcmds.length ? `Subcommands: ${subcmds.join(", ")}` : "", flags.length ? `Flags: ${flags.slice(0,8).join(", ")}` : "", usesLLM ? "Uses LLM" : "No LLM", readsChronicle ? "Reads Chronicle" : ""].filter(Boolean).join(" | "),
-      confidence: 0.9,
-      tags: ["cli","command",cmdName,...subcmds.map(s => `subcommand:${s}`), usesLLM ? "llm" : "deterministic"].filter(Boolean),
-    })
+  // ── CLI tool pattern: look for command files in known CLI layouts ──────────
+  for (const base of ["bin/commands", "bin", "src/commands", "src/cli"]) {
+    const binDir = path.join(rootDir, base)
+    let entries
+    try { entries = await fs.readdir(binDir, { withFileTypes: true }) } catch { continue }
+    const files = entries.filter(e => e.isFile() && /\.(js|ts)$/.test(e.name))
+    for (const entry of files) {
+      let content
+      try { content = await fs.readFile(path.join(binDir, entry.name), "utf8") } catch { continue }
+      const cmdName = entry.name.replace(/\.(js|ts)$/, "")
+      const fileRel = `${base}/${entry.name}`
+      const subcmds = [...content.matchAll(/case ["']([a-z-]+)["']/g)].map(m => m[1])
+      const flags = [...new Set([...content.matchAll(/["'](--[a-z-]+)["']/g)].map(m => m[1]))]
+      findings.push({
+        id: `cli-${idx++}`, kind: "cli", source: fileRel, path: fileRel,
+        title: `Command: ${cmdName}`,
+        summary: [cmdName, subcmds.length ? `Subcommands: ${subcmds.join(", ")}` : "", flags.length ? `Flags: ${flags.slice(0,8).join(", ")}` : ""].filter(Boolean).join(" | "),
+        confidence: 0.9,
+        tags: ["cli","command",cmdName,...subcmds.map(s => `subcommand:${s}`)].filter(Boolean),
+      })
+    }
+    if (findings.length) break
+  }
+  // ── Web app route pattern: Next.js app router or pages router ─────────────
+  if (!findings.length) {
+    const SKIP = new Set(["node_modules","_components","_lib","_hooks"])
+    async function walkRoutes(dir, prefix, isApiBase) {
+      let entries
+      try { entries = await fs.readdir(dir, { withFileTypes: true }) } catch { return }
+      for (const e of entries) {
+        if (SKIP.has(e.name) || e.name.startsWith(".")) continue
+        const full = path.join(dir, e.name)
+        const rel = path.relative(rootDir, full).replace(/\\/g, "/")
+        if (e.isDirectory()) {
+          const seg = e.name.startsWith("(") ? "" : ("/" + e.name)
+          await walkRoutes(full, prefix + seg, isApiBase || e.name === "api")
+        } else if (e.isFile() && /\.(tsx?|jsx?)$/.test(e.name)) {
+          const name = e.name.replace(/\.(tsx?|jsx?)$/, "")
+          const isPage = ["page","index"].includes(name) && !["_app","_document","_error"].includes(name)
+          const isRoute = name === "route"
+          if (!isPage && !isRoute) continue
+          const route = prefix || "/"
+          const isApi = isApiBase || isRoute || prefix.startsWith("/api")
+          findings.push({ id: `route-${idx++}`, kind: "route", source: rel, path: rel, title: isApi ? `API: ${route}` : `Page: ${route}`, summary: isApi ? `API route at ${route}` : `Page/screen at ${route}`, confidence: 0.85, tags: [isApi ? "api" : "page", "route", ...inferTags(route + " " + rel)] })
+        }
+      }
+    }
+    for (const base of ["app","pages","src/app","src/pages"]) {
+      const routeBase = path.join(rootDir, base)
+      try { await fs.stat(routeBase) } catch { continue }
+      await walkRoutes(routeBase, "", base.includes("api"))
+      if (findings.length) break
+    }
   }
   return area ? findings.filter(f => f.tags.includes(area.toLowerCase()) || f.summary.toLowerCase().includes(area.toLowerCase())) : findings
 }
@@ -163,15 +200,21 @@ async function scanCli(rootDir, area) {
 async function scanRepo(rootDir) {
   const findings = []
   let idx = 0
-  const modulesDir = path.join(rootDir, "modules")
-  try {
-    const entries = await fs.readdir(modulesDir, { withFileTypes: true })
-    for (const entry of entries) {
-      if (entry.isDirectory() && !entry.name.startsWith("_") && entry.name !== "shared") {
-        findings.push({ id: `repo-module-${idx++}`, kind: "code", source: `modules/${entry.name}/`, path: `modules/${entry.name}/`, title: `Module: ${entry.name}`, summary: `TypeScript module: modules/${entry.name}/`, confidence: 0.85, tags: ["module", entry.name, "code"] })
-      }
-    }
-  } catch { /* no modules dir */ }
+  const SKIP = new Set(["node_modules",".git","dist","build","out",".next",".chronicle","coverage",".cache",".turbo",".vercel","public","static","assets","images","fonts"])
+  const SOURCE_HINTS = new Set(["src","lib","app","modules","packages","services","components","api","server","client","core","shared","common","utils","hooks","stores","models","types","schemas","db","database"])
+  let entries
+  try { entries = await fs.readdir(rootDir, { withFileTypes: true }) } catch { return findings }
+  for (const entry of entries) {
+    if (!entry.isDirectory() || SKIP.has(entry.name) || entry.name.startsWith(".")) continue
+    const isSource = SOURCE_HINTS.has(entry.name)
+    let subEntries = []
+    try { subEntries = await fs.readdir(path.join(rootDir, entry.name), { withFileTypes: true }) } catch {}
+    const subDirs = subEntries.filter(e => e.isDirectory() && !SKIP.has(e.name) && !e.name.startsWith(".")).map(e => e.name)
+    const fileCount = subEntries.filter(e => e.isFile()).length
+    if (fileCount === 0 && subDirs.length === 0) continue
+    const desc = subDirs.length ? `Contains: ${subDirs.slice(0, 6).join(", ")}${subDirs.length > 6 ? "\u2026" : ""}` : `${fileCount} files`
+    findings.push({ id: `repo-${idx++}`, kind: "code", source: `${entry.name}/`, path: `${entry.name}/`, title: `${isSource ? "Source" : "Directory"}: ${entry.name}/`, summary: desc, confidence: isSource ? 0.9 : 0.7, tags: ["code", entry.name, isSource ? "source" : "directory", ...inferTags(entry.name + " " + desc)] })
+  }
   return findings
 }
 
@@ -200,16 +243,14 @@ function formatTerrain(findings, limit = 40) {
 // ── Behaviour mapping ─────────────────────────────────────────────────────────
 
 function inferArea(f) {
-  const lower = (f.title + " " + f.summary).toLowerCase()
-  for (const area of ["oracle","advisor","jury","council","sentinel","compass","chronicle","onboarding"]) {
-    if (lower.includes(area)) return area
+  // For routes, derive area from route path segments
+  if (f.kind === "route" && f.path) {
+    const parts = f.path.split("/").filter(p => p && !p.startsWith("(") && !p.startsWith("[") && !["app","pages","src","route","page","index"].includes(p))
+    if (parts.length) return parts[0]
   }
-  return f.tags?.find(t => !["cli","command","llm","deterministic","chronicle","module","code"].includes(t)) ?? "general"
-}
-
-function extractCommand(text) {
-  const m = text.match(/quorum\s+(\w+)/)
-  return m ? m[1] : ""
+  // Fall back to first meaningful tag
+  const SKIP = new Set(["cli","command","llm","deterministic","code","source","directory","module","docs","api","route","page","package","identity","description","binary","exports","dependencies","test"])
+  return f.tags?.find(t => !SKIP.has(t)) ?? "general"
 }
 
 function findingToRef(f) {
@@ -218,32 +259,34 @@ function findingToRef(f) {
 
 function mapBehaviors(findings, area) {
   const behaviors = []
-  const gaps = []
 
-  const cliFindings = findings.filter(f => f.kind === "cli")
-  for (const f of cliFindings) {
+  // CLI command behaviors
+  for (const f of findings.filter(f => f.kind === "cli")) {
     behaviors.push({ id: `behavior-cli-${f.id}`, area: inferArea(f), name: f.title, current_behavior: f.summary, evidence: [findingToRef(f)], confidence: f.confidence })
   }
 
-  const docsCliFindings = findings.filter(f => f.kind === "docs" && f.tags?.includes("cli"))
-  for (const f of docsCliFindings) {
-    const cmd = extractCommand(f.summary)
-    const alreadyPresent = cmd.length > 3 && behaviors.some(b => b.current_behavior.toLowerCase().includes(cmd.toLowerCase()))
-    if (!alreadyPresent && cmd) {
-      behaviors.push({ id: `behavior-docs-${f.id}`, area: inferArea(f), name: `Documented: ${f.title}`, current_behavior: f.summary, evidence: [findingToRef(f)], confidence: f.confidence * 0.9 })
-    }
+  // Web route behaviors
+  for (const f of findings.filter(f => f.kind === "route")) {
+    behaviors.push({ id: `behavior-route-${f.id}`, area: inferArea(f), name: f.title, current_behavior: f.summary, evidence: [findingToRef(f)], confidence: f.confidence })
   }
 
-  const EXPECTED = ["onboarding","chronicle","advisor","review"]
-  for (const expected of EXPECTED) {
-    const has = behaviors.some(b => b.area === expected || b.name.toLowerCase().includes(expected))
-    if (!has) {
-      gaps.push({ id: `gap-${expected}`, area: expected, gap: `No first-class CLI command found for '${expected}'.`, why_it_matters: `'${expected}' appears in product docs but has no dedicated CLI surface.`, confidence: 0.7 })
-    }
+  // Documented feature headings (deduplicated, limited to avoid noise)
+  const codeNames = new Set(behaviors.map(b => b.name.toLowerCase()))
+  for (const f of findings.filter(f => f.kind === "docs").slice(0, 20)) {
+    const titleLower = f.title.toLowerCase()
+    if ([...codeNames].some(n => n.includes(titleLower.slice(0, 15)) || titleLower.includes(n.slice(0, 15)))) continue
+    behaviors.push({ id: `behavior-docs-${f.id}`, area: inferArea(f), name: f.title, current_behavior: f.summary, evidence: [findingToRef(f)], confidence: f.confidence * 0.7 })
+    codeNames.add(titleLower)
   }
 
-  if (!behaviors.some(b => b.name.toLowerCase().includes("compass"))) {
-    gaps.push({ id: "gap-product-direction", area: "product direction", gap: "No product behaviour mapping or direction module currently exists.", why_it_matters: "Quorum helps agents avoid repeating engineering mistakes, but has no module to help avoid repeating product-direction mistakes.", confidence: 0.93 })
+  // Gaps: documented areas with no code artifact
+  const gaps = []
+  const codeAreas = new Set(behaviors.filter(b => ["cli","route","code"].includes(b.evidence[0]?.kind)).map(b => b.area))
+  const docOnlyAreas = behaviors.filter(b => b.evidence[0]?.kind === "docs").map(b => b.area)
+  for (const docArea of new Set(docOnlyAreas)) {
+    if (!codeAreas.has(docArea) && docArea !== "general") {
+      gaps.push({ id: `gap-${docArea}`, area: docArea, gap: `'${docArea}' is documented but no corresponding route, command, or source module was found.`, why_it_matters: `May indicate planned-but-unbuilt functionality.`, confidence: 0.6 })
+    }
   }
 
   const filtered = area ? behaviors.filter(b => b.area.toLowerCase().includes(area.toLowerCase()) || b.name.toLowerCase().includes(area.toLowerCase())) : behaviors
