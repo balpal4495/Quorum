@@ -1,0 +1,28 @@
+{
+  "schema_version": 2,
+  "topic": "PR #17",
+  "decision": "fix: correct docs overclaims and regenerate stale lockfile",
+  "key_insight": "fix: correct docs overclaims and regenerate stale lockfile",
+  "affected_areas": [
+    "README.md",
+    "SETUP.md"
+  ],
+  "scope": [
+    "docs"
+  ],
+  "alternatives_considered": [],
+  "rejected_reason": [],
+  "supersedes": null,
+  "superseded_by": null,
+  "status": "open",
+  "confidence": 0.4,
+  "source_quality": "metadata-derived",
+  "needs_human_summary": true,
+  "source_module": "pr-merge",
+  "evidence_cited": [],
+  "work_ref": {
+    "type": "pr",
+    "ref": "PR #17"
+  },
+  "outcome": "## Summary\n\n- **SETUP.md**: Step 1 and Step 4a now reference `.github/copilot-instructions.md` (project root, where init actually installs it) instead of `quorum/.github/copilot-instructions.md` which never exists in a host project\n- **README**: `chronicle-on-merge` and `sentinel-pr` workflows are opt-in (copy manually from the Quorum repo) — removed the implication that they auto-install via `quorum init`\n- **package-lock.json**: regenerated — was stale at `quorum@0.2.0`, now correctly reflects"
+}
