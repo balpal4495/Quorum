@@ -100,17 +100,24 @@ function spinner(msg) {
   return { stop: (final) => { clearInterval(interval); process.stdout.write(`\r  ${final}\n`) } }
 }
 
+function renderEvolvePassthrough(entries) {
+  console.log(`\n${c.bold("Chronicle evolution analysis")}  ${c.dim(`${entries.length} entries`)}\n`)
+  console.log(c.dim("  No LLM configured — outputting Chronicle for agent analysis.\n"))
+  console.log(formatEntries(entries))
+  console.log(c.dim("─".repeat(60)))
+  console.log(`\n${c.bold("Analysis request")}\n`)
+  console.log("  Review the Chronicle entries above and identify quality improvements:")
+  console.log("  · consolidate — entries covering the same ground (merge into one stronger entry)")
+  console.log("  · resolve — a validated entry superseded or contradicted by a newer one")
+  console.log("  · promote — an 'open' entry confirmed by other entries (elevate to validated)")
+  console.log("")
+  console.log("  For each improvement, create a proposal using the template in CLAUDE.md:")
+  console.log(c.dim("  node -e \"const { randomUUID } = require('crypto'); ...\" (see CLAUDE.md)"))
+  console.log(c.dim("  Then run: quorum commit --list\n"))
+}
+
 export async function run(argv) {
   const args = parseArgs(argv)
-
-  const provider = await detectProvider()
-  if (!provider) {
-    console.error(`\n${c.red("No LLM available.")}`)
-    console.error(c.dim("  Set ANTHROPIC_API_KEY, OPENAI_API_KEY, GEMINI_API_KEY, OPENAI_BASE_URL, or OLLAMA_HOST."))
-    console.error(c.dim("  Ollama at localhost:11434 is also auto-detected if running.\n"))
-    process.exit(1)
-  }
-  const { llm, name: llmName } = provider
 
   const chronicleDir = await findChronicleDir(process.cwd())
   if (!chronicleDir) {
@@ -123,6 +130,13 @@ export async function run(argv) {
     console.log(`\n${c.dim("No committed entries — nothing to evolve.")}\n`)
     return
   }
+
+  const provider = await detectProvider()
+  if (!provider) {
+    renderEvolvePassthrough(entries)
+    return
+  }
+  const { llm, name: llmName } = provider
 
   console.log(`\n${c.bold("Quorum evolve")}  ${c.dim(`${entries.length} entries · via ${llmName}`)}\n`)
 

@@ -1,13 +1,20 @@
+import { spawn, exec } from "child_process"
+import { promisify } from "util"
+import path from "path"
+
+const execAsync = promisify(exec)
+
 /**
  * Auto-detect an available LLM provider from the environment.
  *
  * Priority:
  *   1. ANTHROPIC_API_KEY            → Anthropic Claude
  *   2. OPENAI_API_KEY               → OpenAI (or compatible via OPENAI_BASE_URL)
- *   3. GEMINI_API_KEY               → Google Gemini
+ *   3. GEMINI_API_KEY               → Google Gemini (API)
  *   4. OPENAI_BASE_URL (no key)     → OpenAI-compatible endpoint (Azure, Groq, Ollama, etc.)
  *   5. OLLAMA_HOST env var          → Ollama (explicit host)
  *   6. localhost:11434 probe        → Ollama (auto-detect)
+ *   7. gemini CLI in PATH           → Google Gemini (CLI subprocess)
  *
  * Returns { llm: LLMProvider, name: string } or null.
  */
@@ -51,6 +58,14 @@ export async function detectProvider() {
     return {
       llm:  createOpenAICompatProvider("", `${ollamaHost}/v1`, ollamaModel),
       name: `Ollama (${ollamaModel})`,
+    }
+  }
+
+  const geminiCLI = await probeGeminiCLI()
+  if (geminiCLI) {
+    return {
+      llm:  createGeminiCLIProvider(),
+      name: "Gemini CLI",
     }
   }
 
@@ -161,5 +176,53 @@ function createGeminiProvider(apiKey) {
     if (!res.ok) throw new Error(`Gemini API ${res.status}: ${(await res.text()).slice(0, 200)}`)
     const data = await res.json()
     return data.candidates?.[0]?.content?.parts?.[0]?.text ?? ""
+  }
+}
+
+async function probeGeminiCLI() {
+  try {
+    await execAsync("which gemini")
+  } catch {
+    return false
+  }
+
+  // Env vars that indicate Gemini CLI is authenticated
+  if (process.env.GOOGLE_GENAI_USE_VERTEXAI || process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+    return true
+  }
+
+  // Settings file with a configured auth type
+  try {
+    const { homedir } = await import("os")
+    const { readFile } = await import("fs/promises")
+    const raw    = await readFile(path.join(homedir(), ".gemini", "settings.json"), "utf8")
+    const config = JSON.parse(raw)
+    return !!config.selectedAuthType
+  } catch {
+    return false
+  }
+}
+
+function createGeminiCLIProvider() {
+  return function llm(messages) {
+    return new Promise((resolve, reject) => {
+      const system      = messages.find(m => m.role === "system")?.content ?? ""
+      const userContent = messages.filter(m => m.role !== "system").map(m => m.content).join("\n\n")
+
+      // Pass system instruction via -p; pipe user content via stdin
+      const args = system ? ["-p", system] : []
+      const child = spawn("gemini", args, { stdio: ["pipe", "pipe", "pipe"] })
+
+      let out = "", err = ""
+      child.stdout.on("data", d => { out += d })
+      child.stderr.on("data", d => { err += d })
+      child.on("error", reject)
+      child.on("close", code => {
+        if (code === 0) resolve(out.trim())
+        else reject(new Error(`gemini CLI exited ${code}: ${err.slice(0, 200)}`))
+      })
+      child.stdin.write(userContent)
+      child.stdin.end()
+    })
   }
 }

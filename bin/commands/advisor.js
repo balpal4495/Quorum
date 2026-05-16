@@ -192,17 +192,16 @@ function renderBrief(allEntries) {
 // ── Subcommand handlers ───────────────────────────────────────────────────────
 
 async function cmdAsk(question, chronicleDir) {
-  const provider = await detectProvider()
-  if (!provider) {
-    console.error(`\n${c.red("No LLM configured.")}`)
-    console.error(c.dim("  Set ANTHROPIC_API_KEY, OPENAI_API_KEY, GEMINI_API_KEY, OPENAI_BASE_URL, or OLLAMA_HOST."))
-    console.error(c.dim("  Ollama at localhost:11434 is also auto-detected if running.\n"))
-    process.exit(1)
-  }
-  const { llm, name: llmName } = provider
   const allEntries = await readCommitted(chronicleDir)
   const evidence   = findRelevant(allEntries, question)
+  const provider   = await detectProvider()
 
+  if (!provider) {
+    renderPassthrough(question, evidence)
+    return
+  }
+
+  const { llm, name: llmName } = provider
   process.stdout.write(c.dim(`\n  Thinking (${llmName})…`))
   try {
     const result = await runAdvisor(llm, question, evidence)
@@ -213,6 +212,24 @@ async function cmdAsk(question, chronicleDir) {
     console.error(`\n${c.red("Advisor failed:")} ${err.message}\n`)
     process.exit(1)
   }
+}
+
+function renderPassthrough(question, evidence) {
+  console.log(`\n${c.bold("Chronicle evidence")}  ${c.dim(`for: "${question}"`)}\n`)
+  if (evidence.length === 0) {
+    console.log(c.dim("  No relevant Chronicle entries found.\n"))
+  } else {
+    for (const e of evidence) {
+      console.log(`  ${c.cyan(e.id.slice(0, 8))}  ${c.bold(entryText(e))}`)
+      console.log(`  ${c.dim(`status: ${e.status} · confidence: ${e.confidence} · areas: ${(e.affected_areas ?? []).join(", ")}`)}`)
+      console.log("")
+    }
+  }
+  console.log(c.dim("─".repeat(60)))
+  console.log(`\n${c.bold("Synthesis request")}`)
+  console.log(`\n  ${question}`)
+  console.log(`\n${c.dim("  No LLM configured — answer from the Chronicle evidence above.")}`)
+  console.log(c.dim("  (Set ANTHROPIC_API_KEY, OPENAI_API_KEY, GEMINI_API_KEY, or run Ollama for auto-synthesis.)\n"))
 }
 
 async function cmdQuery(topic, chronicleDir) {
