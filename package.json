@@ -1,7 +1,7 @@
 {
   "name": "@balpal4495/quorum",
   "version": "2.0.0",
-  "description": "Portable reasoning layer for agentic codebases — Oracle, Jury, Council, Sentinel",
+  "description": "Git-backed memory and design review for AI coding agents",
   "type": "module",
   "license": "MIT",
   "repository": {
@@ -10,14 +10,16 @@
   },
   "homepage": "https://github.com/balpal4495/Quorum#readme",
   "keywords": [
-    "ai",
-    "agents",
-    "agentic",
-    "reasoning",
-    "knowledge",
-    "chronicle",
-    "oracle",
-    "llm"
+    "ai-agents",
+    "coding-agents",
+    "agent-memory",
+    "claude-code",
+    "cursor",
+    "codex",
+    "copilot",
+    "llm",
+    "developer-tools",
+    "typescript"
   ],
   "bin": {
     "quorum": "bin/quorum.js"
