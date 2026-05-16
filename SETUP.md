@@ -293,8 +293,8 @@ These commands are available globally after `npm install -g @balpal4495/quorum`:
 | `quorum commit <id>` | Approve and index a proposal |
 | `quorum sentinel coverage [--path <dir>]` | Chronicle coverage of source files |
 | `quorum growth` | Chronicle learning health — growth rate, last commit, pending proposals |
-| `quorum evolve` | Consolidate Chronicle — merges duplicates, resolves contradictions, promotes open entries (needs LLM) |
+| `quorum evolve` | Consolidate Chronicle — merges duplicates, resolves contradictions, promotes open entries |
 
 `quorum check` exit codes: `0` = low/medium risk · `1` = high · `2` = critical
 
-`quorum advisor ask` requires `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` in your environment.
+`quorum advisor ask` and `quorum evolve` auto-detect any available LLM: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `OPENAI_BASE_URL`, Ollama at localhost:11434, or an authenticated `gemini` CLI. When running inside an AI agent (Claude Code, Copilot, Codex, Gemini) with no separate key, they output Chronicle evidence and a synthesis request for the agent to answer inline.

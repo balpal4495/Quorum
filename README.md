@@ -26,9 +26,9 @@ That's the whole setup. Quorum copies its modules into `quorum/`, merges instruc
 
 After `npm install -g @balpal4495/quorum` (or `npx @balpal4495/quorum`), you get:
 
-| Command | What it does | LLM? |
+| Command | What it does | LLM |
 |---|---|---|
-| `quorum advisor "question"` | Ask a plain-language question — answer synthesised from Chronicle evidence | Yes |
+| `quorum advisor "question"` | Ask a plain-language question — answer synthesised from Chronicle evidence | Auto¹ |
 | `quorum advisor query "topic"` | Search Chronicle entries by keyword | No |
 | `quorum advisor brief` | High-level Chronicle summary | No |
 | `quorum init` | Scaffold Quorum into a project | No |
@@ -37,7 +37,9 @@ After `npm install -g @balpal4495/quorum` (or `npx @balpal4495/quorum`), you get
 | `quorum commit <id>` | Approve and index a pending proposal | No |
 | `quorum sentinel [coverage]` | Chronicle coverage of your source files | No |
 | `quorum growth` | Chronicle learning health — growth rate, days since last commit, pending proposals | No |
-| `quorum evolve` | Consolidate and improve Chronicle entries — merges duplicates, resolves contradictions, promotes open entries | Yes |
+| `quorum evolve` | Consolidate and improve Chronicle entries — merges duplicates, resolves contradictions, promotes open entries | Auto¹ |
+
+¹ **Auto-detect** — Quorum finds whichever LLM is available: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `OPENAI_BASE_URL`, Ollama at localhost:11434, or an authenticated `gemini` CLI. When running inside Claude Code, Copilot, Codex, or any other AI agent with no separate key configured, these commands output the Chronicle evidence and synthesis request directly — the agent answers inline. No key required to get value.
 
 ### `quorum check` — instant risk triage before the full pipeline
 
@@ -365,6 +367,49 @@ quorum sentinel coverage --json       # machine-readable, for scripts
 **Drift** — do existing Chronicle entries still accurately describe the code, or have they gone stale? Drift detection requires an LLM; use `sentinelAssertions({ llm })` in your test suite (the CLI surfaces the message and directs you there).
 
 To get a coverage comment on every PR, copy `.github/workflows/sentinel-pr.yml` from the [Quorum repo](https://github.com/balpal4495/Quorum) into your project. Every PR then gets a comment showing a full-project coverage table and a colour-coded heatmap. Changed modules are highlighted. Reviewers see exactly where knowledge is solid and where it goes dark.
+
+### `quorum growth` — is Chronicle actually learning?
+
+```bash
+quorum growth
+quorum growth --json   # machine-readable, for CI
+```
+
+```
+Chronicle growth
+
+  Status        THRIVING
+  Total entries 14
+  Last 7 days   6 commits
+  Last 30 days  14 commits
+  Last commit   0 days ago  2026-05-16
+
+  Pending       3 proposals awaiting quorum commit
+
+  Weekly commits
+    w/c 2026-05-11  ▪▪▪▪▪▪  6
+    w/c 2026-05-04  ▪▪▪▪▪▪▪▪  8
+```
+
+Status levels: `EMPTY` → `STALLED` (nothing in 14 days) → `SLOW` (nothing in 7 days) → `HEALTHY` → `THRIVING` (3+ this week). When stalled, it tells you exactly what to do — commit the staged proposals or follow the session protocol in `CLAUDE.md`.
+
+### `quorum evolve` — Chronicle consolidation and self-improvement
+
+```bash
+quorum evolve             # analyse and stage improvement proposals
+quorum evolve --dry-run   # preview without writing
+quorum evolve --json      # machine-readable output
+```
+
+Chronicle accumulates entries over time. `quorum evolve` sends them all to an LLM and proposes quality improvements — three types:
+
+- **consolidate** — two entries saying the same thing → one sharper entry with `supersedes`
+- **resolve** — a validated entry contradicted by a newer one → mark it `refuted`
+- **promote** — an `open` entry that other entries have since confirmed → elevate to `validated`
+
+Every proposed change is staged as a Chronicle proposal and goes through the normal human gate (`quorum commit`). Nothing is auto-committed. Chronicle improves its own quality; you decide what to keep.
+
+When no LLM is configured (e.g. running inside Copilot or Codex without a separate key), `quorum evolve` outputs all entries as a structured analysis request for the parent agent to handle.
 
 ---
 
