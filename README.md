@@ -1,47 +1,175 @@
 # Quorum
 
-**Quorum gives your AI coding assistant memory and judgment.**
+**Quorum gives your AI coding assistant persistent memory and judgment — and keeps it getting smarter over time.**
 
-When Claude Code, Copilot, or Cursor works in your codebase, it forgets everything between sessions. It retries approaches that already failed. It contradicts decisions made last week. It has no idea what the team has already learned.
+When Claude Code, Copilot, Cursor, or Codex works in your codebase, it forgets everything between sessions. It retries approaches that already failed. It contradicts decisions made last week. It has no idea what the team has already learned.
 
-Quorum fixes this. It installs a persistent knowledge store into your project and gives your AI a structured workflow for querying it before proposing solutions, validating designs before acting, and writing new knowledge back — with you approving every write.
+Quorum fixes this. It installs a persistent knowledge store (Chronicle) into your project, gives your AI a structured workflow for querying it before proposing solutions, validates designs before acting, and writes new knowledge back — with you approving every write.
 
 ---
 
 ## Get started in one command
 
-Run this from your project root:
-
 ```bash
 npx @balpal4495/quorum@latest init
 ```
 
-Then run `npm install`.
+Then `npm install`. That's it.
 
-That's the whole setup. Quorum copies its modules into `quorum/`, merges instruction files for your AI (`CLAUDE.md`, `AGENTS.md`, `.github/copilot-instructions.md`), and creates the Chronicle knowledge store at `.chronicle/`.
+Quorum copies its modules into `quorum/`, merges instruction files for your AI (`CLAUDE.md`, `AGENTS.md`, `.github/copilot-instructions.md`), and creates the Chronicle knowledge store at `.chronicle/`.
+
+---
+
+## How Quorum learns over time
+
+This is the core loop. Every session makes the project smarter.
+
+```
+session start
+  └─ AI reads Chronicle (quorum advisor brief + query)
+       └─ work happens informed by accumulated knowledge
+            └─ decisions and learnings staged as proposals (oracle.propose)
+                 └─ you approve from terminal (quorum commit)
+                      └─ Chronicle grows
+                           └─ PR merged → growth comment posted automatically
+                                └─ periodic: quorum evolve consolidates + improves entries
+```
+
+**Session start** — the AI runs `quorum advisor brief` to see what Chronicle knows, then `quorum advisor query "topic"` to get relevant entries before touching any code.
+
+**During work** — Oracle is queried before every significant decision. Refuted entries are treated as hard stops. Validated entries inform the approach.
+
+**Session end** — the AI stages Chronicle proposals for every meaningful decision made. You review and commit them with `quorum commit`.
+
+**On every PR merge** — a growth comment is posted automatically showing exactly what Chronicle learned from that PR.
+
+**Periodically** — `quorum evolve` reviews all entries and proposes consolidations, resolves contradictions, and promotes confirmed knowledge.
+
+**Visibility at any time** — `quorum growth` shows whether learning is actually happening, how fast, and what was learned recently.
 
 ---
 
 ## CLI commands
 
-After `npm install -g @balpal4495/quorum` (or `npx @balpal4495/quorum`), you get:
+```bash
+npm install -g @balpal4495/quorum
+# or: npx @balpal4495/quorum <command>
+```
 
 | Command | What it does | LLM |
 |---|---|---|
 | `quorum advisor "question"` | Ask a plain-language question — answer synthesised from Chronicle evidence | Auto¹ |
 | `quorum advisor query "topic"` | Search Chronicle entries by keyword | No |
 | `quorum advisor brief` | High-level Chronicle summary | No |
-| `quorum init` | Scaffold Quorum into a project | No |
-| `quorum status` | Chronicle health — pending proposals, committed entries, recent activity | No |
+| `quorum growth` | Chronicle health — growth rate, recent learnings, weekly sparkline | No |
+| `quorum evolve` | Consolidate and improve Chronicle entries | Auto¹ |
+| `quorum status` | Chronicle health — pending proposals, committed entries | No |
 | `quorum check --outcome X --design Y` | Deterministic preflight + risk classifier | No |
 | `quorum commit <id>` | Approve and index a pending proposal | No |
 | `quorum sentinel [coverage]` | Chronicle coverage of your source files | No |
-| `quorum growth` | Chronicle learning health — growth rate, days since last commit, pending proposals | No |
-| `quorum evolve` | Consolidate and improve Chronicle entries — merges duplicates, resolves contradictions, promotes open entries | Auto¹ |
+| `quorum init` | Scaffold Quorum into a project | No |
 
-¹ **Auto-detect** — Quorum finds whichever LLM is available: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `OPENAI_BASE_URL`, Ollama at localhost:11434, or an authenticated `gemini` CLI. When running inside Claude Code, Copilot, Codex, or any other AI agent with no separate key configured, these commands output the Chronicle evidence and synthesis request directly — the agent answers inline. No key required to get value.
+¹ **Auto-detect** — Quorum finds whichever LLM is available: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `OPENAI_BASE_URL`, Ollama at localhost:11434, or an authenticated `gemini` CLI. When running inside Claude Code, Copilot, Codex, or any other AI agent without a separate key, these commands output Chronicle evidence and a synthesis request directly — the agent answers inline. No key required.
 
-### `quorum check` — instant risk triage before the full pipeline
+---
+
+## `quorum advisor` — ask Chronicle a question
+
+```bash
+quorum advisor "what did we decide about authentication?"
+quorum advisor query "session handling"   # keyword search, no LLM
+quorum advisor brief                      # full Chronicle summary, no LLM
+```
+
+```
+Question: what did we decide about authentication?
+
+  What we know
+  The team settled on RS256 JWT after rejecting HS256 — key rotation without
+  invalidating active sessions was the blocker. Tokens are 15-min expiry with
+  refresh rotation in httpOnly cookies.
+
+  Recommendation
+  Follow the RS256 pattern. Entry [abc-123] is validated at 0.91 confidence.
+
+  Risks
+  · OAuth migration is planned for Q3 — coordinate before adding new auth surfaces
+
+  Next step
+  quorum advisor query "oauth migration" to check current status
+```
+
+Advisor validates its own answer internally — if confidence is below 0.7 or blockers exist, it retries up to 2 times with the previous answer as context before returning.
+
+---
+
+## `quorum growth` — is Chronicle actually learning?
+
+```bash
+quorum growth
+quorum growth --json   # machine-readable, for CI
+```
+
+```
+Chronicle growth
+
+  Status        THRIVING
+  Total entries 17
+  Last 7 days   6 commits
+  Last 30 days  17 commits
+  Last commit   0 days ago  2026-05-16
+  Pending       2 proposals awaiting quorum commit
+
+  Weekly commits
+    w/c 2026-05-11  ▪▪▪▪▪▪  6
+    w/c 2026-05-04  ▪▪▪▪▪▪▪▪▪▪▪  11
+
+  Recent learnings
+    bf448871  Low-risk designs skip Council entirely — Jury alone is sufficient…  2026-05-16
+    3efb1789  Advisor validates answers before returning — retries up to 2 times…  2026-05-16
+    090c7dc6  Advisor is a read-only path — never calls oracle.propose()…         2026-05-16
+    e57c30d5  Releases trigger from PR labels, not manual tag pushes…             2026-05-16
+```
+
+Status levels: `EMPTY` → `STALLED` (14 days with no commits) → `SLOW` (7 days) → `HEALTHY` → `THRIVING` (3+ commits this week). When stalled, it tells you exactly what to do.
+
+---
+
+## `quorum evolve` — Chronicle self-improvement
+
+```bash
+quorum evolve             # analyse and stage improvement proposals
+quorum evolve --dry-run   # preview without writing
+```
+
+```
+Quorum evolve  17 entries · via Anthropic
+
+  ✓  Analysis complete
+
+  2 improvements found
+
+  ✓  consolidate  10b848a2 + d93b6f40
+     Both entries describe Mermaid rendering failures — distinct symptoms, same root cause
+     → Mermaid diagrams have three known failure modes in GitHub PR descriptions…
+
+  ✓  promote      55278b3d → validated (0.88)
+     Confirmed by three subsequent entries referencing SUMMARY.md temporal context
+
+  2 proposals staged — run quorum commit --list to review
+```
+
+Three improvement types:
+
+- **consolidate** — two entries covering the same ground → one sharper entry with `supersedes`
+- **resolve** — a validated entry contradicted by a newer one → mark it `refuted`
+- **promote** — an `open` entry confirmed by later entries → elevate to `validated`
+
+Every proposed improvement goes through the human gate (`quorum commit`). Nothing is auto-committed.
+
+---
+
+## `quorum check` — instant risk triage
 
 ```bash
 quorum check \
@@ -64,102 +192,50 @@ Risk
   ⚠  Critical risk — human architecture review required before proceeding.
 ```
 
-Exit codes: `0` = low/medium, `1` = high, `2` = critical — pipe into CI scripts directly.
+Exit codes: `0` = low/medium, `1` = high, `2` = critical — pipe directly into CI scripts.
 Also accepts JSON on stdin: `echo '{"outcome":"…","design":"…"}' | quorum check --json`
-
-### `quorum status` — see what's pending and what's been learned
-
-```bash
-quorum status
-```
-
-```
-Chronicle status  .chronicle/
-
-     8  committed entries  (6 validated, 1 refuted, 1 open)
-     2  pending proposals
-
-Pending proposals  (awaiting quorum commit <id>)
-  a1b2c3d4  JWT key rotation approach needs RS256 not HS256
-            oracle/propose.ts, modules/auth/
-
-Recent entries
-  e5f6a7b8  [validated]  Shadow column migration avoids exclusive lock on 50M rows  2d ago
-```
-
-### `quorum commit <id>` — the human gate from your terminal
-
-```bash
-quorum commit --list        # see pending proposals with full detail
-quorum commit a1b2c3d4      # approve and index (supports partial ID prefix)
-quorum commit a1b2c3d4 --dry-run  # preview without writing
-```
-
-Writes the entry to `.chronicle/committed/`, updates `SUMMARY.md`, and removes the proposal. Always works — no extra dependencies required. If `@xenova/transformers` and `vectordb` are installed, also embeds and indexes in the vector store for semantic search.
-
-### `quorum sentinel coverage` — see where Chronicle goes dark
-
-```bash
-quorum sentinel coverage --path modules
-```
-
-```
-Chronicle coverage  modules/
-
-  ████░░░░░░░░░░░░░░░░  20%  (6/30 files)
-
-Covered
-  ✓  oracle/propose.ts  (3 entries)
-  ✓  oracle/query.ts    (1 entry)
-
-Uncovered  (no Chronicle entries reference these files)
-  ✗  council/chairman.ts
-  ✗  jury/evaluate.ts
-  …
-```
 
 ---
 
-## Then just talk to your AI
+## `quorum commit` — the human gate
 
-Once initialized, open your AI in agent mode and tell it:
+```bash
+quorum commit --list                    # see all pending proposals
+quorum commit a1b2c3d4                  # approve and index (partial ID prefix works)
+quorum commit a1b2c3d4 --dry-run        # preview without writing
+```
 
-> "Follow quorum/SETUP.md"
-
-Your AI reads the instruction files, wires the modules into your project's entry point, runs the tests, and reports what it did. From that point it operates under Quorum — querying Chronicle before every proposal, running designs through Jury and Council, and staging entries for your approval.
-
-**Works with:**
-- Claude Code (`claude` CLI or VS Code extension)
-- GitHub Copilot (agent mode)
-- Cursor
-- Any other AI that can read files and run terminal commands
+Writes to `.chronicle/committed/`, updates `SUMMARY.md`, removes the proposal. Always works — no extra dependencies required. Install `@xenova/transformers` and `vectordb` to also embed and index in the vector store for semantic search.
 
 ---
 
 ## What changes after setup
 
-### Your AI now has a memory
+### Your AI starts every session with full project context
 
-Before proposing anything, your AI queries Chronicle — the project's knowledge store. If a similar approach was tried and rejected, it knows. If a design decision was made last month, it knows.
+Before touching any code, your AI reads Chronicle:
+
+```bash
+quorum advisor brief                          # what has the project learned?
+quorum advisor query "topic of the work"      # what's relevant to today's task?
+```
 
 > *"I queried Chronicle before proposing the Redis session approach. Entry `[abc-123]` shows we rejected this in March — key rotation wasn't viable. I'm proposing JWT with RS256 instead."*
 
-### Your AI validates designs before acting
+### Designs are validated before they reach you
 
-Every proposal goes through Jury (confidence scoring against evidence) and Council (adversarial panel review) before it reaches you. Low-confidence or contested ideas get challenged internally first.
+Every proposal goes through Jury (confidence scoring against evidence) and Council (adversarial panel) before it surfaces. Low-confidence or contested ideas get challenged internally first.
 
-> *"Jury scored this 0.41 — gaps in lock strategy and rollback plan. Council flagged the same issue. I've revised the migration plan to use a shadow column approach before bringing it to you."*
+> *"Jury scored this 0.41 — gaps in lock strategy and rollback plan. Council flagged the same. I've revised the migration to use a shadow column approach before bringing it to you."*
 
 ### You approve what gets remembered
-
-When a decision is made, your AI stages a Chronicle entry using `oracle.propose()`. You approve it from the terminal:
 
 ```bash
 quorum commit --list        # see what's pending
 quorum commit <id>          # approve and index
 ```
 
-Nothing is indexed without your explicit sign-off.
+Nothing is indexed without your sign-off.
 
 ```
 .chronicle/
@@ -168,13 +244,31 @@ Nothing is indexed without your explicit sign-off.
   SUMMARY.md    ← auto-generated weekly context for your AI to read
 ```
 
-Commit `.chronicle/committed/` to git. Future sessions — and your teammates' sessions — start with that context.
+Commit `.chronicle/committed/` to git. Every future session — yours and your teammates' — starts with that context.
 
-### Every merged PR can create a Chronicle proposal automatically
+### Every merged PR shows what Chronicle learned
 
-Quorum ships a GitHub Actions workflow (`chronicle-on-merge.yml`) that fires when any PR merges to main. It creates a Chronicle proposal capturing the decision, which files changed, and any explicitly deferred items from the PR description. The proposal sits in `proposals/` until you commit it — nothing is auto-indexed.
+Quorum ships two GitHub Actions workflows. Enable them by copying `.github/workflows/` from the [Quorum repo](https://github.com/balpal4495/Quorum):
 
-To enable this in your project, copy `.github/workflows/chronicle-on-merge.yml` and `scripts/chronicle-pr.js` from the [Quorum repo](https://github.com/balpal4495/Quorum) into your own repo.
+**`chronicle-on-merge.yml`** — fires on every PR merge. Creates a Chronicle proposal from the PR metadata and posts a growth comment:
+
+```
+## Quorum Chronicle — what this PR taught
+
+Chronicle grew from 14 → 17 entries
+
+Committed this PR:
+  ✅ [bf448871]  Low-risk designs skip Council entirely — jury-only, 0 LLM calls
+  ✅ [3efb1789]  Advisor validates answers before returning — retries up to 2 times
+  ✅ [090c7dc6]  Advisor is a read-only path — never calls oracle.propose()
+
+2 proposals pending — run quorum commit --list to review.
+
+---
+Run quorum growth for full Chronicle health · quorum evolve to consolidate entries
+```
+
+**`sentinel-pr.yml`** — posts a coverage table and Mermaid heatmap on every PR showing which files Chronicle knows about and which are blind spots.
 
 ---
 
@@ -187,7 +281,7 @@ Your AI is about to propose symmetric JWT signing. Oracle returns:
 ```
 [abc-123] Tried HS256 JWT in March. Rejected — no way to rotate keys without
           invalidating all active sessions. Decision: RS256 with short-lived tokens.
-          status: committed · confidence: 0.91
+          status: validated · confidence: 0.91
 ```
 
 Jury flags it as a direct conflict. The agent revises before Council even sees it.
@@ -199,16 +293,16 @@ Jury flags it as a direct conflict. The agent revises before Council even sees i
 Day one of a new Claude Code session. Before touching anything:
 
 ```
-> query Chronicle for: authentication, session handling, token strategy
+quorum advisor query "authentication, session handling, token strategy"
 
   6 entries found:
-  - HS256 rejected (key rotation problem) → use RS256
-  - Redis sessions tried and removed (memory overhead at scale)
-  - Current approach: RS256 JWT, 15-min expiry, refresh rotation in httpOnly cookies
-  - Upcoming: OAuth migration planned for Q3
+  · HS256 rejected (key rotation problem) → use RS256
+  · Redis sessions tried and removed (memory overhead at scale)
+  · Current: RS256 JWT, 15-min expiry, refresh rotation in httpOnly cookies
+  · Upcoming: OAuth migration planned for Q3
 ```
 
-The AI works with full project context from the first message — no archaeology through git history.
+Full project context from the first message — no archaeology through git history.
 
 ---
 
@@ -222,24 +316,7 @@ gaps: ["no lock strategy documented", "no rollback plan"]
 council_brief: challenge
 ```
 
-Council's Chairman gives a structured verdict:
-
-```json
-{
-  "satisfied": false,
-  "blockers": [
-    {
-      "issue": "Naive ALTER TABLE takes an exclusive lock for minutes on a 50M-row table",
-      "evidence": ["db-017"],
-      "required_fix": "Use shadow column pattern or pg_repack. Add rollback path."
-    }
-  ],
-  "warnings": [],
-  "advisor_split": { "proceed": 0, "redesign": 4, "investigate-more": 1 }
-}
-```
-
-The agent revises the plan. You approve the Chronicle entry once it's solid. The reasoning — including alternatives considered and why they were rejected — is on record for the next time someone touches that table:
+Council gives a structured verdict with blockers that must be resolved before proceeding. The agent revises. You approve the Chronicle entry once it's solid — including alternatives considered and why they were rejected — so the next person touching that table has the full reasoning:
 
 ```json
 {
@@ -247,8 +324,7 @@ The agent revises the plan. You approve the Chronicle entry once it's solid. The
   "alternatives_considered": ["naive ALTER TABLE", "pg_repack"],
   "rejected_reason": ["ALTER TABLE takes exclusive lock for minutes on 50M rows"],
   "scope": ["database", "migrations"],
-  "affected_areas": ["db/migrations/", "src/models/user.ts"],
-  "validation_plan": ["Confirm 100% backfill before applying NOT NULL constraint", "Test rollback path on staging"],
+  "validation_plan": ["Confirm 100% backfill before applying NOT NULL constraint"],
   "review_after": "2026-08-01"
 }
 ```
@@ -259,13 +335,13 @@ The agent revises the plan. You approve the Chronicle entry once it's solid. The
 
 Five portable TypeScript modules installed into `quorum/modules/`:
 
-| Module | What it does |
-|---|---|
-| **Advisor** | Plain-language interface to Chronicle. Ask a question, get a concise answer synthesised from evidence. Validates its own answer internally and retries until confident. |
-| **Oracle** | Query and write interface to Chronicle. No LLM required. |
-| **Jury** | Evaluates a proposed design against Chronicle evidence. Returns a decomposed confidence score and hard-blocker gaps. |
-| **Council** | A panel of advisors challenges the design independently, reviewers critique anonymously, a Chairman gives a structured verdict with blockers and warnings. |
-| **Sentinel** | Shows which files the AI knows nothing about, flags stale knowledge, and posts a coverage map on every PR. |
+| Module | What it does | LLM |
+|---|---|---|
+| **Advisor** | Plain-language interface to Chronicle. Ask a question, get a concise answer synthesised from evidence, validated with an internal retry loop. | Yes |
+| **Oracle** | Query and write interface to Chronicle. Two-pass retrieval (vector + BM25). | No |
+| **Jury** | Evaluates a design against Chronicle evidence. Four-dimension confidence score, deterministic preflight, hard-blocker gaps. | Yes |
+| **Council** | Adversarial panel — advisors challenge independently, reviewers critique anonymously, Chairman gives a structured verdict. Risk-scaled fan-out. | Yes |
+| **Sentinel** | Coverage reporting (which files Chronicle knows about), drift detection (are entries still accurate), PR coverage maps. | Optional |
 
 The modules live in your repo — readable by any AI working in the codebase. Nothing is hidden in `node_modules`.
 
@@ -273,9 +349,9 @@ The modules live in your repo — readable by any AI working in the codebase. No
 
 ## How Jury works
 
-Before calling the LLM, Jury runs a **deterministic preflight** — no LLM required — that checks whether the design touches sensitive areas (auth, database migrations, crypto, payments, PII, secrets), mentions a rollback strategy, and whether any refuted Chronicle entries conflict with the design. These facts are injected into the Jury prompt as hard ground truth.
+Before calling the LLM, Jury runs a **deterministic preflight** that checks whether the design touches sensitive areas (auth, database migrations, crypto, payments, PII, secrets), mentions a rollback strategy, and whether any refuted Chronicle entries conflict with the design. These facts are injected into the prompt as hard ground truth.
 
-The LLM then scores the design across four dimensions:
+The LLM scores the design across four dimensions:
 
 | Dimension | What it measures |
 |---|---|
@@ -284,68 +360,42 @@ The LLM then scores the design across four dimensions:
 | Risk | How well does the design address known failure modes? |
 | Completeness | Does the design cover the full outcome? |
 
-Confidence is recomputed as the exact average of those four scores — the LLM's stated confidence is discarded. Jury also separates `blocking_gaps` (must resolve before proceeding) from `gaps` (useful but not critical).
+Confidence is recomputed as the exact average — the LLM's stated value is discarded. Jury separates `blocking_gaps` (must resolve before proceeding) from `gaps` (useful but not critical).
 
 ---
 
 ## How Council works
 
-Before running the full panel, a **risk classifier** reads the design text and Chronicle evidence and assigns a risk level:
+A **risk classifier** runs before the panel and scales fan-out accordingly:
 
-| Risk | Council mode | LLM calls |
-|---|---|---|
-| Low | jury-only — Council skipped entirely | 0 |
-| Medium | lite — 1 advisor + 2 reviewers | 5 |
-| High | full — 5 advisors + 5 reviewers | 12 |
-| Critical | full + human architecture flag | 12 |
+| Risk | Triggers | Council mode | LLM calls |
+|---|---|---|---|
+| Low | Nothing sensitive | jury-only — Council skipped entirely | 0 |
+| Medium | Cache, queues, deployments | lite — 1 advisor + 2 reviewers | 5 |
+| High | DB migrations, PII, permissions | full — 5 advisors + 5 reviewers | 12 |
+| Critical | Auth, payments, crypto, data deletion | full + human flag | 12 |
 
-Auth, crypto, payments, and data deletion trigger Critical. Database migrations, PII, permissions trigger High. Cache, queues, deployments trigger Medium. Everything else is Low — Jury alone is sufficient and Council is bypassed entirely.
+Refuted entries in the evidence pack always elevate risk by at least one level.
 
-The Chairman's verdict is **structured**:
-
-```json
-{
-  "blockers": [
-    {
-      "issue": "No rollback plan for destructive migration",
-      "evidence": ["db-017"],
-      "required_fix": "Add shadow-column migration and rollback path before execution"
-    }
-  ],
-  "warnings": [
-    {
-      "issue": "No integration test for token expiry edge case",
-      "suggested_fix": "Add test covering token rotation during concurrent requests"
-    }
-  ],
-  "advisor_split": { "proceed": 2, "redesign": 2, "investigate-more": 1 }
-}
-```
-
-Blockers must be resolved before the human gate. Warnings can be ticketed. High `advisor_split` disagreement is surfaced explicitly — it means genuine uncertainty, not a safe proceed.
-
-Every Oracle ID cited in the verdict is also validated against the evidence pack that was actually sent. Hallucinated citations are flagged in `citation_validation.hallucinated_ids` and stripped from the Chronicle proposal.
+The Chairman's verdict is structured with `blockers` (must resolve), `warnings` (should address), `advisor_split` (shows disagreement), and `citation_validation` (hallucinated Oracle IDs are stripped before the Chronicle proposal is written).
 
 ---
 
 ## Eval suite
 
-`evals/` contains canonical test cases — known-bad proposals that Council should block and known-good ones it should pass:
+`evals/` contains canonical test cases — known-bad proposals that should block, known-good ones that should pass:
 
-| Case | Expected outcome |
+| Case | Expected |
 |---|---|
 | Naive NOT NULL migration on large table | Block — no lock strategy |
-| HS256 JWT when RS256 was already chosen | Block — cites refuted entry auth-022 |
+| HS256 JWT when RS256 was already chosen | Block — cites refuted entry |
 | PII fields logged to stdout | Block — GDPR violation in evidence |
 | Payment charge without idempotency key | Block — duplicate charge risk |
-| Redis sessions (previously removed) | Block — memory overhead already documented |
-| Cache without stampede protection | Block — prior incident in Chronicle |
 | Safe internal rename | Proceed — low risk, no conflicts |
-| RS256 JWT (approved pattern) | Proceed — matches validated Chronicle entry |
+| RS256 JWT (approved pattern) | Proceed — matches validated entry |
 | Migration with rollback + shadow column | Proceed — addresses documented failure mode |
-| Novel WebSocket design, no evidence | Investigate-more — no Chronicle evidence either way |
 
-Deterministic assertions (preflight, risk classifier) run on every CI pass. LLM-dependent assertions (confidence bounds, Council recommendation) activate with `EVAL_LLM=1`.
+Deterministic assertions run on every CI pass. LLM assertions activate with `EVAL_LLM=1`.
 
 ```bash
 npx vitest run evals/
@@ -355,95 +405,40 @@ npx vitest run evals/
 
 ## Sentinel — coverage and drift
 
-Sentinel surfaces two things Chronicle can't tell you about itself.
-
 **Coverage** — which parts of your codebase has the AI never documented?
 
 ```bash
-quorum sentinel coverage --path src   # quick check from the terminal
-quorum sentinel coverage --json       # machine-readable, for scripts
+quorum sentinel coverage --path src
+quorum sentinel coverage --json
 ```
 
-**Drift** — do existing Chronicle entries still accurately describe the code, or have they gone stale? Drift detection requires an LLM; use `sentinelAssertions({ llm })` in your test suite (the CLI surfaces the message and directs you there).
-
-To get a coverage comment on every PR, copy `.github/workflows/sentinel-pr.yml` from the [Quorum repo](https://github.com/balpal4495/Quorum) into your project. Every PR then gets a comment showing a full-project coverage table and a colour-coded heatmap. Changed modules are highlighted. Reviewers see exactly where knowledge is solid and where it goes dark.
-
-### `quorum growth` — is Chronicle actually learning?
-
-```bash
-quorum growth
-quorum growth --json   # machine-readable, for CI
-```
-
-```
-Chronicle growth
-
-  Status        THRIVING
-  Total entries 14
-  Last 7 days   6 commits
-  Last 30 days  14 commits
-  Last commit   0 days ago  2026-05-16
-
-  Pending       3 proposals awaiting quorum commit
-
-  Weekly commits
-    w/c 2026-05-11  ▪▪▪▪▪▪  6
-    w/c 2026-05-04  ▪▪▪▪▪▪▪▪  8
-```
-
-Status levels: `EMPTY` → `STALLED` (nothing in 14 days) → `SLOW` (nothing in 7 days) → `HEALTHY` → `THRIVING` (3+ this week). When stalled, it tells you exactly what to do — commit the staged proposals or follow the session protocol in `CLAUDE.md`.
-
-### `quorum evolve` — Chronicle consolidation and self-improvement
-
-```bash
-quorum evolve             # analyse and stage improvement proposals
-quorum evolve --dry-run   # preview without writing
-quorum evolve --json      # machine-readable output
-```
-
-Chronicle accumulates entries over time. `quorum evolve` sends them all to an LLM and proposes quality improvements — three types:
-
-- **consolidate** — two entries saying the same thing → one sharper entry with `supersedes`
-- **resolve** — a validated entry contradicted by a newer one → mark it `refuted`
-- **promote** — an `open` entry that other entries have since confirmed → elevate to `validated`
-
-Every proposed change is staged as a Chronicle proposal and goes through the normal human gate (`quorum commit`). Nothing is auto-committed. Chronicle improves its own quality; you decide what to keep.
-
-When no LLM is configured (e.g. running inside Copilot or Codex without a separate key), `quorum evolve` outputs all entries as a structured analysis request for the parent agent to handle.
+**Drift** — are existing Chronicle entries still accurate? Requires an LLM; use `sentinelAssertions({ llm })` in your test suite.
 
 ---
 
 ## For custom agent pipelines
 
-If you're building your own agent workflow programmatically, the modules expose a clean TypeScript API. Wire your LLM provider and call directly:
+Wire the modules directly into any TypeScript agent:
 
 ```typescript
 import { setup } from "./quorum/modules/setup"
 
 const { oracle, evaluate, deliberate, ask } = await setup({ llm: myLLMProvider })
 
-// Ask a plain-language question — Advisor queries Oracle and synthesises the answer
+// Ask a plain-language question
 const answer = await ask("what did the team decide about authentication?")
 
-// Or run the full evaluation pipeline for a proposed design
+// Full evaluation pipeline
 const evidence = await oracle.query("authentication patterns")
 const jury     = await evaluate({ outcome, design, evidence })
 const verdict  = await deliberate({ outcome, design, evidence, jury_output: jury })
 ```
 
-The `LLMProvider` type is a simple function — wire OpenAI, Anthropic, or anything else:
-
 ```typescript
-// Anthropic
-const llm = async (messages, model = "claude-3-5-sonnet-20241022") => {
+// Wire any LLM provider
+const llm: LLMProvider = async (messages, model = "claude-3-5-sonnet-20241022") => {
   const res = await anthropic.messages.create({ model, messages, max_tokens: 2048 })
   return res.content[0].type === "text" ? res.content[0].text : ""
-}
-
-// OpenAI
-const llm = async (messages, model = "gpt-4o") => {
-  const res = await openai.chat.completions.create({ model, messages })
-  return res.choices[0].message.content ?? ""
 }
 ```
 
@@ -453,13 +448,13 @@ Full API reference: [modules/README.md](modules/README.md)
 
 ## Releases
 
-Quorum is published as `@balpal4495/quorum`. New versions release automatically when a semver tag is pushed — via GitHub Actions and OIDC Trusted Publishing, no stored tokens.
+Published as `@balpal4495/quorum`. Releases trigger automatically on PR merge via label (`release:patch`, `release:minor`, `release:major`) — GitHub Actions bumps the version, tags, and publishes via OIDC Trusted Publishing.
 
 ---
 
 ## Docs
 
-- [SETUP.md](SETUP.md) — full bootstrap sequence (the file you point your AI at)
+- [SETUP.md](SETUP.md) — full bootstrap sequence (point your AI at this)
 - [modules/README.md](modules/README.md) — TypeScript API reference
 - [modules/AGENTS.md](modules/AGENTS.md) — file ownership map
 - [modules/CLAUDE.md](modules/CLAUDE.md) — design decisions and invariants
