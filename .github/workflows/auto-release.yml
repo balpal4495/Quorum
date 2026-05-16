@@ -66,12 +66,23 @@ jobs:
 
       - name: Commit and tag
         run: |
-          git add package.json
-          git commit -m "chore: release ${{ steps.version.outputs.new_version }}"
-          git tag "${{ steps.version.outputs.new_version }}"
-          git pull --rebase --autostash origin main
-          git push origin main
-          git push origin "${{ steps.version.outputs.new_version }}"
+          NEW_TAG="${{ steps.version.outputs.new_version }}"
+          if git fetch --tags && git tag | grep -q "^${NEW_TAG}$"; then
+            echo "Tag ${NEW_TAG} already exists — skipping commit and tag (re-run recovery)"
+            git checkout package.json
+          else
+            git add package.json
+            git commit -m "chore: release ${NEW_TAG}"
+            git tag "${NEW_TAG}"
+            git pull --rebase --autostash origin main
+            git push origin main
+            git push origin "${NEW_TAG}"
+          fi
+
+      - name: Checkout published tag for publish
+        run: |
+          git fetch --tags
+          git checkout "${{ steps.version.outputs.new_version }}"
 
       - name: Publish to npm (OIDC Trusted Publishing)
         run: npx --package=npm@11 --yes -- npm publish --provenance --access public
