@@ -1,0 +1,28 @@
+{
+  "schema_version": 2,
+  "topic": "PR #18",
+  "decision": "fix: make release workflows re-run safe and manually dispatchable",
+  "key_insight": "fix: make release workflows re-run safe and manually dispatchable",
+  "affected_areas": [
+    ".github/workflows/auto-release.yml",
+    ".github/workflows/release.yml"
+  ],
+  "scope": [
+    "ci"
+  ],
+  "alternatives_considered": [],
+  "rejected_reason": [],
+  "supersedes": null,
+  "superseded_by": null,
+  "status": "open",
+  "confidence": 0.4,
+  "source_quality": "metadata-derived",
+  "needs_human_summary": true,
+  "source_module": "pr-merge",
+  "evidence_cited": [],
+  "work_ref": {
+    "type": "pr",
+    "ref": "PR #18"
+  },
+  "outcome": "## Summary\n\n- **auto-release.yml**: if a re-run finds the version tag already exists (partial failure recovery), it skips the commit/tag steps and goes straight to `npm publish`. Also checks out the tagged commit before publishing so the tarball is always built from the tagged source, not the pre-bump checkout.\n- **release.yml**: adds `workflow_dispatch` with a `tag` input so a failed publish can be retried manually — needed because GitHub Actions won't trigger `on: push: tags` when the tag is p"
+}
