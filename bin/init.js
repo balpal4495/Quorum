@@ -5,7 +5,7 @@
  * Drops Quorum into an existing Node.js project.
  * Run from the target project root:
  *
- *   npx github:balpal4495/Quorum init
+ *   npx @balpal4495/quorum@latest init
  *
  * Zero external dependencies — uses only Node.js built-ins.
  * Requires Node.js 18+.
@@ -102,6 +102,13 @@ async function copyModules() {
     path.join(TARGET, "quorum", "SETUP.md"),
   )
   log.created("quorum/SETUP.md")
+}
+
+async function copyEvals() {
+  const src  = path.join(QUORUM_ROOT, "evals")
+  const dest = path.join(TARGET, "quorum", "evals")
+  await fs.cp(src, dest, { recursive: true })
+  log.created("quorum/evals/")
 }
 
 async function mergeCopilotInstructions() {
@@ -309,6 +316,7 @@ async function main() {
 
   await guardAlreadyInitialized()
   await copyModules()
+  await copyEvals()
   await mergeCopilotInstructions()
   await mergeAgentsMd()
   await mergeClaudeMd()

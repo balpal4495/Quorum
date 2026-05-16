@@ -55,6 +55,13 @@ async function copyModules(target) {
   log.created("quorum/SETUP.md")
 }
 
+async function copyEvals(target) {
+  const src  = path.join(QUORUM_ROOT, "evals")
+  const dest = path.join(target, "quorum", "evals")
+  await fs.cp(src, dest, { recursive: true })
+  log.created("quorum/evals/")
+}
+
 async function mergeCopilotInstructions(target) {
   log.section("Merging AI instruction files")
   const src     = path.join(QUORUM_ROOT, ".github", "copilot-instructions.md")
@@ -207,6 +214,7 @@ export async function run(PKG_VERSION) {
 
   await guardAlreadyInitialized(target)
   await copyModules(target)
+  await copyEvals(target)
   await mergeCopilotInstructions(target)
   await mergeAgentsMd(target)
   await mergeClaudeMd(target)

@@ -94,7 +94,7 @@ export type RiskLevel = "low" | "medium" | "high" | "critical"
 /**
  * Determines which Council mode to use.
  *   skip        → Oracle query only, no LLM validation
- *   jury-only   → Jury scores, no Council fan-out
+ *   jury-only   → Jury scores, Council skipped entirely (low-risk fast path)
  *   lite        → Jury + 1–2 reviewers (no full advisor fan-out)
  *   full        → Full Council (default 5 advisors + 5 reviewers + Chairman)
  */
