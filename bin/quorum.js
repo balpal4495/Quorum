@@ -30,6 +30,7 @@ ${c.bold("Usage:")}
   ${c.cyan("quorum sentinel")} [coverage]           Chronicle coverage of source files
   ${c.cyan("quorum growth")}                        Chronicle learning health and growth rate
   ${c.cyan("quorum evolve")}                        Consolidate and improve Chronicle entries (uses LLM)
+  ${c.cyan("quorum compass")} <subcommand>          Product-direction synthesis (brief, map, pathways, bets, score)
   ${c.cyan("quorum sync")}                          Refresh Quorum instruction blocks after npm update
   ${c.cyan("quorum migrate-v2")}                    Migrate from v1 vendored quorum/modules/ to npm package
   ${c.cyan("quorum --version")}                     Print version
@@ -56,6 +57,17 @@ ${c.bold("quorum sentinel")} subcommands:
 
 ${c.bold("quorum migrate-v2")} flags:
   --dry-run       Preview what would be removed without writing
+
+${c.bold("quorum compass")} subcommands:
+  brief               Summarise product direction (LLM)
+  map                 Map behaviours from code + docs (no LLM)
+  pathways --goal X   Product pathways toward a goal (LLM)
+  bets                Strategic big bets (LLM)
+  score <idea>        Score a product idea (LLM)
+  spec <title>        Generate a product brief (LLM)
+  opportunities       List gaps from behaviour map (no LLM)
+  propose --from-last Stage a Chronicle entry from last artifact
+  outcome --entry-id X --result Y  Record a bet/pathway outcome
 
 ${c.bold("Exit codes")} (quorum check):
   0  low / medium risk
@@ -127,6 +139,12 @@ async function cli() {
 
   if (command === "sync") {
     const { run } = await import(path.join(__dirname, "commands/sync.js"))
+    await run(rest)
+    return
+  }
+
+  if (command === "compass") {
+    const { run } = await import(path.join(__dirname, "commands/compass.js"))
     await run(rest)
     return
   }

@@ -11,6 +11,9 @@ import { entryText } from "./shared/types"
 import type { JuryInput, JuryOutput, JuryDeps } from "./jury/types"
 import type { CouncilInput, CouncilOutput, CouncilDeps, CouncilModels } from "./council/types"
 import type { AdvisorOutput } from "./advisor/types"
+import { createCompass } from "./compass/create"
+import { defaultSources } from "./compass/sources/index"
+import type { Compass, CreateCompassOptions } from "./compass/types"
 
 export interface SetupOptions {
   /**
@@ -33,7 +36,19 @@ export interface SetupOptions {
   models?: {
     jury?: string
     council?: CouncilModels
+    compass?: {
+      brief?: string
+      pathways?: string
+      bets?: string
+      score?: string
+    }
   }
+
+  /**
+   * Root directory for scanning source files (used by Compass).
+   * Default: process.cwd()
+   */
+  rootDir?: string
 
   /**
    * Pre-warm the local ONNX embedder during setup so the first query
@@ -79,6 +94,14 @@ export interface Modules {
    * the confidence threshold (≥ 0.7, no blockers) or the retry budget runs out.
    */
   ask: (question: string) => Promise<AdvisorOutput>
+
+  /**
+   * Product-direction module.
+   * Synthesises Chronicle memory and current codebase behaviour into
+   * pathways, bets, briefs, and opportunities.
+   * All writes go through oracle.propose() — never auto-committed.
+   */
+  compass: Compass
 }
 
 /**
@@ -103,6 +126,7 @@ export async function setup(options: SetupOptions): Promise<Modules> {
   const {
     llm,
     chronicleDir = ".chronicle",
+    rootDir = process.cwd(),
     models = {},
     warmEmbedder: shouldWarm = true,
     embedder = xenovaEmbed,
@@ -165,5 +189,14 @@ export async function setup(options: SetupOptions): Promise<Modules> {
       const evidence = await oracle.query(question)
       return advisorAsk({ question, evidence }, { llm })
     },
+
+    compass: createCompass({
+      oracle,
+      llm,
+      rootDir,
+      chronicleDir,
+      sources: defaultSources(),
+      models: models.compass,
+    }),
   }
 }

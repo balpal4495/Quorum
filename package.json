@@ -25,7 +25,13 @@
     "quorum": "bin/quorum.js"
   },
   "exports": {
-    ".": "./modules/setup.ts"
+    ".": "./modules/setup.ts",
+    "./oracle": "./modules/oracle/index.ts",
+    "./advisor": "./modules/advisor/index.ts",
+    "./jury": "./modules/jury/index.ts",
+    "./council": "./modules/council/index.ts",
+    "./sentinel": "./modules/sentinel/index.ts",
+    "./compass": "./modules/compass/index.ts"
   },
   "scripts": {
     "test": "vitest run modules/ evals/",

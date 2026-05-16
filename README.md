@@ -142,6 +142,10 @@ Every PR merge posts a growth comment showing what Chronicle learned. `quorum ev
 | See whether memory is growing | `quorum growth` |
 | Consolidate stale or duplicate entries | `quorum evolve` |
 | Find undocumented areas | `quorum sentinel coverage` |
+| Understand what the product currently does | `quorum compass map` |
+| Generate product pathways toward a goal | `quorum compass pathways --goal "..."` |
+| Score a product idea | `quorum compass score "add Slack integration"` |
+| Stage a direction decision for Chronicle | `quorum compass propose --from-last` |
 
 ---
 
@@ -465,6 +469,7 @@ You do not need to understand these internals to use Quorum. They live in `node_
 | **Jury** | Evaluates a design against Chronicle evidence. Four-dimension confidence score, deterministic preflight, hard-blocker gaps. | Yes |
 | **Council** | Adversarial panel — advisors challenge independently, reviewers critique anonymously, Chairman gives a structured verdict. Risk-scaled fan-out. | Yes |
 | **Sentinel** | Coverage reporting (which files Chronicle knows about), drift detection (are entries still accurate), PR coverage maps. | Optional |
+| **Compass** | Product-direction layer — maps current behaviours from code and docs, identifies gaps and opportunities, generates pathways, strategic bets, and idea scores grounded in Chronicle evidence. All writes go through `oracle.propose()`. | Optional |
 
 ### How Jury works
 
