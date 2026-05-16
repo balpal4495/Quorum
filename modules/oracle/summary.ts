@@ -1,7 +1,7 @@
 import { promises as fs } from "fs"
 import path from "path"
-import type { ChronicleEntry } from "../shared/types"
-import { entryText } from "../shared/types"
+import type { ChronicleEntry } from "../shared/types.js"
+import { entryText } from "../shared/types.js"
 
 const SUMMARY_WEEKS = 12
 const DIRECTIVE =

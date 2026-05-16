@@ -1,5 +1,5 @@
-import type { LLMProvider } from "../shared/types"
-import type { CouncilInput } from "./types"
+import type { LLMProvider } from "../shared/types.js"
+import type { CouncilInput } from "./types.js"
 
 /**
  * Reframe the outcome + design into a clear deliberation brief for the advisor panel.

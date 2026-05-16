@@ -1,6 +1,6 @@
-import { coverage } from "./coverage"
-import { detectDrift } from "./drift"
-import type { LLMProvider } from "../shared/types"
+import { coverage } from "./coverage.js"
+import { detectDrift } from "./drift.js"
+import type { LLMProvider } from "../shared/types.js"
 
 export interface SentinelAssertOptions {
   chronicleDir?: string
@@ -23,7 +23,7 @@ export interface SentinelAssertOptions {
  *
  * @example
  * import { describe } from "vitest"
- * import { sentinelAssertions } from "../modules/sentinel/assert"
+ * import { sentinelAssertions } from "../modules/sentinel/assert.js"
  *
  * const assertions = sentinelAssertions({ chronicleDir: ".chronicle", codebasePath: "modules" })
  * describe("sentinel", () => { assertions.forEach(a => a()) })

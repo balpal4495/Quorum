@@ -1,4 +1,4 @@
-import type { ProductSource, ProductSourceFinding, ProductSourceScanInput } from "../types"
+import type { ProductSource, ProductSourceFinding, ProductSourceScanInput } from "../types.js"
 
 export function docsSource(): ProductSource {
   return {

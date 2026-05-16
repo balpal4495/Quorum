@@ -1,5 +1,5 @@
-import type { OracleResult } from "../shared/types"
-import type { RiskLevel, CouncilMode, RiskAssessment } from "./types"
+import type { OracleResult } from "../shared/types.js"
+import type { RiskLevel, CouncilMode, RiskAssessment } from "./types.js"
 
 /**
  * Patterns that trigger risk escalation.

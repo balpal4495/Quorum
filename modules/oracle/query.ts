@@ -1,8 +1,8 @@
-import type { ChronicleEntry, OracleResult, QueryOptions } from "../shared/types"
-import { entryText } from "../shared/types"
-import type { OracleDeps } from "./types"
-import { bm25Score, extractDomainTerms } from "./bm25"
-import { appendQueryLog } from "./log"
+import type { ChronicleEntry, OracleResult, QueryOptions } from "../shared/types.js"
+import { entryText } from "../shared/types.js"
+import type { OracleDeps } from "./types.js"
+import { bm25Score, extractDomainTerms } from "./bm25.js"
+import { appendQueryLog } from "./log.js"
 
 const DEFAULT_LIMIT = 10
 const DEFAULT_SCORE_THRESHOLD = 0.031

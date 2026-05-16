@@ -1,5 +1,5 @@
-import type { OracleResult } from "../shared/types"
-import { entryText } from "../shared/types"
+import type { OracleResult } from "../shared/types.js"
+import { entryText } from "../shared/types.js"
 
 /** Areas that warrant elevated scrutiny. */
 const SENSITIVE_PATTERNS: Record<string, RegExp> = {

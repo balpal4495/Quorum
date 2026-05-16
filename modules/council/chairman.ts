@@ -1,9 +1,9 @@
 import { z } from "zod"
-import type { LLMProvider, OracleResult } from "../shared/types"
-import { entryText } from "../shared/types"
-import type { AdvisorResponse } from "./advisors"
-import type { ReviewerResponse } from "./reviewers"
-import type { CouncilOutput, CitationValidation } from "./types"
+import type { LLMProvider, OracleResult } from "../shared/types.js"
+import { entryText } from "../shared/types.js"
+import type { AdvisorResponse } from "./advisors.js"
+import type { ReviewerResponse } from "./reviewers.js"
+import type { CouncilOutput, CitationValidation } from "./types.js"
 
 const BlockerSchema = z.object({
   issue: z.string().min(1),

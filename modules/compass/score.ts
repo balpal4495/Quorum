@@ -1,4 +1,4 @@
-import type { ProductScoreBreakdown } from "./types"
+import type { ProductScoreBreakdown } from "./types.js"
 
 /**
  * Compute a directional product score from raw dimension values.

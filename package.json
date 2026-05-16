@@ -24,16 +24,21 @@
   "bin": {
     "quorum": "bin/quorum.js"
   },
+  "files": [
+    "dist/**",
+    "bin/**"
+  ],
   "exports": {
-    ".": "./modules/setup.ts",
-    "./oracle": "./modules/oracle/index.ts",
-    "./advisor": "./modules/advisor/index.ts",
-    "./jury": "./modules/jury/index.ts",
-    "./council": "./modules/council/index.ts",
-    "./sentinel": "./modules/sentinel/index.ts",
-    "./compass": "./modules/compass/index.ts"
+    ".": "./dist/setup.js",
+    "./oracle": "./dist/oracle/index.js",
+    "./advisor": "./dist/advisor/index.js",
+    "./jury": "./dist/jury/index.js",
+    "./council": "./dist/council/index.js",
+    "./sentinel": "./dist/sentinel/index.js",
+    "./compass": "./dist/compass/index.js"
   },
   "scripts": {
+    "build": "tsc -p tsconfig.build.json",
     "test": "vitest run modules/ evals/",
     "test:watch": "vitest modules/",
     "typecheck": "tsc --noEmit"

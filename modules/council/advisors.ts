@@ -1,6 +1,6 @@
-import type { LLMProvider, OracleResult } from "../shared/types"
-import { entryText } from "../shared/types"
-import type { AdvisorPersona } from "./personas"
+import type { LLMProvider, OracleResult } from "../shared/types.js"
+import { entryText } from "../shared/types.js"
+import type { AdvisorPersona } from "./personas.js"
 
 export interface AdvisorResponse {
   persona: string

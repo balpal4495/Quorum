@@ -8,7 +8,7 @@
  * Produces 384-dimensional unit vectors (mean pooling + L2 normalisation).
  *
  * For production use, pre-warm the embedder on startup:
- *   import { warmEmbedder } from "./adapters/xenova-embedder"
+ *   import { warmEmbedder } from "./adapters/xenova-embedder.js"
  *   await warmEmbedder()
  */
 

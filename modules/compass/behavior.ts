@@ -2,7 +2,7 @@ import { randomUUID } from "crypto"
 import type {
   ProductBehavior, ProductBehaviorGap, ProductBehaviorContradiction, BehaviorMap,
   BehaviorMapInput, ProductSourceFinding, CompassEvidenceRef,
-} from "./types"
+} from "./types.js"
 
 // ── Deterministic behaviour mapping from source findings ─────────────────────
 

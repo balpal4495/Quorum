@@ -1,10 +1,10 @@
-import type { CouncilInput, CouncilOutput, CouncilDeps } from "./types"
-import { DEFAULT_PERSONAS } from "./personas"
-import { frameQuestion } from "./frame"
-import { fanOutAdvisors } from "./advisors"
-import { fanOutReviewers } from "./reviewers"
-import { chairman } from "./chairman"
-import { classifyRisk } from "./risk"
+import type { CouncilInput, CouncilOutput, CouncilDeps } from "./types.js"
+import { DEFAULT_PERSONAS } from "./personas.js"
+import { frameQuestion } from "./frame.js"
+import { fanOutAdvisors } from "./advisors.js"
+import { fanOutReviewers } from "./reviewers.js"
+import { chairman } from "./chairman.js"
+import { classifyRisk } from "./risk.js"
 
 const DEFAULT_ADVISOR_COUNT = 5
 const DEFAULT_REVIEWER_COUNT = 5

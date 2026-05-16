@@ -1,5 +1,5 @@
-import type { LLMProvider, OracleClient } from "../shared/types"
-import type { AdvisorOutput } from "../advisor/types"
+import type { LLMProvider, OracleClient } from "../shared/types.js"
+import type { AdvisorOutput } from "../advisor/types.js"
 
 // ── Evidence ──────────────────────────────────────────────────────────────────
 

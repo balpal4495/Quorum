@@ -1,6 +1,6 @@
 import { z } from "zod"
-import type { AdvisorInput, AdvisorOutput, AdvisorAnswer, AdvisorDeps } from "./types"
-import { SYSTEM_PROMPT, buildUserPrompt } from "./prompt"
+import type { AdvisorInput, AdvisorOutput, AdvisorAnswer, AdvisorDeps } from "./types.js"
+import { SYSTEM_PROMPT, buildUserPrompt } from "./prompt.js"
 
 const SATISFACTION_THRESHOLD = 0.7
 const MAX_RETRIES = 2

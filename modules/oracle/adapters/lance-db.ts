@@ -11,8 +11,8 @@
  * is nearly identical but table.query() replaces table.search() for non-vector queries.
  */
 
-import type { VectorStore } from "../types"
-import type { ChronicleEntry } from "../../shared/types"
+import type { VectorStore } from "../types.js"
+import type { ChronicleEntry } from "../../shared/types.js"
 import path from "path"
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports

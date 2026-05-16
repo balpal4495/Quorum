@@ -1,2 +1,2 @@
-export { ask } from "./ask"
-export type { AdvisorInput, AdvisorOutput, AdvisorDeps } from "./types"
+export { ask } from "./ask.js"
+export type { AdvisorInput, AdvisorOutput, AdvisorDeps } from "./types.js"

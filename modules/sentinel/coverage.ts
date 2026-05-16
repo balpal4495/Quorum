@@ -1,6 +1,6 @@
 import { promises as fs, Dirent } from "fs"
 import path from "path"
-import type { ChronicleEntry, CoverageReport, FileCoverage } from "../shared/types"
+import type { ChronicleEntry, CoverageReport, FileCoverage } from "../shared/types.js"
 
 const IGNORED_DIRS = new Set(["node_modules", "dist", ".git", ".chronicle", "coverage", "__tests__"])
 const TEST_SUFFIXES = [".test.ts", ".spec.ts", ".test.js", ".spec.js"]
