@@ -1,0 +1,33 @@
+{
+  "schema_version": 2,
+  "topic": "PR #16",
+  "decision": "fix: copy evals on init, skip Council for low-risk, mark PR proposals as drafts",
+  "key_insight": "fix: copy evals on init, skip Council for low-risk, mark PR proposals as drafts",
+  "affected_areas": [
+    "bin/commands/init.js",
+    "bin/init.js",
+    "modules/council/__tests__/deliberate.test.ts",
+    "modules/council/deliberate.ts",
+    "modules/council/types.ts",
+    "scripts/chronicle-pr.js"
+  ],
+  "scope": [
+    "council",
+    "cli"
+  ],
+  "alternatives_considered": [],
+  "rejected_reason": [],
+  "supersedes": null,
+  "superseded_by": null,
+  "status": "open",
+  "confidence": 0.4,
+  "source_quality": "metadata-derived",
+  "needs_human_summary": true,
+  "source_module": "pr-merge",
+  "evidence_cited": [],
+  "work_ref": {
+    "type": "pr",
+    "ref": "PR #16"
+  },
+  "outcome": "## Summary\n\n- **Onboarding fix**: `init` now copies `evals/` into `quorum/evals/` so `npx vitest run quorum/evals/` in SETUP.md step 8 works in host projects\n- **Council routing**: `jury-only` mode (low-risk designs) now returns immediately with `satisfied: true` — zero LLM calls, no `oracle.propose()`. Previously still ran frame + advisor + reviewer + chairman despite the \"no fan-out\" comment\n- **PR auto-proposals**: Chronicle proposals from `chronicle-pr.js` now carry `confidence: 0.4`, `sourc"
+}
