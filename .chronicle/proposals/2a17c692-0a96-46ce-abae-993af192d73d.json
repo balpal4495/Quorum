@@ -1,0 +1,28 @@
+{
+  "schema_version": 2,
+  "topic": "PR #20",
+  "decision": "fix: pass NPM_TOKEN for npm publish authentication",
+  "key_insight": "fix: pass NPM_TOKEN for npm publish authentication",
+  "affected_areas": [
+    ".github/workflows/auto-release.yml",
+    ".github/workflows/release.yml"
+  ],
+  "scope": [
+    "ci"
+  ],
+  "alternatives_considered": [],
+  "rejected_reason": [],
+  "supersedes": null,
+  "superseded_by": null,
+  "status": "open",
+  "confidence": 0.4,
+  "source_quality": "metadata-derived",
+  "needs_human_summary": true,
+  "source_module": "pr-merge",
+  "evidence_cited": [],
+  "work_ref": {
+    "type": "pr",
+    "ref": "PR #20"
+  },
+  "outcome": "## Summary\n\nOIDC provenance signing is working (attestation published to sigstore), but the npm registry still requires an npm automation token to authenticate the actual publish. Adds `NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}` to the publish step in both `release.yml` and `auto-release.yml`.\n\nAfter merge: dispatching `release.yml` on tag `v0.4.2` to publish the pending release.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)"
+}
