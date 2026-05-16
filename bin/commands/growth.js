@@ -1,5 +1,5 @@
 import { c } from "../shared/colors.js"
-import { findChronicleDir, readCommitted, readProposals } from "../shared/chronicle.js"
+import { findChronicleDir, readCommitted, readProposals, entryText } from "../shared/chronicle.js"
 
 const STALLED_DAYS = 14
 const SLOW_DAYS    = 7
@@ -103,6 +103,22 @@ export async function run(argv) {
         const col = n >= 3 ? c.green : n >= 1 ? c.cyan : c.dim
         console.log(`    ${c.dim("w/c")} ${wk}  ${col(bar || "—")}  ${col(String(n))}`)
       }
+    }
+  }
+
+  // Recent learnings
+  const recent = [...entries]
+    .filter(e => e.timestamp)
+    .sort((a, b) => b.timestamp.localeCompare(a.timestamp))
+    .slice(0, 7)
+  if (recent.length > 0) {
+    console.log(`\n  ${c.bold("Recent learnings")}`)
+    for (const e of recent) {
+      const text = entryText(e).slice(0, 72)
+      const trail = entryText(e).length > 72 ? "…" : ""
+      const date  = e.timestamp.slice(0, 10)
+      const col   = e.status === "refuted" ? c.red : e.status === "open" ? c.yellow : c.dim
+      console.log(`    ${c.dim(e.id.slice(0, 8))}  ${text}${trail}  ${col(date)}`)
     }
   }
 
