@@ -141,7 +141,7 @@ export async function run(argv) {
   if (args.subcommand === "drift") {
     console.log(`\n${c.yellow("quorum sentinel drift")} requires an LLM provider and is not available as a standalone CLI command.`)
     console.log(c.dim("\nUse the sentinelAssertions() helper in your test suite instead:"))
-    console.log(c.dim("\n  import { sentinelAssertions } from \"./quorum/modules/sentinel\""))
+    console.log(c.dim("\n  import { sentinelAssertions } from \"@balpal4495/quorum\""))
     console.log(c.dim("  const assertions = sentinelAssertions({ llm: yourProvider })"))
     console.log(c.dim("  describe(\"sentinel\", () => { assertions.forEach(a => a()) })\n"))
     process.exit(0)

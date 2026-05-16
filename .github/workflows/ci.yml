@@ -24,6 +24,17 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Check version consistency
+        run: |
+          PKG_VER=$(node -p "require('./package.json').version")
+          LOCK_VER=$(node -p "require('./package-lock.json').version")
+          if [ "$PKG_VER" != "$LOCK_VER" ]; then
+            echo "Version mismatch: package.json=$PKG_VER, package-lock.json=$LOCK_VER"
+            echo "Run 'npm install' to sync the lockfile."
+            exit 1
+          fi
+          echo "Version check passed: $PKG_VER"
+
       - name: Typecheck
         run: npm run typecheck
 
