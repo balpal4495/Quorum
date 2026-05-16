@@ -1,8 +1,469 @@
 #!/usr/bin/env node
+import { promises as fs } from "fs"
 import path from "path"
+import { randomUUID } from "crypto"
 import { c } from "../shared/colors.js"
-import { findChronicleDir } from "../shared/chronicle.js"
+import { findChronicleDir, readCommitted } from "../shared/chronicle.js"
 import { detectProvider } from "../shared/llm.js"
+
+// ── Chronicle / BM25 helpers ──────────────────────────────────────────────────
+
+function tokenize(text) {
+  return text.toLowerCase().split(/\W+/).filter(t => t.length > 2)
+}
+
+function bm25Score(query, entry) {
+  const qTokens = new Set(tokenize(query))
+  const text = [
+    entry.key_insight ?? "",
+    entry.decision    ?? "",
+    ...(entry.affected_areas ?? []),
+    ...(entry.scope          ?? []),
+    entry.topic              ?? "",
+  ].join(" ")
+  const eTokens = tokenize(text)
+  const overlap = eTokens.filter(t => qTokens.has(t)).length
+  return overlap / Math.sqrt(qTokens.size * eTokens.length + 1)
+}
+
+function queryChronicle(entries, query, limit = 8) {
+  return entries
+    .map(e => ({ entry: e, score: bm25Score(query, e) }))
+    .filter(({ score }) => score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map(({ entry }) => entry)
+}
+
+function collectBearings(entries, area) {
+  const queries = [
+    area ?? "product direction goals decisions",
+    "rejected approaches refuted alternatives",
+    "constraints scope",
+  ]
+  const seen = new Set()
+  const bearings = []
+  for (const q of queries) {
+    for (const entry of queryChronicle(entries, q)) {
+      if (seen.has(entry.id)) continue
+      seen.add(entry.id)
+      const text = entry.decision ?? entry.key_insight ?? ""
+      bearings.push({
+        id: `bearing-${(entry.id ?? "").slice(0, 8)}`,
+        summary: text,
+        confidence: entry.confidence ?? 0.7,
+        status: entry.status,
+      })
+    }
+  }
+  return bearings
+}
+
+function formatBearings(bearings) {
+  if (!bearings.length) return "No Chronicle entries found."
+  return bearings
+    .map(b => {
+      const tag = b.status === "refuted" ? " [REJECTED]" : b.status === "validated" ? " [VALIDATED]" : ""
+      return `[${b.id}]${tag} ${b.summary}`
+    })
+    .join("\n")
+}
+
+// ── Source scanning ───────────────────────────────────────────────────────────
+
+function inferTags(text) {
+  const tags = []
+  const lower = text.toLowerCase()
+  const keywords = ["oracle","advisor","jury","council","sentinel","compass","cli","api","auth","test","docs","config","chronicle","llm","module"]
+  for (const kw of keywords) if (lower.includes(kw)) tags.push(kw)
+  return tags
+}
+
+async function scanDocs(rootDir, area) {
+  const findings = []
+  let idx = 0
+  const targets = ["README.md","SETUP.md","CLAUDE.md","AGENTS.md","modules/README.md","quorum/CLAUDE.md","docs"]
+  async function scanMd(filePath) {
+    let content
+    try { content = await fs.readFile(filePath, "utf8") } catch { return }
+    const rel = path.relative(rootDir, filePath).replace(/\\/g, "/")
+    const lines = content.split("\n")
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i]
+      const m = line.match(/^#{1,3}\s+(.+)/)
+      if (m) {
+        const heading = m[1].trim()
+        const context = lines.slice(i + 1, i + 4).join(" ").replace(/```[^`]*```/g, "").trim().slice(0, 200)
+        findings.push({ id: `docs-${idx++}`, kind: "docs", source: rel, path: rel, line: i + 1, title: heading, summary: context || heading, confidence: 0.8, tags: inferTags(heading + " " + context) })
+      }
+      const trimmed = line.trim()
+      if (trimmed.startsWith("quorum ") || trimmed.startsWith("npx quorum")) {
+        findings.push({ id: `docs-cmd-${idx++}`, kind: "docs", source: rel, path: rel, line: i + 1, title: `CLI usage: ${trimmed.slice(0, 60)}`, summary: `Documented command: ${trimmed}`, confidence: 0.85, tags: ["cli", "command", ...inferTags(trimmed)] })
+      }
+    }
+  }
+  async function scanDir(dir) {
+    let entries
+    try { entries = await fs.readdir(dir, { withFileTypes: true }) } catch { return }
+    for (const entry of entries) {
+      const full = path.join(dir, entry.name)
+      if (entry.isDirectory() && !["node_modules",".git","dist"].includes(entry.name)) await scanDir(full)
+      else if (entry.isFile() && entry.name.endsWith(".md")) await scanMd(full)
+    }
+  }
+  for (const target of targets) {
+    const full = path.join(rootDir, target)
+    let stat
+    try { stat = await fs.stat(full) } catch { continue }
+    if (stat.isDirectory()) await scanDir(full)
+    else await scanMd(full)
+  }
+  return area ? findings.filter(f => !area || f.tags.includes(area.toLowerCase()) || f.summary.toLowerCase().includes(area.toLowerCase())) : findings
+}
+
+async function scanPackage(rootDir) {
+  const findings = []
+  let idx = 0
+  let pkg
+  try { pkg = JSON.parse(await fs.readFile(path.join(rootDir, "package.json"), "utf8")) } catch { return findings }
+  if (pkg.name) findings.push({ id: `pkg-${idx++}`, kind: "package", source: "package.json", title: "Package name", summary: `Published as: ${pkg.name}`, confidence: 1, tags: ["package","identity"] })
+  if (pkg.description) findings.push({ id: `pkg-${idx++}`, kind: "package", source: "package.json", title: "Package description", summary: String(pkg.description), confidence: 1, tags: ["package","description"] })
+  if (pkg.bin) for (const [name, entry] of Object.entries(pkg.bin)) findings.push({ id: `pkg-${idx++}`, kind: "package", source: "package.json", title: `CLI binary: ${name}`, summary: `CLI binary '${name}' at ${entry}`, confidence: 1, tags: ["cli","binary"] })
+  if (pkg.exports) findings.push({ id: `pkg-${idx++}`, kind: "package", source: "package.json", title: "Package exports", summary: `Exports: ${JSON.stringify(pkg.exports)}`, confidence: 0.95, tags: ["exports","api"] })
+  const deps = { ...(pkg.dependencies ?? {}), ...(pkg.optionalDependencies ?? {}) }
+  if (Object.keys(deps).length > 0) findings.push({ id: `pkg-${idx++}`, kind: "package", source: "package.json", title: "Runtime dependencies", summary: Object.keys(deps).join(", "), confidence: 0.9, tags: ["dependencies"] })
+  return findings
+}
+
+async function scanCli(rootDir, area) {
+  const findings = []
+  let idx = 0
+  const binDir = path.join(rootDir, "bin", "commands")
+  let files
+  try { files = (await fs.readdir(binDir)).filter(f => f.endsWith(".js")) } catch { return findings }
+  for (const file of files) {
+    const cmdName = file.replace(".js", "")
+    let content
+    try { content = await fs.readFile(path.join(binDir, file), "utf8") } catch { continue }
+    const rel = `bin/commands/${file}`
+    const subcmds = [...content.matchAll(/case ["']([a-z-]+)["']/g)].map(m => m[1])
+    const flags = [...new Set([...content.matchAll(/["'](--[a-z-]+)["']/g)].map(m => m[1]))]
+    const usesLLM = /llm|LLM|provider|model/.test(content)
+    const readsChronicle = /readCommitted|findChronicleDir|committed/.test(content)
+    findings.push({
+      id: `cli-${idx++}`, kind: "cli", source: rel, path: rel, title: `Command: quorum ${cmdName}`,
+      summary: [`quorum ${cmdName}`, subcmds.length ? `Subcommands: ${subcmds.join(", ")}` : "", flags.length ? `Flags: ${flags.slice(0,8).join(", ")}` : "", usesLLM ? "Uses LLM" : "No LLM", readsChronicle ? "Reads Chronicle" : ""].filter(Boolean).join(" | "),
+      confidence: 0.9,
+      tags: ["cli","command",cmdName,...subcmds.map(s => `subcommand:${s}`), usesLLM ? "llm" : "deterministic"].filter(Boolean),
+    })
+  }
+  return area ? findings.filter(f => f.tags.includes(area.toLowerCase()) || f.summary.toLowerCase().includes(area.toLowerCase())) : findings
+}
+
+async function scanRepo(rootDir) {
+  const findings = []
+  let idx = 0
+  const modulesDir = path.join(rootDir, "modules")
+  try {
+    const entries = await fs.readdir(modulesDir, { withFileTypes: true })
+    for (const entry of entries) {
+      if (entry.isDirectory() && !entry.name.startsWith("_") && entry.name !== "shared") {
+        findings.push({ id: `repo-module-${idx++}`, kind: "code", source: `modules/${entry.name}/`, path: `modules/${entry.name}/`, title: `Module: ${entry.name}`, summary: `TypeScript module: modules/${entry.name}/`, confidence: 0.85, tags: ["module", entry.name, "code"] })
+      }
+    }
+  } catch { /* no modules dir */ }
+  return findings
+}
+
+async function collectTerrain(rootDir, area) {
+  const [docs, pkg, cli, repo] = await Promise.all([
+    scanDocs(rootDir, area),
+    scanPackage(rootDir),
+    scanCli(rootDir, area),
+    scanRepo(rootDir),
+  ])
+  return [...docs, ...pkg, ...cli, ...repo]
+}
+
+function formatTerrain(findings, limit = 40) {
+  if (!findings.length) return "No product behaviour found in sources."
+  const groups = {}
+  for (const f of findings.slice(0, limit)) {
+    groups[f.kind] = groups[f.kind] ?? []
+    groups[f.kind].push(f)
+  }
+  return Object.entries(groups).map(([kind, items]) =>
+    `### ${kind}\n${items.map(f => `  - ${f.summary.slice(0, 120)}`).join("\n")}`
+  ).join("\n\n")
+}
+
+// ── Behaviour mapping ─────────────────────────────────────────────────────────
+
+function inferArea(f) {
+  const lower = (f.title + " " + f.summary).toLowerCase()
+  for (const area of ["oracle","advisor","jury","council","sentinel","compass","chronicle","onboarding"]) {
+    if (lower.includes(area)) return area
+  }
+  return f.tags?.find(t => !["cli","command","llm","deterministic","chronicle","module","code"].includes(t)) ?? "general"
+}
+
+function extractCommand(text) {
+  const m = text.match(/quorum\s+(\w+)/)
+  return m ? m[1] : ""
+}
+
+function findingToRef(f) {
+  return { id: f.id, kind: f.kind, source: f.source, path: f.path ?? f.source, summary: f.summary, confidence: f.confidence }
+}
+
+function mapBehaviors(findings, area) {
+  const behaviors = []
+  const gaps = []
+
+  const cliFindings = findings.filter(f => f.kind === "cli")
+  for (const f of cliFindings) {
+    behaviors.push({ id: `behavior-cli-${f.id}`, area: inferArea(f), name: f.title, current_behavior: f.summary, evidence: [findingToRef(f)], confidence: f.confidence })
+  }
+
+  const docsCliFindings = findings.filter(f => f.kind === "docs" && f.tags?.includes("cli"))
+  for (const f of docsCliFindings) {
+    const cmd = extractCommand(f.summary)
+    const alreadyPresent = cmd.length > 3 && behaviors.some(b => b.current_behavior.toLowerCase().includes(cmd.toLowerCase()))
+    if (!alreadyPresent && cmd) {
+      behaviors.push({ id: `behavior-docs-${f.id}`, area: inferArea(f), name: `Documented: ${f.title}`, current_behavior: f.summary, evidence: [findingToRef(f)], confidence: f.confidence * 0.9 })
+    }
+  }
+
+  const EXPECTED = ["onboarding","chronicle","advisor","review"]
+  for (const expected of EXPECTED) {
+    const has = behaviors.some(b => b.area === expected || b.name.toLowerCase().includes(expected))
+    if (!has) {
+      gaps.push({ id: `gap-${expected}`, area: expected, gap: `No first-class CLI command found for '${expected}'.`, why_it_matters: `'${expected}' appears in product docs but has no dedicated CLI surface.`, confidence: 0.7 })
+    }
+  }
+
+  if (!behaviors.some(b => b.name.toLowerCase().includes("compass"))) {
+    gaps.push({ id: "gap-product-direction", area: "product direction", gap: "No product behaviour mapping or direction module currently exists.", why_it_matters: "Quorum helps agents avoid repeating engineering mistakes, but has no module to help avoid repeating product-direction mistakes.", confidence: 0.93 })
+  }
+
+  const filtered = area ? behaviors.filter(b => b.area.toLowerCase().includes(area.toLowerCase()) || b.name.toLowerCase().includes(area.toLowerCase())) : behaviors
+  const filteredGaps = area ? gaps.filter(g => g.area.toLowerCase().includes(area.toLowerCase())) : gaps
+  const confidence = filtered.length ? filtered.reduce((s, b) => s + b.confidence, 0) / filtered.length : 0.5
+
+  return { generated_at: new Date().toISOString(), area, behaviors: filtered, gaps: filteredGaps, contradictions: [], confidence: Math.round(confidence * 100) / 100 }
+}
+
+function summarizeBehaviorMap(map) {
+  const lines = []
+  if (map.behaviors.length) {
+    lines.push("## Current behaviours")
+    for (const b of map.behaviors.slice(0, 20)) lines.push(`  ✓ ${b.current_behavior.slice(0, 100)}`)
+  }
+  if (map.gaps.length) {
+    lines.push("## Gaps")
+    for (const g of map.gaps) lines.push(`  ? [${g.area}] ${g.gap}`)
+  }
+  return lines.join("\n") || "No behaviours mapped."
+}
+
+// ── Score computation ─────────────────────────────────────────────────────────
+
+function computeScore(dims) {
+  const raw =
+    dims.strategic_fit         * 20 +
+    dims.user_problem_clarity  * 15 +
+    dims.evidence_strength     * 20 +
+    dims.leverage              * 10 +
+    dims.feasibility           * 15 +
+    dims.time_to_signal        * 10 +
+    dims.reversibility         * 10 -
+    dims.complexity_penalty    * 10 -
+    dims.dependency_penalty    *  8 -
+    dims.contradiction_penalty * 15 -
+    dims.evidence_gap_penalty  * 12
+  return { ...dims, total: Math.max(0, Math.min(100, Math.round(raw))) }
+}
+
+// ── Prompts ───────────────────────────────────────────────────────────────────
+
+const COMPASS_SYSTEM_PROMPT = `You are Quorum Compass, the product-direction module for an AI-assisted software team.
+
+Your job is to help decide where the product should go next.
+
+You are not a generic brainstormer.
+You must ground every recommendation in provided evidence.
+
+Evidence may come from:
+- Chronicle memory (human-approved past decisions)
+- current code behaviour
+- docs
+- tests
+- package metadata
+- CLI commands
+
+Rules:
+1. Separate known facts from inferences and assumptions.
+2. Never claim user demand unless user evidence (analytics, support, issues) is provided.
+3. Prefer small, reversible next moves unless asked for big bets.
+4. Identify contradictions with Chronicle or current product behaviour.
+5. Include assumptions, invalidation signals, and open questions.
+6. Do not recommend implementation details beyond product-level guidance.
+7. Return only valid JSON matching the requested schema.
+8. When no analytics/support data is connected, always state: "No direct user signal connected."`
+
+function buildBriefPrompt(chronicleCtx, behaviorCtx, area) {
+  return `Produce a Compass Brief — a summary of current product direction.
+
+${area ? `Focus area: ${area}\n` : ""}
+## Chronicle evidence (approved project memory)
+${chronicleCtx}
+
+## Current product behaviour
+${behaviorCtx}
+
+Return ONLY valid JSON with this exact schema (no markdown fences, no explanation):
+{
+  "product_direction": "<one clear sentence>",
+  "known_from_chronicle": ["<fact from Chronicle>"],
+  "known_from_behavior": ["<fact from code/docs/tests>"],
+  "inferred": ["<inference>"],
+  "assumptions": ["<assumption>"],
+  "unknowns": ["<unknown — include 'No analytics or support evidence connected' if no user data>"],
+  "missing_evidence": ["<what would improve this brief>"],
+  "recommended_next_step": "<specific quorum command or action>",
+  "confidence": <number 0–1>
+}`
+}
+
+function buildPathwaysPrompt(goal, horizon, appetite, chronicleCtx, behaviorCtx, area, limit) {
+  return `Generate ${limit ?? 5} product pathways toward the following goal.
+
+Goal: ${goal}
+${horizon ? `Horizon: ${horizon}` : ""}
+${appetite ? `Appetite: ${appetite}` : ""}
+${area ? `Focus area: ${area}` : ""}
+
+## Chronicle evidence
+${chronicleCtx}
+
+## Current product behaviour
+${behaviorCtx}
+
+Return ONLY valid JSON: { "pathways": [ { "id":"<slug>","kind":"product_pathway","title":"<title>","goal":"<goal>","target_user":"<who>","problem":"<problem>","current_behaviors":["<behaviour>"],"opportunity":"<gap>","why_now":"<why>","smallest_useful_version":"<mvp>","phases":[{"name":"<phase>","outcome":"<outcome>","user_value":"<value>","build_notes":["<note>"],"dependencies":["<dep>"],"risks":["<risk>"]}],"dependencies":["<dep>"],"risks":["<risk>"],"assumptions":["<assumption>"],"open_questions":["<question>"],"evidence":[{"id":"<id>","kind":"<kind>","source":"<source>","summary":"<summary>","confidence":<0-1>}],"scores":{"strategic_fit":<0-1>,"user_problem_clarity":<0-1>,"evidence_strength":<0-1>,"leverage":<0-1>,"feasibility":<0-1>,"time_to_signal":<0-1>,"reversibility":<0-1>,"complexity_penalty":<0-1>,"dependency_penalty":<0-1>,"contradiction_penalty":<0-1>,"evidence_gap_penalty":<0-1>,"total":<0-100>},"confidence":<0-1>,"time_to_signal":"<timeframe>","reversibility":"high|medium|low","suggested_next_step":"<step>" } ] }
+
+Sort by scores.total descending. Assumptions must always be present.`
+}
+
+function buildBetsPrompt(horizon, goal, appetite, chronicleCtx, behaviorCtx) {
+  return `Generate 2–3 strategic product bets.
+
+${horizon ? `Horizon: ${horizon}` : ""}
+${goal ? `Goal: ${goal}` : ""}
+${appetite ? `Appetite: ${appetite}` : ""}
+
+## Chronicle evidence
+${chronicleCtx}
+
+## Current product behaviour
+${behaviorCtx}
+
+Return ONLY valid JSON: { "bets": [ { "id":"<slug>","kind":"product_bet","title":"<title>","thesis":"<falsifiable hypothesis>","why_now":"<why>","target_user":"<who>","upside":"<best case>","downside":"<downside>","assumptions":["<assumption>"],"validation_signals":["<signal>"],"invalidation_signals":["<signal>"],"kill_criteria":["<criteria>"],"first_experiment":"<smallest test>","build_path":["<phase>"],"evidence":[{"id":"<id>","kind":"<kind>","source":"<source>","summary":"<summary>","confidence":<0-1>}],"scores":{"strategic_fit":<0-1>,"user_problem_clarity":<0-1>,"evidence_strength":<0-1>,"leverage":<0-1>,"feasibility":<0-1>,"time_to_signal":<0-1>,"reversibility":<0-1>,"complexity_penalty":<0-1>,"dependency_penalty":<0-1>,"contradiction_penalty":<0-1>,"evidence_gap_penalty":<0-1>,"total":<0-100>},"confidence":<0-1>,"time_to_signal":"<timeframe>","reversibility":"high|medium|low","appetite":"small|medium|large" } ] }
+
+Kill criteria and invalidation_signals must be present. If no user evidence, evidence_strength ≤ 0.4.`
+}
+
+function buildScorePrompt(idea, chronicleCtx, behaviorCtx) {
+  return `Evaluate this product idea.
+
+Idea: ${idea}
+
+## Chronicle evidence
+${chronicleCtx}
+
+## Current product behaviour
+${behaviorCtx}
+
+Return ONLY valid JSON: { "idea":"${idea}","summary":"<one sentence>","recommendation":"pursue|pursue-small-test|investigate-more|defer|avoid","scores":{"strategic_fit":<0-1>,"user_problem_clarity":<0-1>,"evidence_strength":<0-1>,"leverage":<0-1>,"feasibility":<0-1>,"time_to_signal":<0-1>,"reversibility":<0-1>,"complexity_penalty":<0-1>,"dependency_penalty":<0-1>,"contradiction_penalty":<0-1>,"evidence_gap_penalty":<0-1>,"total":<0-100>},"evidence":[{"id":"<id>","kind":"<kind>","source":"<source>","summary":"<summary>","confidence":<0-1>}],"supporting_reasons":["<reason>"],"risks":["<risk>"],"assumptions":["<assumption>"],"open_questions":["<question>"],"suggested_next_step":"<action>" }
+
+Score total = strategic_fit*20 + user_problem_clarity*15 + evidence_strength*20 + leverage*10 + feasibility*15 + time_to_signal*10 + reversibility*10 - complexity_penalty*10 - dependency_penalty*8 - contradiction_penalty*15 - evidence_gap_penalty*12. Clamp 0–100.`
+}
+
+// ── LLM helper ────────────────────────────────────────────────────────────────
+
+function parseLLMJson(raw) {
+  const cleaned = raw.replace(/^```(?:json)?\s*/m, "").replace(/\s*```$/m, "").trim()
+  return JSON.parse(cleaned)
+}
+
+async function callLLM(llm, userPrompt) {
+  if (!llm) throw new Error("LLM provider is required for this subcommand. Set ANTHROPIC_API_KEY or OPENAI_API_KEY.")
+  return llm([
+    { role: "system", content: COMPASS_SYSTEM_PROMPT },
+    { role: "user",   content: userPrompt },
+  ])
+}
+
+// ── Proposal staging ──────────────────────────────────────────────────────────
+
+async function stageProposal(chronicleDir, artifactKind, payload) {
+  const title = payload.title ?? payload.idea ?? "Compass artifact"
+  const decision = artifactKind === "product_bet"
+    ? `Product bet: ${title}. Thesis: ${payload.thesis ?? ""}`.slice(0, 300)
+    : artifactKind === "product_pathway"
+    ? `Product pathway: ${title}. ${payload.opportunity ?? ""}`.slice(0, 300)
+    : `Product idea scored: ${title}. Recommendation: ${payload.recommendation ?? ""}`.slice(0, 300)
+
+  const entry = {
+    schema_version: 2,
+    topic: `product/${artifactKind.replace("product_", "")}/${title.slice(0, 40).replace(/\s+/g, "-").toLowerCase()}`,
+    key_insight: decision.slice(0, 200),
+    decision,
+    scope: ["product", "compass", artifactKind.replace("product_", "")],
+    affected_areas: [],
+    status: "open",
+    confidence: payload.confidence ?? 0.7,
+    source_module: "compass",
+    evidence_cited: [],
+    alternatives_considered: [],
+    rejected_reason: [],
+    validation_plan: (payload.kill_criteria ?? []).slice(0, 3),
+  }
+
+  const id = randomUUID()
+  const proposalsDir = path.join(chronicleDir, "proposals")
+  await fs.mkdir(proposalsDir, { recursive: true })
+  await fs.writeFile(path.join(proposalsDir, `${id}.json`), JSON.stringify(entry, null, 2), "utf8")
+  return { proposal_id: id, message: `Staged Chronicle proposal ${id.slice(0, 8)} — run 'quorum commit --list' to review.` }
+}
+
+async function stageOutcome(chronicleDir, entryId, result, note) {
+  const resultLabel = { validated: "has been validated", "partially-validated": "has been partially validated", invalidated: "has been invalidated", unclear: "outcome is unclear", superseded: "has been superseded" }
+  const label = resultLabel[result] ?? result
+  const decision = `Product bet/pathway ${entryId.slice(0, 8)} ${label}.${note ? " " + note : ""}`
+
+  const entry = {
+    schema_version: 2,
+    topic: `product/outcome/${entryId.slice(0, 8)}`,
+    key_insight: decision.slice(0, 200),
+    decision,
+    scope: ["product", "compass", "outcome"],
+    affected_areas: [],
+    status: "validated",
+    confidence: result === "validated" ? 0.9 : result === "partially-validated" ? 0.7 : 0.6,
+    source_module: "compass",
+    evidence_cited: [entryId],
+    alternatives_considered: [],
+    rejected_reason: [],
+    validation_plan: [],
+    post_merge_result: result === "validated" ? "successful" : result === "invalidated" ? "rolled-back" : result === "partially-validated" ? "partial" : undefined,
+  }
+
+  const id = randomUUID()
+  const proposalsDir = path.join(chronicleDir, "proposals")
+  await fs.mkdir(proposalsDir, { recursive: true })
+  await fs.writeFile(path.join(proposalsDir, `${id}.json`), JSON.stringify(entry, null, 2), "utf8")
+  return { proposal_id: id, message: `Staged outcome proposal ${id.slice(0, 8)} — run 'quorum commit --list' to review.` }
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -247,7 +708,7 @@ export async function run(argv) {
   const entryId   = flags["entry-id"] || flags["entryId"] || undefined
   const result    = flags["result"]   || undefined
 
-  // ── Load Compass module ────────────────────────────────────────────────────
+  // ── Setup ─────────────────────────────────────────────────────────────────
 
   const rootDir      = process.cwd()
   const chronicleDir = findChronicleDir(rootDir)
@@ -257,41 +718,54 @@ export async function run(argv) {
     process.exit(1)
   }
 
-  // Lazy import to keep CLI startup fast
-  const { createCompass }  = await import("../../modules/compass/create.js")
-  const { defaultSources } = await import("../../modules/compass/sources/index.js")
-  const { createOracleClient } = await import("../../modules/oracle/index.js")
-  const { createLanceDBStore } = await import("../../modules/oracle/adapters/lance-db.js")
-  const { xenovaEmbed } = await import("../../modules/oracle/adapters/xenova-embedder.js")
-
-  const vectorStore = await createLanceDBStore(chronicleDir)
-  const oracle = createOracleClient({ embedder: xenovaEmbed, vectorStore, chronicleDir })
-
-  // Only load LLM for subcommands that need it
   const NO_LLM_CMDS = new Set(["map", "opportunities"])
   const llm = NO_LLM_CMDS.has(subcommand) ? undefined : detectProvider()
 
-  const compass = createCompass({
-    oracle,
-    llm,
-    rootDir,
-    chronicleDir,
-    sources: defaultSources(),
-  })
+  // ── Shared context helper ─────────────────────────────────────────────────
+
+  async function getContext(areaFilter) {
+    const [entries, findings] = await Promise.all([
+      readCommitted(chronicleDir),
+      collectTerrain(rootDir, areaFilter),
+    ])
+    const bearings = collectBearings(entries, areaFilter)
+    const chronicleCtx = formatBearings(bearings)
+    const behaviorCtx = formatTerrain(findings)
+    const behaviorMap = mapBehaviors(findings, areaFilter)
+    return { entries, findings, bearings, chronicleCtx, behaviorCtx, behaviorMap }
+  }
 
   // ── Route subcommand ───────────────────────────────────────────────────────
 
   try {
     switch (subcommand) {
       case "brief": {
-        const data = await compass.brief({ area })
+        const { chronicleCtx, behaviorCtx, behaviorMap } = await getContext(area)
+        if (!llm) {
+          const data = {
+            product_direction: "Unable to synthesize direction — no LLM configured. See Chronicle and behaviour map for raw evidence.",
+            known_from_chronicle: [],
+            known_from_behavior: behaviorMap.behaviors.slice(0, 5).map(b => b.current_behavior),
+            inferred: [],
+            unknowns: ["LLM not configured — full synthesis unavailable."],
+            recommended_next_step: "Run: quorum advisor brief",
+            confidence: 0.4,
+          }
+          if (jsonMode) { console.log(JSON.stringify(data, null, 2)); break }
+          renderBrief(data)
+          break
+        }
+        const raw = await callLLM(llm, buildBriefPrompt(chronicleCtx, behaviorCtx, area))
+        let data
+        try { data = parseLLMJson(raw) } catch { throw new Error(`Compass brief: LLM returned non-JSON. Raw: ${raw.slice(0, 300)}`) }
         if (jsonMode) { console.log(JSON.stringify(data, null, 2)); break }
         renderBrief(data)
         break
       }
 
       case "map": {
-        const data = await compass.mapBehaviors({ area })
+        const findings = await collectTerrain(rootDir, area)
+        const data = mapBehaviors(findings, area)
         if (jsonMode) { console.log(JSON.stringify(data, null, 2)); break }
         renderBehaviorMap(data)
         break
@@ -303,7 +777,19 @@ export async function run(argv) {
           console.error(c.red('Error: provide a question, e.g. quorum compass behavior "what does quorum do for onboarding?"'))
           process.exit(1)
         }
-        const data = await compass.behavior({ question, area })
+        const findings = await collectTerrain(rootDir, area)
+        const behaviorMap = mapBehaviors(findings, area)
+        const what_exists = behaviorMap.behaviors.slice(0, 6).map(b => b.current_behavior)
+        const what_appears_missing = behaviorMap.gaps.slice(0, 4).map(g => g.gap)
+        const data = {
+          question,
+          what_exists,
+          what_appears_missing,
+          product_implication: behaviorMap.gaps.length > 0
+            ? `The area has ${behaviorMap.behaviors.length} documented behaviours but ${behaviorMap.gaps.length} notable gaps.`
+            : `The area appears well-covered with ${behaviorMap.behaviors.length} documented behaviours.`,
+          confidence: behaviorMap.confidence,
+        }
         if (jsonMode) { console.log(JSON.stringify(data, null, 2)); break }
         console.log(`\n${c.bold("Behaviour answer:")} ${data.product_implication}`)
         if (data.what_exists?.length) {
@@ -318,9 +804,19 @@ export async function run(argv) {
       }
 
       case "opportunities": {
-        const data = await compass.opportunities({ area, goal, limit: limitN })
-        if (jsonMode) { console.log(JSON.stringify(data, null, 2)); break }
-        renderOpportunities(data)
+        const findings = await collectTerrain(rootDir, area)
+        const behaviorMap = mapBehaviors(findings, area)
+        let opps = behaviorMap.gaps.map((g, i) => ({
+          id: `opp-${i}`, title: g.gap, area: g.area,
+          why_it_matters: g.why_it_matters,
+          evidence_strength: g.confidence >= 0.7 ? "strong" : g.confidence >= 0.5 ? "medium" : "inferred",
+          suggested_next_step: `quorum compass pathways --goal "${g.gap.slice(0, 50)}"`,
+          confidence: g.confidence,
+        }))
+        if (limitN) opps = opps.slice(0, limitN)
+        if (goal) opps = opps.filter(o => o.title.toLowerCase().includes(goal.toLowerCase()) || o.area.toLowerCase().includes(goal.toLowerCase()))
+        if (jsonMode) { console.log(JSON.stringify(opps, null, 2)); break }
+        renderOpportunities(opps)
         break
       }
 
@@ -329,7 +825,11 @@ export async function run(argv) {
           console.error(c.red('Error: --goal is required. Example: quorum compass pathways --goal "onboard new agents faster"'))
           process.exit(1)
         }
-        const data = await compass.pathways({ goal, horizon, appetite, area, limit: limitN })
+        const { chronicleCtx, behaviorCtx } = await getContext(area)
+        const raw = await callLLM(llm, buildPathwaysPrompt(goal, horizon, appetite, chronicleCtx, behaviorCtx, area, limitN))
+        let parsed
+        try { parsed = parseLLMJson(raw) } catch { throw new Error(`Compass pathways: LLM returned non-JSON. Raw: ${raw.slice(0, 300)}`) }
+        const data = (parsed.pathways ?? []).map(p => ({ ...p, scores: computeScore(p.scores ?? {}) }))
         _lastArtifact = { kind: "product_pathway", items: data }
         if (jsonMode) { console.log(JSON.stringify(data, null, 2)); break }
         renderPathways(data)
@@ -338,7 +838,11 @@ export async function run(argv) {
       }
 
       case "bets": {
-        const data = await compass.bigBets({ horizon, goal, appetite })
+        const { chronicleCtx, behaviorCtx } = await getContext()
+        const raw = await callLLM(llm, buildBetsPrompt(horizon, goal, appetite, chronicleCtx, behaviorCtx))
+        let parsed
+        try { parsed = parseLLMJson(raw) } catch { throw new Error(`Compass bets: LLM returned non-JSON. Raw: ${raw.slice(0, 300)}`) }
+        const data = (parsed.bets ?? []).map(b => ({ ...b, scores: computeScore(b.scores ?? {}) }))
         _lastArtifact = { kind: "product_bet", items: data }
         if (jsonMode) { console.log(JSON.stringify(data, null, 2)); break }
         renderBets(data)
@@ -352,7 +856,11 @@ export async function run(argv) {
           console.error(c.red('Error: provide an idea. Example: quorum compass score "add Slack integration"'))
           process.exit(1)
         }
-        const data = await compass.scoreIdea({ idea })
+        const { chronicleCtx, behaviorCtx } = await getContext()
+        const raw = await callLLM(llm, buildScorePrompt(idea, chronicleCtx, behaviorCtx))
+        let data
+        try { data = parseLLMJson(raw) } catch { throw new Error(`Compass score: LLM returned non-JSON. Raw: ${raw.slice(0, 300)}`) }
+        if (data.scores) data.scores = computeScore(data.scores)
         _lastArtifact = { kind: "product_idea_score", items: [data] }
         if (jsonMode) { console.log(JSON.stringify(data, null, 2)); break }
         renderScore(data)
@@ -365,7 +873,19 @@ export async function run(argv) {
           console.error(c.red('Error: provide a title. Example: quorum compass spec "Smart retry backoff"'))
           process.exit(1)
         }
-        const data = await compass.productBrief({ title })
+        const { chronicleCtx, behaviorCtx } = await getContext()
+        const specPrompt = `Generate a lightweight product brief for: ${title}
+
+## Chronicle evidence
+${chronicleCtx}
+
+## Current product behaviour
+${behaviorCtx}
+
+Return ONLY valid JSON: { "title":"${title}","problem":"<problem>","target_user":"<user>","recommended_solution":"<solution>","smallest_useful_version":"<mvp>","non_goals":["<non-goal>"],"risks":["<risk>"],"open_questions":["<question>"],"suggested_quorum_checks":["<quorum command>"] }`
+        const raw = await callLLM(llm, specPrompt)
+        let data
+        try { data = parseLLMJson(raw) } catch { throw new Error(`Compass spec: LLM returned non-JSON. Raw: ${raw.slice(0, 300)}`) }
         if (jsonMode) { console.log(JSON.stringify(data, null, 2)); break }
         renderProductBrief(data)
         break
@@ -378,8 +898,8 @@ export async function run(argv) {
             process.exit(1)
           }
           const item = _lastArtifact.items[0]
-          const result = await compass.propose({ artifact_kind: _lastArtifact.kind, payload: item })
-          console.log(c.green(`\n✓ ${result.message}`))
+          const res = await stageProposal(chronicleDir, _lastArtifact.kind, item)
+          console.log(c.green(`\n✓ ${res.message}`))
           break
         }
         console.error(c.red('Error: provide --from-last. Example: quorum compass propose --from-last'))
@@ -397,7 +917,7 @@ export async function run(argv) {
           process.exit(1)
         }
         const note = flags["note"] || undefined
-        const data = await compass.outcome({ entry_id: entryId, result, note })
+        const data = await stageOutcome(chronicleDir, entryId, result, note)
         if (jsonMode) { console.log(JSON.stringify(data, null, 2)); break }
         console.log(c.green(`\n✓ ${data.message}`))
         break
