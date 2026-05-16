@@ -28,6 +28,23 @@ Every new session starts from zero. The same mistakes get proposed again. The sa
 
 ---
 
+## Why not just use agent instructions?
+
+Agent instructions tell the AI how to behave.
+Quorum tells the AI what the project has already learned.
+
+| | Agent instructions | Chronicle |
+|---|---|---|
+| Content | Rules and preferences | Decisions, rejections, outcomes |
+| Growth | Static — you write them | Grows — the agent stages, you approve |
+| Durability | Easy to overwrite or ignore | Git-backed, survives config changes |
+| Failed approaches | Not tracked | Hard stops on refuted patterns |
+| Human approval | Not required | Required for every indexed entry |
+
+Instructions are a starting point. Chronicle is accumulated project knowledge.
+
+---
+
 ## What changes after Quorum
 
 **Without Quorum:**
@@ -125,6 +142,10 @@ Every PR merge posts a growth comment showing what Chronicle learned. `quorum ev
 | See whether memory is growing | `quorum growth` |
 | Consolidate stale or duplicate entries | `quorum evolve` |
 | Find undocumented areas | `quorum sentinel coverage` |
+| Understand what the product currently does | `quorum compass map` |
+| Generate product pathways toward a goal | `quorum compass pathways --goal "..."` |
+| Score a product idea | `quorum compass score "add Slack integration"` |
+| Stage a direction decision for Chronicle | `quorum compass propose --from-last` |
 
 ---
 
@@ -154,27 +175,56 @@ npx @balpal4495/quorum@latest init
 npm install
 ```
 
-Then install the CLI globally for terminal access:
+Then run Quorum from your project:
+
+```bash
+npx quorum advisor brief
+npx quorum advisor "what has the team decided about auth?"
+npx quorum check --outcome "..." --design "..."
+```
+
+**Optional — install the CLI globally:**
 
 ```bash
 npm install -g @balpal4495/quorum
+quorum advisor brief
 ```
 
-> **Programmatic imports require a TS-aware runtime** (tsx, ts-node, Bun, or a bundler).
-> Plain `node` will not resolve `.ts` files. For most host-project use cases the CLI is
-> sufficient and requires no loader — see [modules/README.md](modules/README.md) for details.
+> **v2 architecture:** Implementation lives in the npm package (`node_modules/@balpal4495/quorum`). Project memory lives in your repo (`.chronicle/`). Agent docs bridge the two (`quorum/CLAUDE.md`, `.github/copilot-instructions.md`). Nothing is copied into your project that you need to maintain.
 
-**Upgrading from v1?** If your project has a `quorum/modules/` folder (the v1 vendored pattern):
+---
+
+## Upgrading from v1
+
+If your project has a `quorum/modules/` folder (the v1 vendored pattern), migrate in one step:
 
 ```bash
 quorum migrate-v2
 ```
 
-After any `npm update @balpal4495/quorum`, refresh your instruction files:
+After any `npm update @balpal4495/quorum`, refresh agent instruction files:
 
 ```bash
 quorum sync
 ```
+
+---
+
+## Runtime model
+
+The CLI works in plain Node 18+.
+
+Programmatic imports are TypeScript-native and require a TS-aware runtime such as `tsx`, `ts-node`, Bun, or a bundler. Plain `node` will not resolve `.ts` files.
+
+```bash
+# recommended for scripts
+npx tsx your-script.ts
+
+# or Bun
+bun your-script.ts
+```
+
+For most host-project use cases the CLI is sufficient and requires no loader. See [modules/README.md](modules/README.md) for the full programmatic API.
 
 ---
 
@@ -419,6 +469,7 @@ You do not need to understand these internals to use Quorum. They live in `node_
 | **Jury** | Evaluates a design against Chronicle evidence. Four-dimension confidence score, deterministic preflight, hard-blocker gaps. | Yes |
 | **Council** | Adversarial panel — advisors challenge independently, reviewers critique anonymously, Chairman gives a structured verdict. Risk-scaled fan-out. | Yes |
 | **Sentinel** | Coverage reporting (which files Chronicle knows about), drift detection (are entries still accurate), PR coverage maps. | Optional |
+| **Compass** | Product-direction layer — maps current behaviours from code and docs, identifies gaps and opportunities, generates pathways, strategic bets, and idea scores grounded in Chronicle evidence. All writes go through `oracle.propose()`. | Optional |
 
 ### How Jury works
 

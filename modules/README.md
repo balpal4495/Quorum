@@ -1,11 +1,12 @@
-# Advisor · Oracle · Jury · Council · Sentinel
+# Advisor · Oracle · Jury · Council · Sentinel · Compass
 
-Five portable modules for the knowledge and reasoning layer of any agentic workflow.
+Six portable modules for the knowledge, reasoning, and product-direction layer of any agentic workflow.
 
 ```
 Advisor  →  plain-language questions answered from Chronicle
 Oracle   →  Jury  →  Council  →  human gate  →  Executor
 Sentinel →  coverage + drift + PR coverage map
+Compass  →  product-direction synthesis (behaviours, pathways, bets, scoring)
 ```
 
 ---
@@ -19,6 +20,7 @@ Sentinel →  coverage + drift + PR coverage map
 | **Jury** | Evaluate a design against Oracle evidence — produces a confidence score | Yes |
 | **Council** | Adversarial validation via parallel advisor/reviewer fan-out — produces a verdict | Yes |
 | **Sentinel** | Chronicle coverage reporting, drift detection, and PR coverage maps | Optional |
+| **Compass** | Product-direction synthesis from Chronicle + codebase — behaviours, opportunities, pathways, bets, idea scoring | Optional |
 
 ---
 

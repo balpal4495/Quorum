@@ -2,13 +2,14 @@
 
 ## Architecture
 
-This project uses five portable reasoning modules: **Advisor**, **Oracle**, **Jury**, **Council**, and **Sentinel**.
-They form the knowledge and validation layer for all agentic work in this codebase.
+This project uses six portable reasoning modules: **Advisor**, **Oracle**, **Jury**, **Council**, **Sentinel**, and **Compass**.
+They form the knowledge, validation, and product-direction layer for all agentic work in this codebase.
 
 ```
 Advisor  →  plain-language Chronicle queries
 Oracle   →  Jury  →  Council  →  human gate  →  Executor
 Sentinel →  coverage + drift
+Compass  →  product-direction synthesis (behaviours, pathways, bets, scoring)
 ```
 
 Source: `modules/` — see [modules/README.md](modules/README.md) for full API reference.
@@ -44,6 +45,7 @@ There are no auto-commits. Do not attempt to bypass this gate.
 | `jury.evaluate()` | Scores a design against evidence across 4 dimensions | Yes |
 | `council.deliberate()` | Adversarial validation via advisor/reviewer fan-out | Yes |
 | `sentinel` | Coverage reporting, drift detection, and PR coverage maps | Optional |
+| `compass` | Product-direction synthesis — behaviours, opportunities, pathways, bets, idea scoring | Optional |
 
 ---
 
@@ -52,7 +54,7 @@ There are no auto-commits. Do not attempt to bypass this gate.
 ```typescript
 import { setup } from "@balpal4495/quorum"
 
-const { oracle, evaluate, deliberate, ask } = await setup({ llm: yourProvider })
+const { oracle, evaluate, deliberate, ask, compass } = await setup({ llm: yourProvider })
 ```
 
 `setup()` creates Chronicle directories, warms the embedder, and wires all dependencies.
@@ -100,6 +102,10 @@ quorum advisor "plain-language question"    # synthesised answer via LLM
 quorum check --outcome "..." --design "..."  # instant risk triage
 quorum commit --list                        # review pending proposals
 quorum commit <id>                          # approve a Chronicle entry
+quorum compass map                          # map current product behaviours (no LLM)
+quorum compass brief                        # product-direction summary (LLM)
+quorum compass pathways --goal "..."        # generate product pathways (LLM)
+quorum compass score "idea"                 # score a product idea (LLM)
 ```
 
 ---
