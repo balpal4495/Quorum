@@ -1,0 +1,37 @@
+{
+  "schema_version": 2,
+  "topic": "PR #22",
+  "decision": "feat!: remove module vendoring (v2.0.0)",
+  "key_insight": "feat!: remove module vendoring (v2.0.0)",
+  "affected_areas": [
+    ".github/workflows/sentinel-pr.yml",
+    "README.md",
+    "SETUP.md",
+    "bin/commands/init.js",
+    "bin/init.js",
+    "bin/quorum.js",
+    "package.json",
+    "scripts/sentinel-pr.ts"
+  ],
+  "scope": [
+    "cli",
+    "ci",
+    "docs",
+    "npm"
+  ],
+  "alternatives_considered": [],
+  "rejected_reason": [],
+  "supersedes": null,
+  "superseded_by": null,
+  "status": "open",
+  "confidence": 0.4,
+  "source_quality": "metadata-derived",
+  "needs_human_summary": true,
+  "source_module": "pr-merge",
+  "evidence_cited": [],
+  "work_ref": {
+    "type": "pr",
+    "ref": "PR #22"
+  },
+  "outcome": "## Summary\n\n- **Breaking change**: `quorum init` no longer copies `quorum/modules/` or `quorum/evals/` into host repos. Modules live in `node_modules/@balpal4495/quorum` and are upgraded via `npm update`.\n- `init` now writes only `quorum/{CLAUDE.md,AGENTS.md,SETUP.md}` — documentation agents can read, not source they shouldn't need to modify.\n- Instruction file sections use `<!-- quorum:start/end -->` markers, enabling clean upgrades in future.\n- Sentinel report moves from project root (`sentine"
+}
