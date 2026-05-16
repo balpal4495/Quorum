@@ -110,17 +110,33 @@ Recommended `tsconfig.json` settings:
 ## Quick start
 
 ```typescript
+import { setup } from "./modules/setup"
+
+// The simplest entry point — wires all modules from one call
+const { oracle, evaluate, deliberate, ask } = await setup({ llm: myLLMProvider })
+
+// Ask a plain-language question (Advisor)
+const answer = await ask("what did the team decide about authentication?")
+// answer.what_we_know, .recommendation, .next_step, .risks, .blockers, .retries
+
+// Or run the full evaluation pipeline for a proposed design:
+const evidence = await oracle.query("authentication patterns in this codebase")
+```
+
+### Manual wiring (without setup())
+
+```typescript
 import { createOracleClient, xenovaEmbed, createLanceDBStore } from "./modules/oracle"
 import { evaluate } from "./modules/jury"
 import { deliberate } from "./modules/council"
 
-// 1. Wire Oracle (no LLM required)
+// Wire Oracle manually
 const oracle = createOracleClient({
   embedder: xenovaEmbed,
   vectorStore: await createLanceDBStore(".chronicle"),
 })
 
-// 2. Retrieve evidence for the task at hand
+// Retrieve evidence for the task at hand
 const evidence = await oracle.query("authentication patterns in this codebase")
 
 // 3. Jury evaluates the design against the evidence
@@ -166,6 +182,47 @@ if (verdict.satisfied) {
 // The Council automatically called oracle.propose() — you just need to commit:
 // await oracle.commit(proposalId)
 ```
+
+---
+
+## Advisor
+
+The Advisor is the plain-language interface to Chronicle. Use it to answer questions rather than to evaluate designs. It is a **read-only** path — it never calls `oracle.propose()` or `oracle.commit()`.
+
+```typescript
+import { ask } from "./modules/advisor"
+
+const answer = await ask(
+  { question: "What did the team decide about session handling?", evidence },
+  { llm: myLLMProvider },
+)
+```
+
+Or via `setup()`, which queries Oracle automatically:
+
+```typescript
+const { ask } = await setup({ llm: myLLMProvider })
+const answer = await ask("What did the team decide about session handling?")
+```
+
+### Advisor output
+
+```typescript
+interface AdvisorOutput {
+  question: string
+  confidence: number        // 0–1 — how confident the answer is given the evidence
+  what_we_know: string      // plain-language summary of relevant Chronicle knowledge
+  risks: string[]           // real risks worth knowing
+  blockers: string[]        // hard blockers — must be resolved before acting (often empty)
+  recommendation: string    // one clear recommended action
+  next_step: string         // specific next step or quorum command
+  retries: number           // how many retry attempts were needed (0 = first try succeeded)
+}
+```
+
+### Validation loop
+
+Advisor validates its own answer before returning. If `confidence < 0.7` or `blockers.length > 0`, it retries the LLM call with the previous answer as context — up to 2 retries. After the retry budget is exhausted, the best answer is returned regardless. Throws on non-JSON or schema-invalid LLM output.
 
 ---
 
@@ -286,14 +343,14 @@ const risk = classifyRisk(outcome, design, evidence)
 // risk.council_mode   — "jury-only" | "lite" | "full"
 ```
 
-| Risk | Triggers | Advisor + Reviewer count |
-|---|---|---|
-| Low | Nothing sensitive detected | 1 + 1 |
-| Medium | Cache, queues, deployments, rate limiting | 1 + 2 |
-| High | DB migrations, permissions, PII, secrets | 5 + 5 |
-| Critical | Auth, payments, crypto, data deletion | 5 + 5 |
+| Risk | Triggers | Council mode | Advisor + Reviewer |
+|---|---|---|---|
+| Low | Nothing sensitive detected | jury-only — skipped | 0 + 0 |
+| Medium | Cache, queues, deployments, rate limiting | lite | 1 + 2 |
+| High | DB migrations, permissions, PII, secrets | full | 5 + 5 |
+| Critical | Auth, payments, crypto, data deletion | full + human flag | 5 + 5 |
 
-Refuted entries in the evidence pack always elevate risk by at least one level.
+Refuted entries in the evidence pack always elevate risk by at least one level. `jury-only` means Council is not called at all — Jury alone is sufficient for low-risk designs.
 
 ### Council output routing
 

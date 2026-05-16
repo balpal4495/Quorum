@@ -72,7 +72,7 @@ quorum status
 ```
 Chronicle status  .chronicle/
 
-     8  committed entries  (6 accepted, 1 refuted, 1 other)
+     8  committed entries  (6 validated, 1 refuted, 1 open)
      2  pending proposals
 
 Pending proposals  (awaiting quorum commit <id>)
@@ -80,7 +80,7 @@ Pending proposals  (awaiting quorum commit <id>)
             oracle/propose.ts, modules/auth/
 
 Recent entries
-  e5f6a7b8  [accepted]  Shadow column migration avoids exclusive lock on 50M rows  2d ago
+  e5f6a7b8  [validated]  Shadow column migration avoids exclusive lock on 50M rows  2d ago
 ```
 
 ### `quorum commit <id>` — the human gate from your terminal
@@ -290,12 +290,12 @@ Before running the full panel, a **risk classifier** reads the design text and C
 
 | Risk | Council mode | LLM calls |
 |---|---|---|
-| Low | 1 advisor + 1 reviewer | 4 |
-| Medium | 1 advisor + 2 reviewers | 5 |
-| High | 5 advisors + 5 reviewers | 12 |
-| Critical | 5 advisors + 5 reviewers (+ human architecture flag) | 12 |
+| Low | jury-only — Council skipped entirely | 0 |
+| Medium | lite — 1 advisor + 2 reviewers | 5 |
+| High | full — 5 advisors + 5 reviewers | 12 |
+| Critical | full + human architecture flag | 12 |
 
-Auth, crypto, payments, and data deletion trigger Critical. Database migrations, PII, permissions trigger High. Cache, queues, deployments trigger Medium. Everything else is Low.
+Auth, crypto, payments, and data deletion trigger Critical. Database migrations, PII, permissions trigger High. Cache, queues, deployments trigger Medium. Everything else is Low — Jury alone is sufficient and Council is bypassed entirely.
 
 The Chairman's verdict is **structured**:
 
@@ -373,8 +373,12 @@ If you're building your own agent workflow programmatically, the modules expose 
 ```typescript
 import { setup } from "./quorum/modules/setup"
 
-const { oracle, evaluate, deliberate } = await setup({ llm: myLLMProvider })
+const { oracle, evaluate, deliberate, ask } = await setup({ llm: myLLMProvider })
 
+// Ask a plain-language question — Advisor queries Oracle and synthesises the answer
+const answer = await ask("what did the team decide about authentication?")
+
+// Or run the full evaluation pipeline for a proposed design
 const evidence = await oracle.query("authentication patterns")
 const jury     = await evaluate({ outcome, design, evidence })
 const verdict  = await deliberate({ outcome, design, evidence, jury_output: jury })

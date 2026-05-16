@@ -117,7 +117,7 @@ Append to it:
 
 ## Quorum modules
 
-See [quorum/modules/AGENTS.md](quorum/modules/AGENTS.md) for Oracle, Jury, and Council internals.
+See [quorum/modules/AGENTS.md](quorum/modules/AGENTS.md) for Advisor, Oracle, Jury, Council, and Sentinel internals.
 ```
 
 ### 4c. `CLAUDE.md`
@@ -139,7 +139,7 @@ Append to it:
 
 ## Quorum modules
 
-See [quorum/modules/CLAUDE.md](quorum/modules/CLAUDE.md) for Oracle, Jury, and Council internals.
+See [quorum/modules/CLAUDE.md](quorum/modules/CLAUDE.md) for Advisor, Oracle, Jury, Council, and Sentinel internals.
 ```
 
 ---
@@ -273,6 +273,7 @@ Gemini and use it for large-context tasks.
 You are now operating under Quorum. The rules in `quorum/modules/AGENTS.md` and `.github/copilot-instructions.md` apply to all subsequent work.
 
 Key reminders:
+- **Ask Advisor for context.** `quorum advisor "what has the team decided about X?"` before starting any meaningful work.
 - **Query Oracle before proposing anything.** `oracle.query("what you're about to do")` first.
 - **Never call `oracle.commit()` autonomously.** Only `oracle.propose()`. A human commits.
 - **Chronicle entries are ground truth.** Respect `refuted` entries — do not retry what has already failed.
