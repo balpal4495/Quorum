@@ -1,6 +1,6 @@
 {
   "name": "@balpal4495/quorum",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Portable reasoning layer for agentic codebases — Oracle, Jury, Council, Sentinel",
   "type": "module",
   "license": "MIT",
