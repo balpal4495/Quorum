@@ -1,0 +1,31 @@
+{
+  "schema_version": 2,
+  "topic": "advisor — read-only invariant",
+  "decision": "Advisor is a strictly read-only path — it never calls oracle.propose() or oracle.commit(). Any write to Chronicle must go through Jury/Council or direct oracle.propose() in the host application.",
+  "key_insight": "Advisor is a strictly read-only path — it never calls oracle.propose() or oracle.commit()",
+  "affected_areas": [
+    "modules/advisor/ask.ts",
+    "modules/setup.ts"
+  ],
+  "scope": [
+    "advisor",
+    "oracle",
+    "architecture"
+  ],
+  "alternatives_considered": [
+    "Have Advisor auto-propose a Chronicle entry summarising its answer"
+  ],
+  "rejected_reason": [
+    "Auto-proposing from the read path blurs the human gate — Chronicle writes must be explicit and intentional"
+  ],
+  "status": "validated",
+  "confidence": 0.97,
+  "source_module": "council",
+  "evidence_cited": [],
+  "work_ref": {
+    "type": "pr",
+    "ref": "PR #21"
+  },
+  "id": "090c7dc6-5ef2-445b-8fc5-8ad522638ae5",
+  "timestamp": "2026-05-16T14:35:42.472Z"
+}

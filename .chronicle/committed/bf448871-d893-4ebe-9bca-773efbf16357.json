@@ -1,0 +1,32 @@
+{
+  "schema_version": 2,
+  "topic": "council/risk — jury-only mode",
+  "decision": "Low-risk designs skip Council entirely — Jury alone is sufficient and Council is not called at all (0 LLM calls from Council)",
+  "key_insight": "Low-risk designs skip Council entirely — Jury alone is sufficient and Council is not called at all (0 LLM calls from Council)",
+  "affected_areas": [
+    "modules/council/deliberate.ts",
+    "modules/council/risk.ts",
+    "modules/council/types.ts"
+  ],
+  "scope": [
+    "council",
+    "risk",
+    "architecture"
+  ],
+  "alternatives_considered": [
+    "Run a reduced 1-advisor + 1-reviewer panel for low risk"
+  ],
+  "rejected_reason": [
+    "A reduced panel still burns LLM calls and adds latency for designs that pose no real risk — hard skip is strictly better"
+  ],
+  "status": "validated",
+  "confidence": 0.95,
+  "source_module": "council",
+  "evidence_cited": [],
+  "work_ref": {
+    "type": "pr",
+    "ref": "PR #16"
+  },
+  "id": "bf448871-d893-4ebe-9bca-773efbf16357",
+  "timestamp": "2026-05-16T14:35:40.836Z"
+}

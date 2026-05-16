@@ -119,23 +119,15 @@ export async function run(argv) {
     return
   }
 
-  // ── Check optional dependencies ────────────────────────────────────────────
-  console.log(`\n${c.bold("Checking dependencies")}`)
+  // ── Check optional embedding dependencies ─────────────────────────────────
   const hasXenova  = await checkDep("@xenova/transformers")
   const hasLanceDB = await checkDep("vectordb")
+  const canEmbed   = hasXenova && hasLanceDB
 
-  if (!hasXenova) {
-    console.error(`\n  ${c.red("✗")}  @xenova/transformers not installed`)
-    console.error(c.dim("     Run: npm install @xenova/transformers\n"))
-    process.exit(1)
+  if (!canEmbed) {
+    console.log(`\n${c.dim("  Embedding deps not found — committing to JSON store only.")}`)
+    console.log(c.dim("  Install @xenova/transformers + vectordb to enable semantic search.\n"))
   }
-  if (!hasLanceDB) {
-    console.error(`\n  ${c.red("✗")}  vectordb not installed`)
-    console.error(c.dim("     Run: npm install vectordb\n"))
-    process.exit(1)
-  }
-  console.log(`  ${c.green("✓")}  @xenova/transformers`)
-  console.log(`  ${c.green("✓")}  vectordb`)
 
   // ── Build entry ────────────────────────────────────────────────────────────
   const entry = {
@@ -144,46 +136,44 @@ export async function run(argv) {
     timestamp: new Date().toISOString(),
   }
 
-  // ── Embed ──────────────────────────────────────────────────────────────────
-  const spin = spinner("Loading embedder (first run may take 30s)…")
-  let vector
-  try {
-    const { pipeline } = (await import("@xenova/transformers")).default ?? await import("@xenova/transformers")
-    const embedder = await pipeline("feature-extraction", "Xenova/all-MiniLM-L6-v2")
-    const embeddingText = [
-      entryText(entry),
-      ...(entry.affected_areas ?? []),
-      ...(entry.scope ?? []),
-    ].join(" ")
-    const output = await embedder(embeddingText, { pooling: "mean", normalize: true })
-    vector = Array.from(output.data)
-    spin.stop(`${c.green("✓")}  Embedded (${vector.length}-dim)`)
-  } catch (err) {
-    spin.stop(`${c.red("✗")}  Embedding failed`)
-    console.error(c.red(`\n  ${err.message}\n`))
-    process.exit(1)
-  }
+  // ── Embed + index in vector store (optional) ───────────────────────────────
+  if (canEmbed) {
+    const spin = spinner("Embedding and indexing…")
+    try {
+      const { pipeline } = (await import("@xenova/transformers")).default ?? await import("@xenova/transformers")
+      const embedder = await pipeline("feature-extraction", "Xenova/all-MiniLM-L6-v2")
+      const embeddingText = [
+        entryText(entry),
+        ...(entry.affected_areas ?? []),
+        ...(entry.scope ?? []),
+      ].join(" ")
+      const output = await embedder(embeddingText, { pooling: "mean", normalize: true })
+      const vector = Array.from(output.data)
+      spin.stop(`${c.green("✓")}  Embedded (${vector.length}-dim)`)
 
-  // ── Store in LanceDB ───────────────────────────────────────────────────────
-  const storeSpin = spinner("Indexing in Chronicle…")
-  try {
-    const lancedb = (await import("vectordb")).default ?? (await import("vectordb"))
-    const tableDir = path.join(chronicleDir, "entries")
-    const db = await lancedb.connect(tableDir)
-    const row = { id: entry.id, vector, payload: JSON.stringify(entry) }
-    const names = await db.tableNames()
-    if (names.includes("entries")) {
-      const table = await db.openTable("entries")
-      await table.delete(`id = '${entry.id.replace(/'/g, "''")}'`)
-      await table.add([row])
-    } else {
-      await db.createTable("entries", [row], { metric: "cosine" })
+      const storeSpin = spinner("Indexing in vector store…")
+      try {
+        const lancedb = (await import("vectordb")).default ?? (await import("vectordb"))
+        const tableDir = path.join(chronicleDir, "entries")
+        const db = await lancedb.connect(tableDir)
+        const row = { id: entry.id, vector, payload: JSON.stringify(entry) }
+        const names = await db.tableNames()
+        if (names.includes("entries")) {
+          const table = await db.openTable("entries")
+          await table.delete(`id = '${entry.id.replace(/'/g, "''")}'`)
+          await table.add([row])
+        } else {
+          await db.createTable("entries", [row], { metric: "cosine" })
+        }
+        storeSpin.stop(`${c.green("✓")}  Indexed in vector store`)
+      } catch (err) {
+        storeSpin.stop(`${c.yellow("⚠")}  Vector store write failed — JSON commit will proceed`)
+        console.error(c.dim(`     ${err.message}`))
+      }
+    } catch (err) {
+      spin.stop(`${c.yellow("⚠")}  Embedding failed — JSON commit will proceed`)
+      console.error(c.dim(`     ${err.message}`))
     }
-    storeSpin.stop(`${c.green("✓")}  Indexed in vector store`)
-  } catch (err) {
-    storeSpin.stop(`${c.red("✗")}  Vector store write failed`)
-    console.error(c.red(`\n  ${err.message}\n`))
-    process.exit(1)
   }
 
   // ── Write committed file ───────────────────────────────────────────────────

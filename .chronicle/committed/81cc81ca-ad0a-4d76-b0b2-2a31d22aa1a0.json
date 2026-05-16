@@ -1,0 +1,32 @@
+{
+  "schema_version": 2,
+  "topic": "npm publishing — OIDC Trusted Publishing",
+  "decision": "npm publishes via OIDC Trusted Publishing with NODE_AUTH_TOKEN from NPM_TOKEN secret — no classic tokens, no stored credentials in workflow files",
+  "key_insight": "npm publishes via OIDC Trusted Publishing with NODE_AUTH_TOKEN from NPM_TOKEN secret — granular token must have 2FA bypass disabled to work in CI",
+  "affected_areas": [
+    ".github/workflows/auto-release.yml",
+    ".github/workflows/release.yml"
+  ],
+  "scope": [
+    "ci",
+    "npm",
+    "release"
+  ],
+  "alternatives_considered": [
+    "Classic npm token",
+    "Manual publish"
+  ],
+  "rejected_reason": [
+    "Classic tokens are deprecated by npm; manual publish requires human availability for every release"
+  ],
+  "status": "validated",
+  "confidence": 0.91,
+  "source_module": "chronicle",
+  "evidence_cited": [],
+  "work_ref": {
+    "type": "pr",
+    "ref": "PR #19"
+  },
+  "id": "81cc81ca-ad0a-4d76-b0b2-2a31d22aa1a0",
+  "timestamp": "2026-05-16T14:35:43.380Z"
+}

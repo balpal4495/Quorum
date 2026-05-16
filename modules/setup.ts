@@ -5,10 +5,12 @@ import { xenovaEmbed, warmEmbedder } from "./oracle/adapters/xenova-embedder"
 import { createLanceDBStore } from "./oracle/adapters/lance-db"
 import { evaluate } from "./jury/evaluate"
 import { deliberate } from "./council/deliberate"
+import { ask as advisorAsk } from "./advisor/ask"
 import type { LLMProvider, OracleClient } from "./shared/types"
 import { entryText } from "./shared/types"
 import type { JuryInput, JuryOutput, JuryDeps } from "./jury/types"
 import type { CouncilInput, CouncilOutput, CouncilDeps, CouncilModels } from "./council/types"
+import type { AdvisorOutput } from "./advisor/types"
 
 export interface SetupOptions {
   /**
@@ -69,6 +71,14 @@ export interface Modules {
   deliberate: (
     input: Omit<CouncilInput, "jury_output"> & { jury_output: JuryOutput },
   ) => Promise<CouncilOutput>
+
+  /**
+   * Ask the Advisor a plain-language question.
+   * Queries Oracle automatically, synthesises Chronicle evidence into a
+   * human-readable answer, and retries internally until the answer meets
+   * the confidence threshold (≥ 0.7, no blockers) or the retry budget runs out.
+   */
+  ask: (question: string) => Promise<AdvisorOutput>
 }
 
 /**
@@ -150,5 +160,10 @@ export async function setup(options: SetupOptions): Promise<Modules> {
         oracle,
         models: models.council,
       }),
+
+    ask: async (question: string) => {
+      const evidence = await oracle.query(question)
+      return advisorAsk({ question, evidence }, { llm })
+    },
   }
 }

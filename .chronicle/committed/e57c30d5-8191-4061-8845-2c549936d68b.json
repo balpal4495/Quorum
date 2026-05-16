@@ -1,0 +1,32 @@
+{
+  "schema_version": 2,
+  "topic": "release workflow — PR label trigger",
+  "decision": "Releases are triggered by PR labels (release:patch, release:minor, release:major) on merge to main — auto-release.yml bumps version, commits, tags, and publishes; release.yml is the manual recovery hatch via workflow_dispatch",
+  "key_insight": "Releases trigger from PR merge labels, not manual tag pushes — GITHUB_TOKEN pushes cannot trigger other workflows, so release.yml needs workflow_dispatch for recovery",
+  "affected_areas": [
+    ".github/workflows/auto-release.yml",
+    ".github/workflows/release.yml"
+  ],
+  "scope": [
+    "ci",
+    "release",
+    "github-actions"
+  ],
+  "alternatives_considered": [
+    "Tag-push trigger only",
+    "Manual release script"
+  ],
+  "rejected_reason": [
+    "GITHUB_TOKEN tag pushes do not trigger other workflow runs — auto-release must own the full commit+tag+publish chain"
+  ],
+  "status": "validated",
+  "confidence": 0.93,
+  "source_module": "chronicle",
+  "evidence_cited": [],
+  "work_ref": {
+    "type": "pr",
+    "ref": "PR #19"
+  },
+  "id": "e57c30d5-8191-4061-8845-2c549936d68b",
+  "timestamp": "2026-05-16T14:35:43.876Z"
+}

@@ -117,7 +117,7 @@ Append to it:
 
 ## Quorum modules
 
-See [quorum/modules/AGENTS.md](quorum/modules/AGENTS.md) for Oracle, Jury, and Council internals.
+See [quorum/modules/AGENTS.md](quorum/modules/AGENTS.md) for Advisor, Oracle, Jury, Council, and Sentinel internals.
 ```
 
 ### 4c. `CLAUDE.md`
@@ -139,7 +139,7 @@ Append to it:
 
 ## Quorum modules
 
-See [quorum/modules/CLAUDE.md](quorum/modules/CLAUDE.md) for Oracle, Jury, and Council internals.
+See [quorum/modules/CLAUDE.md](quorum/modules/CLAUDE.md) for Advisor, Oracle, Jury, Council, and Sentinel internals.
 ```
 
 ---
@@ -170,13 +170,15 @@ Add the following import and call at startup, **before** any agent or workflow c
 ```typescript
 import { setup } from "./quorum/modules/setup"
 
-const { oracle, evaluate, deliberate } = await setup({
+const { oracle, evaluate, deliberate, ask } = await setup({
   llm: yourLLMProvider, // replace with your project's LLM provider function
 })
 ```
 
 `setup()` creates `.chronicle/` directories, warms the embedder, and wires all module dependencies.
-It must be called once before any `oracle.query()`, `evaluate()`, or `deliberate()` call.
+It must be called once before any `oracle.query()`, `evaluate()`, `deliberate()`, or `ask()` call.
+
+`ask(question)` is the plain-language interface — it queries Oracle automatically, synthesises Chronicle evidence into a concise answer, and retries internally until the answer meets a confidence threshold. Use it to answer questions rather than to evaluate designs.
 
 If no entry point exists yet, note that `setup()` must be called before first use — do not inline it.
 
@@ -271,6 +273,7 @@ Gemini and use it for large-context tasks.
 You are now operating under Quorum. The rules in `quorum/modules/AGENTS.md` and `.github/copilot-instructions.md` apply to all subsequent work.
 
 Key reminders:
+- **Ask Advisor for context.** `quorum advisor "what has the team decided about X?"` before starting any meaningful work.
 - **Query Oracle before proposing anything.** `oracle.query("what you're about to do")` first.
 - **Never call `oracle.commit()` autonomously.** Only `oracle.propose()`. A human commits.
 - **Chronicle entries are ground truth.** Respect `refuted` entries — do not retry what has already failed.
@@ -281,10 +284,17 @@ These commands are available globally after `npm install -g @balpal4495/quorum`:
 
 | Command | What it does |
 |---|---|
+| `quorum advisor "question"` | Ask a plain-language question — answer synthesised from Chronicle (needs LLM) |
+| `quorum advisor query "topic"` | Search Chronicle entries by keyword (no LLM) |
+| `quorum advisor brief` | High-level Chronicle summary (no LLM) |
 | `quorum status` | Chronicle health — pending proposals, committed entries |
 | `quorum check --outcome X --design Y` | Preflight + risk classifier (no LLM) |
 | `quorum commit --list` | List pending proposals |
 | `quorum commit <id>` | Approve and index a proposal |
 | `quorum sentinel coverage [--path <dir>]` | Chronicle coverage of source files |
+| `quorum growth` | Chronicle learning health — growth rate, last commit, pending proposals |
+| `quorum evolve` | Consolidate Chronicle — merges duplicates, resolves contradictions, promotes open entries |
 
 `quorum check` exit codes: `0` = low/medium risk · `1` = high · `2` = critical
+
+`quorum advisor ask` and `quorum evolve` auto-detect any available LLM: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `OPENAI_BASE_URL`, Ollama at localhost:11434, or an authenticated `gemini` CLI. When running inside an AI agent (Claude Code, Copilot, Codex, Gemini) with no separate key, they output Chronicle evidence and a synthesis request for the agent to answer inline.

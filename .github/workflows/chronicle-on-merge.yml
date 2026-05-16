@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      pull-requests: read
+      pull-requests: write
     steps:
       - uses: actions/checkout@v4
 
@@ -35,3 +35,10 @@ jobs:
           git diff --staged --quiet && echo "No new proposals" && exit 0
           git commit -m "chore: chronicle proposal for PR #${{ github.event.pull_request.number }}"
           git push
+
+      - name: Post Chronicle growth comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_CREATED_AT: ${{ github.event.pull_request.created_at }}
+        run: node scripts/chronicle-growth.js
