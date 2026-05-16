@@ -1,0 +1,27 @@
+{
+  "schema_version": 2,
+  "topic": "PR #25",
+  "decision": "fix: make compass CLI self-contained — remove .ts module imports (v3.0.1)",
+  "key_insight": "fix: make compass CLI self-contained — remove .ts module imports (v3.0.1)",
+  "affected_areas": [
+    "bin/commands/compass.js"
+  ],
+  "scope": [
+    "cli"
+  ],
+  "alternatives_considered": [],
+  "rejected_reason": [],
+  "supersedes": null,
+  "superseded_by": null,
+  "status": "open",
+  "confidence": 0.4,
+  "source_quality": "metadata-derived",
+  "needs_human_summary": true,
+  "source_module": "pr-merge",
+  "evidence_cited": [],
+  "work_ref": {
+    "type": "pr",
+    "ref": "PR #25"
+  },
+  "outcome": "## Bug\n\n`quorum compass` was broken for all npm-installed users in v3.0.0.\n\n`bin/commands/compass.js` imported from:\n```\n../../modules/compass/create.js\n../../modules/compass/sources/index.js\n../../modules/oracle/index.js\n../../modules/oracle/adapters/lance-db.js\n../../modules/oracle/adapters/xenova-embedder.js\n```\n\nThese paths only exist as `.ts` files. Plain `node` cannot import them, so every `quorum compass` subcommand threw `ERR_MODULE_NOT_FOUND` on install.\n\n## Fix\n\nRewrote `compass.js` as"
+}
