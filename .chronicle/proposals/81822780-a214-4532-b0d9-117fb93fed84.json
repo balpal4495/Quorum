@@ -1,0 +1,28 @@
+{
+  "schema_version": 2,
+  "topic": "PR #28",
+  "decision": "fix: no-fence prompt instruction + max_tokens 8192 for large schemas (v3.0.4)",
+  "key_insight": "fix: no-fence prompt instruction + max_tokens 8192 for large schemas (v3.0.4)",
+  "affected_areas": [
+    "bin/commands/compass.js",
+    "bin/shared/llm.js"
+  ],
+  "scope": [
+    "cli"
+  ],
+  "alternatives_considered": [],
+  "rejected_reason": [],
+  "supersedes": null,
+  "superseded_by": null,
+  "status": "open",
+  "confidence": 0.4,
+  "source_quality": "metadata-derived",
+  "needs_human_summary": true,
+  "source_module": "pr-merge",
+  "evidence_cited": [],
+  "work_ref": {
+    "type": "pr",
+    "ref": "PR #28"
+  },
+  "outcome": "Two remaining bugs from the v3.0.x audit — bugs 1–3 are already shipped.\n\n## Bug 4 — LLM wraps responses in markdown fences (`pathways`, `bets`, `score`, `spec`)\n\n`buildBriefPrompt` correctly says `\"Return ONLY valid JSON (no markdown fences, no explanation):\"`. The other four prompts said only `\"Return ONLY valid JSON:\"` — gpt-4o consistently wraps the response in ` ```json ``` ` fences when the no-fence instruction is absent. `parseLLMJson` does strip fences as a fallback but the root fix is n"
+}
