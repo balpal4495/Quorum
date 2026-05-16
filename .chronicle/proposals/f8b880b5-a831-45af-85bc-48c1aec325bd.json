@@ -1,0 +1,27 @@
+{
+  "schema_version": 2,
+  "topic": "PR #26",
+  "decision": "fix: await findChronicleDir and detectProvider in compass CLI (v3.0.2)",
+  "key_insight": "fix: await findChronicleDir and detectProvider in compass CLI (v3.0.2)",
+  "affected_areas": [
+    "bin/commands/compass.js"
+  ],
+  "scope": [
+    "cli"
+  ],
+  "alternatives_considered": [],
+  "rejected_reason": [],
+  "supersedes": null,
+  "superseded_by": null,
+  "status": "open",
+  "confidence": 0.4,
+  "source_quality": "metadata-derived",
+  "needs_human_summary": true,
+  "source_module": "pr-merge",
+  "evidence_cited": [],
+  "work_ref": {
+    "type": "pr",
+    "ref": "PR #26"
+  },
+  "outcome": "## Bugs (found in v3.0.1)\n\nAll LLM-backed `quorum compass` subcommands (`brief`, `pathways`, `bets`, `score`, `spec`) threw at runtime because two async calls were missing `await`:\n\n```js\n// BEFORE (broken)\nconst chronicleDir = findChronicleDir(rootDir)   // Promise<string> not string\nconst llm = ... detectProvider()                  // {llm,name} object not the callable fn\n```\n\n`findChronicleDir` is async (returns `Promise<string|null>`), so without `await` it became a `Promise` object — `path."
+}
