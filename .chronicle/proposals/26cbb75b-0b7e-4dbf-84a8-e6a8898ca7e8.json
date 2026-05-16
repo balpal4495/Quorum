@@ -1,0 +1,27 @@
+{
+  "schema_version": 2,
+  "topic": "PR #27",
+  "decision": "fix: three compass CLI bugs — computeScore NaN, propose --from-last, NO_LLM_CMDS (v3.0.3)",
+  "key_insight": "fix: three compass CLI bugs — computeScore NaN, propose --from-last, NO_LLM_CMDS (v3.0.3)",
+  "affected_areas": [
+    "bin/commands/compass.js"
+  ],
+  "scope": [
+    "cli"
+  ],
+  "alternatives_considered": [],
+  "rejected_reason": [],
+  "supersedes": null,
+  "superseded_by": null,
+  "status": "open",
+  "confidence": 0.4,
+  "source_quality": "metadata-derived",
+  "needs_human_summary": true,
+  "source_module": "pr-merge",
+  "evidence_cited": [],
+  "work_ref": {
+    "type": "pr",
+    "ref": "PR #27"
+  },
+  "outcome": "Three bugs found by code review of `bin/commands/compass.js`. All introduced when compass was originally written as a self-contained CLI file.\n\n## Bug 1 — `computeScore` produces `NaN` silently\n\nIf the LLM omits any score dimension, `undefined * 20 = NaN`. The total becomes `NaN`, corrupting all scored output (`pathways`, `bets`, `score`) with no visible error.\n\n**Fix:** `?? 0` fallback on every dimension.\n\n## Bug 2 — `propose --from-last` always fails\n\n`_lastArtifact` was a module-level variabl"
+}
