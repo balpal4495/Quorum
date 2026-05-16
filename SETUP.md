@@ -170,13 +170,15 @@ Add the following import and call at startup, **before** any agent or workflow c
 ```typescript
 import { setup } from "./quorum/modules/setup"
 
-const { oracle, evaluate, deliberate } = await setup({
+const { oracle, evaluate, deliberate, ask } = await setup({
   llm: yourLLMProvider, // replace with your project's LLM provider function
 })
 ```
 
 `setup()` creates `.chronicle/` directories, warms the embedder, and wires all module dependencies.
-It must be called once before any `oracle.query()`, `evaluate()`, or `deliberate()` call.
+It must be called once before any `oracle.query()`, `evaluate()`, `deliberate()`, or `ask()` call.
+
+`ask(question)` is the plain-language interface — it queries Oracle automatically, synthesises Chronicle evidence into a concise answer, and retries internally until the answer meets a confidence threshold. Use it to answer questions rather than to evaluate designs.
 
 If no entry point exists yet, note that `setup()` must be called before first use — do not inline it.
 
@@ -281,6 +283,9 @@ These commands are available globally after `npm install -g @balpal4495/quorum`:
 
 | Command | What it does |
 |---|---|
+| `quorum advisor "question"` | Ask a plain-language question — answer synthesised from Chronicle (needs LLM) |
+| `quorum advisor query "topic"` | Search Chronicle entries by keyword (no LLM) |
+| `quorum advisor brief` | High-level Chronicle summary (no LLM) |
 | `quorum status` | Chronicle health — pending proposals, committed entries |
 | `quorum check --outcome X --design Y` | Preflight + risk classifier (no LLM) |
 | `quorum commit --list` | List pending proposals |
@@ -288,3 +293,5 @@ These commands are available globally after `npm install -g @balpal4495/quorum`:
 | `quorum sentinel coverage [--path <dir>]` | Chronicle coverage of source files |
 
 `quorum check` exit codes: `0` = low/medium risk · `1` = high · `2` = critical
+
+`quorum advisor ask` requires `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` in your environment.

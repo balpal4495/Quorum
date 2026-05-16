@@ -6,7 +6,7 @@ Supplements the root-level instructions. Read this when working inside the `modu
 
 ## What these modules are
 
-Three portable TypeScript modules — Oracle, Jury, Council — that form the knowledge and reasoning layer of an agentic workflow. They are designed to be dropped into any Node.js codebase.
+Five portable TypeScript modules — Advisor, Oracle, Jury, Council, Sentinel — that form the knowledge and reasoning layer of an agentic workflow. They are designed to be dropped into any Node.js codebase.
 
 The entry point for a host application is `setup.ts`. Everything else is internal.
 
@@ -21,7 +21,13 @@ No module imports a specific LLM provider, vector store, or embedder. All extern
 In `jury/evaluate.ts`, after parsing the LLM response, `confidence` is recomputed as the exact average of the four `confidence_breakdown` dimensions. The LLM's stated `confidence` value is discarded. `council_brief` is then derived from this recomputed value. Do not remove either override.
 
 ### Throw on bad LLM output — never default to passing
-Both `jury/evaluate.ts` and `council/chairman.ts` throw if the LLM returns non-JSON or output that fails Zod validation. This is intentional. A silently passing Jury score is worse than an error. Do not add fallbacks or defaults.
+`jury/evaluate.ts`, `council/chairman.ts`, and `advisor/ask.ts` all throw if the LLM returns non-JSON or output that fails schema validation. This is intentional. A silently passing score is worse than an error. Do not add fallbacks or defaults.
+
+### Advisor is a read-only path
+`advisor/ask.ts` queries Oracle and calls the LLM — it never calls `oracle.propose()` or `oracle.commit()`. It has no side effects on Chronicle. Do not add write calls to the Advisor path.
+
+### Advisor validation loop
+`advisor/ask.ts` retries the LLM call up to `MAX_RETRIES` (2) times when the answer does not meet the satisfaction threshold (confidence ≥ 0.7, no blockers). The previous answer is included as context in the retry prompt. After the retry budget is exhausted, the best answer is returned regardless. Do not increase `MAX_RETRIES` without considering LLM cost implications.
 
 ### oracle.commit() is a human gate
 `council/deliberate.ts` calls `oracle.propose()` at the end of every deliberation. It never calls `oracle.commit()`. If you see a code path that calls `oracle.commit()` without explicit human input, that is a bug.

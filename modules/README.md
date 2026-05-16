@@ -1,11 +1,12 @@
-# Oracle · Jury · Council · Sentinel
+# Advisor · Oracle · Jury · Council · Sentinel
 
-Four portable modules for the knowledge and reasoning layer of any agentic workflow.
+Five portable modules for the knowledge and reasoning layer of any agentic workflow.
 Drop the `modules/` folder into your project and wire up the dependencies.
 
 ```
-Oracle  →  Jury  →  Council  →  human gate  →  Executor
-Sentinel  →  coverage + drift + PR coverage map
+Advisor  →  plain-language questions answered from Chronicle
+Oracle   →  Jury  →  Council  →  human gate  →  Executor
+Sentinel →  coverage + drift + PR coverage map
 ```
 
 ---
@@ -14,6 +15,7 @@ Sentinel  →  coverage + drift + PR coverage map
 
 | Module | Responsibility | LLM? |
 |---|---|---|
+| **Advisor** | Ask a plain-language question — synthesises Chronicle evidence into a concise answer with an internal validation loop | Yes |
 | **Oracle** | Query and write interface to Chronicle (the persistent knowledge store) | No |
 | **Jury** | Evaluate a design against Oracle evidence — produces a confidence score | Yes |
 | **Council** | Adversarial validation via parallel advisor/reviewer fan-out — produces a verdict | Yes |
