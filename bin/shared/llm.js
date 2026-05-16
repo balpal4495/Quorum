@@ -112,7 +112,7 @@ function createAnthropicProvider(apiKey) {
       },
       body: JSON.stringify({
         model,
-        max_tokens: 2048,
+        max_tokens: 8192,
         ...(systemMsg ? { system: systemMsg } : {}),
         messages: userMessages,
       }),
@@ -140,7 +140,7 @@ function createOpenAICompatProvider(apiKey, baseUrl, fixedModel) {
       body: JSON.stringify({
         model:    fixedModel ?? model,
         messages,
-        max_tokens: 2048,
+        max_tokens: 8192,
       }),
     })
 
