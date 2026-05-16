@@ -270,18 +270,19 @@ function summarizeBehaviorMap(map) {
 
 function computeScore(dims) {
   const d = dims ?? {}
+  const n = (v) => { const f = parseFloat(v); return isNaN(f) ? 0 : f }
   const raw =
-    (d.strategic_fit         ?? 0) * 20 +
-    (d.user_problem_clarity  ?? 0) * 15 +
-    (d.evidence_strength     ?? 0) * 20 +
-    (d.leverage              ?? 0) * 10 +
-    (d.feasibility           ?? 0) * 15 +
-    (d.time_to_signal        ?? 0) * 10 +
-    (d.reversibility         ?? 0) * 10 -
-    (d.complexity_penalty    ?? 0) * 10 -
-    (d.dependency_penalty    ?? 0) *  8 -
-    (d.contradiction_penalty ?? 0) * 15 -
-    (d.evidence_gap_penalty  ?? 0) * 12
+    n(d.strategic_fit)         * 20 +
+    n(d.user_problem_clarity)  * 15 +
+    n(d.evidence_strength)     * 20 +
+    n(d.leverage)              * 10 +
+    n(d.feasibility)           * 15 +
+    n(d.time_to_signal)        * 10 +
+    n(d.reversibility)         * 10 -
+    n(d.complexity_penalty)    * 10 -
+    n(d.dependency_penalty)    *  8 -
+    n(d.contradiction_penalty) * 15 -
+    n(d.evidence_gap_penalty)  * 12
   return { ...d, total: Math.max(0, Math.min(100, Math.round(raw))) }
 }
 
@@ -393,7 +394,25 @@ Score total = strategic_fit*20 + user_problem_clarity*15 + evidence_strength*20 
 
 function parseLLMJson(raw) {
   const cleaned = raw.replace(/^```(?:json)?\s*/m, "").replace(/\s*```$/m, "").trim()
-  return JSON.parse(cleaned)
+  try {
+    return JSON.parse(cleaned)
+  } catch (firstErr) {
+    // Salvage truncated responses: trim to last complete object boundary
+    const lastBrace = cleaned.lastIndexOf('},')
+    if (lastBrace !== -1) {
+      const salvaged = cleaned.slice(0, lastBrace + 1)
+      // Find the outermost container and close it
+      const openBracket = salvaged.indexOf('[')
+      const openBrace = salvaged.indexOf('{')
+      try {
+        if (openBracket !== -1 && (openBrace === -1 || openBracket < openBrace)) {
+          return JSON.parse(salvaged + ']}')
+        }
+        return JSON.parse(salvaged + '}')
+      } catch { /* fall through to original error */ }
+    }
+    throw firstErr
+  }
 }
 
 async function callLLM(llm, userPrompt) {
