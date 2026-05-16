@@ -1,0 +1,27 @@
+{
+  "schema_version": 2,
+  "topic": "PR #30",
+  "decision": "fix: parseLLMJson truncation salvage + computeScore NaN on non-numeric strings",
+  "key_insight": "fix: parseLLMJson truncation salvage + computeScore NaN on non-numeric strings",
+  "affected_areas": [
+    "bin/commands/compass.js"
+  ],
+  "scope": [
+    "cli"
+  ],
+  "alternatives_considered": [],
+  "rejected_reason": [],
+  "supersedes": null,
+  "superseded_by": null,
+  "status": "open",
+  "confidence": 0.4,
+  "source_quality": "metadata-derived",
+  "needs_human_summary": true,
+  "source_module": "pr-merge",
+  "evidence_cited": [],
+  "work_ref": {
+    "type": "pr",
+    "ref": "PR #30"
+  },
+  "outcome": "Two compass CLI robustness fixes.\n\n**parseLLMJson — truncation salvage**\nWhen gpt-4o hits the output token limit mid-object (common with 5+ pathways/bets), JSON.parse throws and the whole command fails. Fix: after the initial parse fails, trim to the last complete `},` boundary and attempt to close the container. Falls through to the original error if salvage also fails.\n\n**computeScore — NaN on non-numeric strings**\n`?? 0` only guards against null/undefined. When the model returns `\"high\"`, `\"~"
+}
