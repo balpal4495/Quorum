@@ -1,0 +1,38 @@
+{
+  "schema_version": 2,
+  "topic": "PR #21",
+  "decision": "feat: Advisor module — plain-language interface to Chronicle (v1.0.0)",
+  "key_insight": "feat: Advisor module — plain-language interface to Chronicle (v1.0.0)",
+  "affected_areas": [
+    ".github/workflows/chronicle-on-merge.yml",
+    "CLAUDE.md",
+    "README.md",
+    "SETUP.md",
+    "bin/commands/advisor.js",
+    "bin/commands/commit.js",
+    "bin/commands/evolve.js",
+    "bin/commands/growth.js",
+    "bin/commands/sentinel.js",
+    "bin/quorum.js"
+  ],
+  "scope": [
+    "cli",
+    "ci",
+    "docs"
+  ],
+  "alternatives_considered": [],
+  "rejected_reason": [],
+  "supersedes": null,
+  "superseded_by": null,
+  "status": "open",
+  "confidence": 0.4,
+  "source_quality": "metadata-derived",
+  "needs_human_summary": true,
+  "source_module": "pr-merge",
+  "evidence_cited": [],
+  "work_ref": {
+    "type": "pr",
+    "ref": "PR #21"
+  },
+  "outcome": "## What this PR ships\n\nThis PR adds everything needed for Chronicle to **continuously learn and improve** — and for that growth to be visible to the whole team.\n\n### Advisor — plain-language interface to Chronicle\n\nAsk Chronicle a question in plain English:\n\n\\`\\`\\`\nquorum advisor \"what did we decide about authentication?\"\n\n  What we know\n  The team settled on RS256 JWT after rejecting HS256 — key rotation without\n  invalidating active sessions was the blocker.\n\n  Recommendation\n  Follow the RS25"
+}
