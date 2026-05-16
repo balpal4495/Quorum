@@ -75,7 +75,8 @@ jobs:
             echo "Tag ${NEW_TAG} already exists — skipping commit and tag (re-run recovery)"
             git checkout package.json
           else
-            git add package.json
+            npm install --package-lock-only
+            git add package.json package-lock.json
             git commit -m "chore: release ${NEW_TAG}"
             git tag "${NEW_TAG}"
             git pull --rebase --autostash origin main
