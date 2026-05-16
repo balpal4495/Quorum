@@ -350,7 +350,7 @@ ${chronicleCtx}
 ## Current product behaviour
 ${behaviorCtx}
 
-Return ONLY valid JSON: { "pathways": [ { "id":"<slug>","kind":"product_pathway","title":"<title>","goal":"<goal>","target_user":"<who>","problem":"<problem>","current_behaviors":["<behaviour>"],"opportunity":"<gap>","why_now":"<why>","smallest_useful_version":"<mvp>","phases":[{"name":"<phase>","outcome":"<outcome>","user_value":"<value>","build_notes":["<note>"],"dependencies":["<dep>"],"risks":["<risk>"]}],"dependencies":["<dep>"],"risks":["<risk>"],"assumptions":["<assumption>"],"open_questions":["<question>"],"evidence":[{"id":"<id>","kind":"<kind>","source":"<source>","summary":"<summary>","confidence":<0-1>}],"scores":{"strategic_fit":<0-1>,"user_problem_clarity":<0-1>,"evidence_strength":<0-1>,"leverage":<0-1>,"feasibility":<0-1>,"time_to_signal":<0-1>,"reversibility":<0-1>,"complexity_penalty":<0-1>,"dependency_penalty":<0-1>,"contradiction_penalty":<0-1>,"evidence_gap_penalty":<0-1>,"total":<0-100>},"confidence":<0-1>,"time_to_signal":"<timeframe>","reversibility":"high|medium|low","suggested_next_step":"<step>" } ] }
+Return ONLY valid JSON (no markdown fences, no explanation): { "pathways": [ { "id":"<slug>","kind":"product_pathway","title":"<title>","goal":"<goal>","target_user":"<who>","problem":"<problem>","current_behaviors":["<behaviour>"],"opportunity":"<gap>","why_now":"<why>","smallest_useful_version":"<mvp>","phases":[{"name":"<phase>","outcome":"<outcome>","user_value":"<value>","build_notes":["<note>"],"dependencies":["<dep>"],"risks":["<risk>"]}],"dependencies":["<dep>"],"risks":["<risk>"],"assumptions":["<assumption>"],"open_questions":["<question>"],"evidence":[{"id":"<id>","kind":"<kind>","source":"<source>","summary":"<summary>","confidence":<0-1>}],"scores":{"strategic_fit":<0-1>,"user_problem_clarity":<0-1>,"evidence_strength":<0-1>,"leverage":<0-1>,"feasibility":<0-1>,"time_to_signal":<0-1>,"reversibility":<0-1>,"complexity_penalty":<0-1>,"dependency_penalty":<0-1>,"contradiction_penalty":<0-1>,"evidence_gap_penalty":<0-1>,"total":<0-100>},"confidence":<0-1>,"time_to_signal":"<timeframe>","reversibility":"high|medium|low","suggested_next_step":"<step>" } ] }
 
 Sort by scores.total descending. Assumptions must always be present.`
 }
@@ -368,7 +368,7 @@ ${chronicleCtx}
 ## Current product behaviour
 ${behaviorCtx}
 
-Return ONLY valid JSON: { "bets": [ { "id":"<slug>","kind":"product_bet","title":"<title>","thesis":"<falsifiable hypothesis>","why_now":"<why>","target_user":"<who>","upside":"<best case>","downside":"<downside>","assumptions":["<assumption>"],"validation_signals":["<signal>"],"invalidation_signals":["<signal>"],"kill_criteria":["<criteria>"],"first_experiment":"<smallest test>","build_path":["<phase>"],"evidence":[{"id":"<id>","kind":"<kind>","source":"<source>","summary":"<summary>","confidence":<0-1>}],"scores":{"strategic_fit":<0-1>,"user_problem_clarity":<0-1>,"evidence_strength":<0-1>,"leverage":<0-1>,"feasibility":<0-1>,"time_to_signal":<0-1>,"reversibility":<0-1>,"complexity_penalty":<0-1>,"dependency_penalty":<0-1>,"contradiction_penalty":<0-1>,"evidence_gap_penalty":<0-1>,"total":<0-100>},"confidence":<0-1>,"time_to_signal":"<timeframe>","reversibility":"high|medium|low","appetite":"small|medium|large" } ] }
+Return ONLY valid JSON (no markdown fences, no explanation): { "bets": [ { "id":"<slug>","kind":"product_bet","title":"<title>","thesis":"<falsifiable hypothesis>","why_now":"<why>","target_user":"<who>","upside":"<best case>","downside":"<downside>","assumptions":["<assumption>"],"validation_signals":["<signal>"],"invalidation_signals":["<signal>"],"kill_criteria":["<criteria>"],"first_experiment":"<smallest test>","build_path":["<phase>"],"evidence":[{"id":"<id>","kind":"<kind>","source":"<source>","summary":"<summary>","confidence":<0-1>}],"scores":{"strategic_fit":<0-1>,"user_problem_clarity":<0-1>,"evidence_strength":<0-1>,"leverage":<0-1>,"feasibility":<0-1>,"time_to_signal":<0-1>,"reversibility":<0-1>,"complexity_penalty":<0-1>,"dependency_penalty":<0-1>,"contradiction_penalty":<0-1>,"evidence_gap_penalty":<0-1>,"total":<0-100>},"confidence":<0-1>,"time_to_signal":"<timeframe>","reversibility":"high|medium|low","appetite":"small|medium|large" } ] }
 
 Kill criteria and invalidation_signals must be present. If no user evidence, evidence_strength ≤ 0.4.`
 }
@@ -384,7 +384,7 @@ ${chronicleCtx}
 ## Current product behaviour
 ${behaviorCtx}
 
-Return ONLY valid JSON: { "idea":"${idea}","summary":"<one sentence>","recommendation":"pursue|pursue-small-test|investigate-more|defer|avoid","scores":{"strategic_fit":<0-1>,"user_problem_clarity":<0-1>,"evidence_strength":<0-1>,"leverage":<0-1>,"feasibility":<0-1>,"time_to_signal":<0-1>,"reversibility":<0-1>,"complexity_penalty":<0-1>,"dependency_penalty":<0-1>,"contradiction_penalty":<0-1>,"evidence_gap_penalty":<0-1>,"total":<0-100>},"evidence":[{"id":"<id>","kind":"<kind>","source":"<source>","summary":"<summary>","confidence":<0-1>}],"supporting_reasons":["<reason>"],"risks":["<risk>"],"assumptions":["<assumption>"],"open_questions":["<question>"],"suggested_next_step":"<action>" }
+Return ONLY valid JSON (no markdown fences, no explanation): { "idea":"${idea}","summary":"<one sentence>","recommendation":"pursue|pursue-small-test|investigate-more|defer|avoid","scores":{"strategic_fit":<0-1>,"user_problem_clarity":<0-1>,"evidence_strength":<0-1>,"leverage":<0-1>,"feasibility":<0-1>,"time_to_signal":<0-1>,"reversibility":<0-1>,"complexity_penalty":<0-1>,"dependency_penalty":<0-1>,"contradiction_penalty":<0-1>,"evidence_gap_penalty":<0-1>,"total":<0-100>},"evidence":[{"id":"<id>","kind":"<kind>","source":"<source>","summary":"<summary>","confidence":<0-1>}],"supporting_reasons":["<reason>"],"risks":["<risk>"],"assumptions":["<assumption>"],"open_questions":["<question>"],"suggested_next_step":"<action>" }
 
 Score total = strategic_fit*20 + user_problem_clarity*15 + evidence_strength*20 + leverage*10 + feasibility*15 + time_to_signal*10 + reversibility*10 - complexity_penalty*10 - dependency_penalty*8 - contradiction_penalty*15 - evidence_gap_penalty*12. Clamp 0–100.`
 }
@@ -896,7 +896,7 @@ ${chronicleCtx}
 ## Current product behaviour
 ${behaviorCtx}
 
-Return ONLY valid JSON: { "title":"${title}","problem":"<problem>","target_user":"<user>","recommended_solution":"<solution>","smallest_useful_version":"<mvp>","non_goals":["<non-goal>"],"risks":["<risk>"],"open_questions":["<question>"],"suggested_quorum_checks":["<quorum command>"] }`
+Return ONLY valid JSON (no markdown fences, no explanation): { "title":"${title}","problem":"<problem>","target_user":"<user>","recommended_solution":"<solution>","smallest_useful_version":"<mvp>","non_goals":["<non-goal>"],"risks":["<risk>"],"open_questions":["<question>"],"suggested_quorum_checks":["<quorum command>"] }`
         const raw = await callLLM(llm, specPrompt)
         let data
         try { data = parseLLMJson(raw) } catch { throw new Error(`Compass spec: LLM returned non-JSON. Raw: ${raw.slice(0, 300)}`) }
