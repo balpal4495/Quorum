@@ -1,0 +1,38 @@
+{
+  "schema_version": 2,
+  "topic": "PR #23",
+  "decision": "fix: v2 coherence — lockfile, stale docs, host CLAUDE.md, sync & migrate-v2",
+  "key_insight": "fix: v2 coherence — lockfile, stale docs, host CLAUDE.md, sync & migrate-v2",
+  "affected_areas": [
+    ".github/copilot-instructions.md",
+    ".github/workflows/ci.yml",
+    "README.md",
+    "bin/commands/init.js",
+    "bin/commands/migrate-v2.js",
+    "bin/commands/sentinel.js",
+    "bin/commands/sync.js",
+    "bin/quorum.js",
+    "bin/templates/CLAUDE.md",
+    "modules/README.md"
+  ],
+  "scope": [
+    "cli",
+    "ci",
+    "docs"
+  ],
+  "alternatives_considered": [],
+  "rejected_reason": [],
+  "supersedes": null,
+  "superseded_by": null,
+  "status": "open",
+  "confidence": 0.4,
+  "source_quality": "metadata-derived",
+  "needs_human_summary": true,
+  "source_module": "pr-merge",
+  "evidence_cited": [],
+  "work_ref": {
+    "type": "pr",
+    "ref": "PR #23"
+  },
+  "outcome": "## What and why\n\nThis patch makes v2 coherent. No new concepts — just the instruction drift and missing CLI tooling that leaves v2 feeling unpolished.\n\n---\n\n## Changes\n\n### Lockfile & CI\n- **`package-lock.json`** — root version updated `0.4.1` → `2.0.0` (was stale across multiple release turns)\n- **`.github/workflows/ci.yml`** — new `Check version consistency` step: fails CI if `package.json` and `package-lock.json` root versions differ\n\n### Stale documentation\n- **`README.md`** — removes \"insta"
+}
