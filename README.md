@@ -28,6 +28,9 @@ After `npm install -g @balpal4495/quorum` (or `npx @balpal4495/quorum`), you get
 
 | Command | What it does | LLM? |
 |---|---|---|
+| `quorum advisor "question"` | Ask a plain-language question — answer synthesised from Chronicle evidence | Yes |
+| `quorum advisor query "topic"` | Search Chronicle entries by keyword | No |
+| `quorum advisor brief` | High-level Chronicle summary | No |
 | `quorum init` | Scaffold Quorum into a project | No |
 | `quorum status` | Chronicle health — pending proposals, committed entries, recent activity | No |
 | `quorum check --outcome X --design Y` | Deterministic preflight + risk classifier | No |
@@ -250,10 +253,11 @@ The agent revises the plan. You approve the Chronicle entry once it's solid. The
 
 ## What's inside
 
-Four portable TypeScript modules installed into `quorum/modules/`:
+Five portable TypeScript modules installed into `quorum/modules/`:
 
 | Module | What it does |
 |---|---|
+| **Advisor** | Plain-language interface to Chronicle. Ask a question, get a concise answer synthesised from evidence. Validates its own answer internally and retries until confident. |
 | **Oracle** | Query and write interface to Chronicle. No LLM required. |
 | **Jury** | Evaluates a proposed design against Chronicle evidence. Returns a decomposed confidence score and hard-blocker gaps. |
 | **Council** | A panel of advisors challenges the design independently, reviewers critique anonymously, a Chairman gives a structured verdict with blockers and warnings. |

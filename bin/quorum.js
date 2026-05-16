@@ -20,12 +20,20 @@ function help() {
 ${c.bold("quorum")} ${c.dim(`v${PKG_VERSION}`)} — portable reasoning layer for agentic codebases
 
 ${c.bold("Usage:")}
+  ${c.cyan("quorum advisor")} ${c.dim('"question"')}             Ask a plain-language question (uses LLM)
+  ${c.cyan("quorum advisor query")} ${c.dim('"topic"')}          Search Chronicle entries (no LLM)
+  ${c.cyan("quorum advisor brief")}                 High-level Chronicle summary (no LLM)
   ${c.cyan("quorum init")}                          Scaffold Quorum into a project
   ${c.cyan("quorum status")}                        Show Chronicle health and pending proposals
   ${c.cyan("quorum check")} --outcome <x> --design <y>  Preflight + risk (no LLM)
   ${c.cyan("quorum commit")} <id>                   Approve and index a Chronicle proposal
   ${c.cyan("quorum sentinel")} [coverage]           Chronicle coverage of source files
   ${c.cyan("quorum --version")}                     Print version
+
+${c.bold("quorum advisor")} subcommands:
+  ask ${c.dim('"question"')}       Ask with LLM synthesis + validation loop
+  query ${c.dim('"topic"')}        Chronicle lookup (no LLM, instant)
+  brief                Chronicle summary (no LLM, instant)
 
 ${c.bold("quorum check")} flags:
   --outcome  -o   What you want to achieve
@@ -61,6 +69,12 @@ async function cli() {
   }
 
   const __dirname = path.dirname(fileURLToPath(import.meta.url))
+
+  if (command === "advisor") {
+    const { run } = await import(path.join(__dirname, "commands/advisor.js"))
+    await run(rest)
+    return
+  }
 
   if (command === "init") {
     const { run } = await import(path.join(__dirname, "commands/init.js"))

@@ -35,6 +35,13 @@ When working inside this folder, follow these rules in addition to the root guid
 | `council/risk.ts` | Deterministic risk classifier — no LLM. Assigns `low/medium/high/critical` and `council_mode` from design text and refuted evidence. Drives advisor/reviewer fan-out counts. |
 | `council/deliberate.ts` | Full pipeline orchestration. Calls `oracle.propose()` at the end — never `oracle.commit()`. Risk classifier runs first to set fan-out counts. |
 
+### Advisor
+| File | Owns |
+|---|---|
+| `advisor/ask.ts` | Main entry point. Queries Oracle, calls LLM, validates answer against satisfaction threshold (confidence ≥ 0.7, no blockers). Retries up to 2 times with previous answer as context. Throws on bad LLM output — do not add fallbacks. |
+| `advisor/prompt.ts` | SYSTEM_PROMPT, evidence formatter, user prompt builder. The plain-language framing lives here. |
+| `advisor/types.ts` | `AdvisorInput`, `AdvisorAnswer`, `AdvisorOutput`, `AdvisorDeps` types. |
+
 ---
 
 ## Extension points
@@ -51,6 +58,7 @@ When working inside this folder, follow these rules in addition to the root guid
 
 ## Invariants — do not break these
 
+- `advisor/ask.ts` never calls `oracle.propose()` or `oracle.commit()`. It is a read-only path.
 - `oracle.commit()` is never called without explicit human input. `deliberate()` calls `propose()` only.
 - `jury/evaluate.ts` recomputes `confidence` as the exact average of `confidence_breakdown` dimensions — the LLM value is discarded.
 - `jury/evaluate.ts` derives `council_brief` from the recomputed confidence — never trusts the LLM value.
