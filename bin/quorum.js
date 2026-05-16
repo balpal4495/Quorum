@@ -30,6 +30,8 @@ ${c.bold("Usage:")}
   ${c.cyan("quorum sentinel")} [coverage]           Chronicle coverage of source files
   ${c.cyan("quorum growth")}                        Chronicle learning health and growth rate
   ${c.cyan("quorum evolve")}                        Consolidate and improve Chronicle entries (uses LLM)
+  ${c.cyan("quorum sync")}                          Refresh Quorum instruction blocks after npm update
+  ${c.cyan("quorum migrate-v2")}                    Migrate from v1 vendored quorum/modules/ to npm package
   ${c.cyan("quorum --version")}                     Print version
 
 ${c.bold("quorum advisor")} subcommands:
@@ -51,6 +53,9 @@ ${c.bold("quorum sentinel")} subcommands:
   coverage [--path <dir>]   Chronicle coverage for .ts files (default: cwd)
   drift                     (requires LLM — use sentinelAssertions() instead)
   --json                    Machine-readable output
+
+${c.bold("quorum migrate-v2")} flags:
+  --dry-run       Preview what would be removed without writing
 
 ${c.bold("Exit codes")} (quorum check):
   0  low / medium risk
@@ -116,6 +121,18 @@ async function cli() {
 
   if (command === "evolve") {
     const { run } = await import(path.join(__dirname, "commands/evolve.js"))
+    await run(rest)
+    return
+  }
+
+  if (command === "sync") {
+    const { run } = await import(path.join(__dirname, "commands/sync.js"))
+    await run(rest)
+    return
+  }
+
+  if (command === "migrate-v2") {
+    const { run } = await import(path.join(__dirname, "commands/migrate-v2.js"))
     await run(rest)
     return
   }

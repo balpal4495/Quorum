@@ -1,7 +1,6 @@
 # Advisor · Oracle · Jury · Council · Sentinel
 
 Five portable modules for the knowledge and reasoning layer of any agentic workflow.
-Drop the `modules/` folder into your project and wire up the dependencies.
 
 ```
 Advisor  →  plain-language questions answered from Chronicle
@@ -91,6 +90,40 @@ You can substitute any vector store and embedder by implementing the `VectorStor
 
 ---
 
+## TypeScript runtime requirement
+
+Quorum ships TypeScript source (`.ts` files). Programmatic imports require a
+TS-aware runtime or bundler. Plain `node` will not work without a loader.
+
+**Supported runtimes:**
+
+```bash
+# tsx (recommended — zero config)
+npx tsx your-script.ts
+
+# ts-node
+npx ts-node --esm your-script.ts
+
+# Bun
+bun your-script.ts
+
+# Vitest / Jest with ts transform — works out of the box in test files
+```
+
+**Bundlers:** esbuild, Vite, Rollup, webpack — all supported with standard TS config.
+
+**Plain Node.js** (no TS runtime): use the CLI instead:
+
+```bash
+quorum advisor "question"
+quorum check --outcome "..." --design "..."
+```
+
+The CLI is always available after `npm install -g @balpal4495/quorum` and requires no
+TS loader. It is the recommended interface for most host-project use cases.
+
+---
+
 ## TypeScript
 
 Requires TypeScript 4.7+ and `zod` v3.
@@ -109,8 +142,10 @@ Recommended `tsconfig.json` settings:
 
 ## Quick start
 
+### npm users
+
 ```typescript
-import { setup } from "./modules/setup"
+import { setup } from "@balpal4495/quorum"
 
 // The simplest entry point — wires all modules from one call
 const { oracle, evaluate, deliberate, ask } = await setup({ llm: myLLMProvider })
@@ -123,12 +158,22 @@ const answer = await ask("what did the team decide about authentication?")
 const evidence = await oracle.query("authentication patterns in this codebase")
 ```
 
+### Quorum repo contributors
+
+Working directly inside the Quorum source tree? Import from the local path instead:
+
+```typescript
+import { setup } from "./modules/setup"
+
+const { oracle, evaluate, deliberate, ask } = await setup({ llm: myLLMProvider })
+```
+
 ### Manual wiring (without setup())
 
 ```typescript
-import { createOracleClient, xenovaEmbed, createLanceDBStore } from "./modules/oracle"
-import { evaluate } from "./modules/jury"
-import { deliberate } from "./modules/council"
+import { createOracleClient, xenovaEmbed, createLanceDBStore } from "@balpal4495/quorum/oracle"
+import { evaluate } from "@balpal4495/quorum/jury"
+import { deliberate } from "@balpal4495/quorum/council"
 
 // Wire Oracle manually
 const oracle = createOracleClient({
@@ -190,7 +235,7 @@ if (verdict.satisfied) {
 The Advisor is the plain-language interface to Chronicle. Use it to answer questions rather than to evaluate designs. It is a **read-only** path — it never calls `oracle.propose()` or `oracle.commit()`.
 
 ```typescript
-import { ask } from "./modules/advisor"
+import { ask } from "@balpal4495/quorum/advisor"
 
 const answer = await ask(
   { question: "What did the team decide about session handling?", evidence },
@@ -231,7 +276,7 @@ Advisor validates its own answer before returning. If `confidence < 0.7` or `blo
 The `LLMProvider` type is a simple function. Wire it to any provider:
 
 ```typescript
-import type { LLMProvider } from "./modules/shared/types"
+import type { LLMProvider } from "@balpal4495/quorum"
 
 // OpenAI example
 const openaiProvider: LLMProvider = async (messages, model = "gpt-4o") => {
@@ -276,7 +321,7 @@ interface JuryOutput {
 Before the LLM runs, Jury executes a deterministic preflight:
 
 ```typescript
-import { runPreflight } from "./modules/jury"
+import { runPreflight } from "@balpal4495/quorum/jury"
 
 const preflight = runPreflight(outcome, design, evidence)
 // preflight.touches_sensitive_area

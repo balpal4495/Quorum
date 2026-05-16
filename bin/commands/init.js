@@ -33,13 +33,19 @@ async function guardAlreadyInitialized(target) {
 async function writeQuorumDocs(target) {
   log.section("Writing Quorum docs")
   await fs.mkdir(path.join(target, "quorum"), { recursive: true })
-  for (const file of ["CLAUDE.md", "AGENTS.md"]) {
-    const src  = path.join(QUORUM_ROOT, "modules", file)
-    const dest = path.join(target, "quorum", file)
-    if (await exists(src)) {
-      await fs.copyFile(src, dest)
-      log.created(`quorum/${file}`)
-    }
+  // Host-facing CLAUDE.md — CLI-first operational guide, not module internals
+  const claudeSrc = path.join(QUORUM_ROOT, "bin", "templates", "CLAUDE.md")
+  const claudeDest = path.join(target, "quorum", "CLAUDE.md")
+  if (await exists(claudeSrc)) {
+    await fs.copyFile(claudeSrc, claudeDest)
+    log.created("quorum/CLAUDE.md")
+  }
+  // AGENTS.md — module file ownership map
+  const agentsSrc = path.join(QUORUM_ROOT, "modules", "AGENTS.md")
+  const agentsDest = path.join(target, "quorum", "AGENTS.md")
+  if (await exists(agentsSrc)) {
+    await fs.copyFile(agentsSrc, agentsDest)
+    log.created("quorum/AGENTS.md")
   }
   await fs.copyFile(
     path.join(QUORUM_ROOT, "SETUP.md"),

@@ -160,6 +160,22 @@ Then install the CLI globally for terminal access:
 npm install -g @balpal4495/quorum
 ```
 
+> **Programmatic imports require a TS-aware runtime** (tsx, ts-node, Bun, or a bundler).
+> Plain `node` will not resolve `.ts` files. For most host-project use cases the CLI is
+> sufficient and requires no loader — see [modules/README.md](modules/README.md) for details.
+
+**Upgrading from v1?** If your project has a `quorum/modules/` folder (the v1 vendored pattern):
+
+```bash
+quorum migrate-v2
+```
+
+After any `npm update @balpal4495/quorum`, refresh your instruction files:
+
+```bash
+quorum sync
+```
+
 ---
 
 ## Command reference
@@ -394,7 +410,7 @@ The next person touching that table has the full reasoning. They don't repeat th
 
 ## How it works under the hood
 
-You do not need to understand these internals to use Quorum. They are installed into `quorum/modules/` so any AI working in the codebase can inspect and use them directly.
+You do not need to understand these internals to use Quorum. They live in `node_modules/@balpal4495/quorum` after install. The `quorum/` folder that `init` creates in your project contains agent-readable docs and Chronicle data — not module source.
 
 | Module | What it does | LLM |
 |---|---|---|
