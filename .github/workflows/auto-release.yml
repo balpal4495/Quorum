@@ -24,7 +24,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write   # push version bump commit and tag
-      id-token: write   # OIDC Trusted Publishing to npm
 
     steps:
       - uses: actions/checkout@v4
@@ -80,12 +79,3 @@ jobs:
             git push origin "${NEW_TAG}"
           fi
 
-      - name: Checkout published tag for publish
-        run: |
-          git fetch --tags
-          git checkout "${{ steps.version.outputs.new_version }}"
-
-      - name: Publish to npm (OIDC Trusted Publishing)
-        run: npx --package=npm@11 --yes -- npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
