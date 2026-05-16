@@ -1,0 +1,41 @@
+{
+  "schema_version": 2,
+  "topic": "PR #29",
+  "decision": "feat: add proper npm build infrastructure — tsconfig.build.json + dist/ exports",
+  "key_insight": "feat: add proper npm build infrastructure — tsconfig.build.json + dist/ exports",
+  "affected_areas": [
+    ".github/workflows/auto-release.yml",
+    "modules/advisor/ask.ts",
+    "modules/advisor/index.ts",
+    "modules/advisor/prompt.ts",
+    "modules/advisor/types.ts",
+    "modules/compass/behavior.ts",
+    "modules/compass/create.ts",
+    "modules/compass/evidence/collect.ts",
+    "modules/compass/index.ts",
+    "modules/compass/propose.ts"
+  ],
+  "scope": [
+    "oracle",
+    "jury",
+    "council",
+    "sentinel",
+    "ci",
+    "npm"
+  ],
+  "alternatives_considered": [],
+  "rejected_reason": [],
+  "supersedes": null,
+  "superseded_by": null,
+  "status": "open",
+  "confidence": 0.4,
+  "source_quality": "metadata-derived",
+  "needs_human_summary": true,
+  "source_module": "pr-merge",
+  "evidence_cited": [],
+  "work_ref": {
+    "type": "pr",
+    "ref": "PR #29"
+  },
+  "outcome": "Fixes the package so npm consumers can actually import from it without tsx/ts-node.\n\n## Changes\n1. **Add `.js` extensions to all relative imports in `modules/`** (38 files) — required by NodeNext moduleResolution; vitest (bundler) handles both so tests unaffected\n2. **Add `tsconfig.build.json`** — NodeNext module/moduleResolution, rootDir: modules, outDir: dist\n3. **Update `package.json`** — exports to `dist/*.js`, add `files` field, add `build` script\n4. **Update release workflow** — add `npm r"
+}
