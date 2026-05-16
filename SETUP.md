@@ -31,7 +31,7 @@ Read these files in full before proceeding:
 
 - `quorum/modules/README.md` — module overview and quick-start
 - `quorum/modules/AGENTS.md` — file ownership and invariants
-- `quorum/.github/copilot-instructions.md` — workflow rules for AI agents
+- `.github/copilot-instructions.md` — workflow rules for AI agents (installed at project root by init)
 
 These are your operating instructions for everything that follows.
 
@@ -80,16 +80,20 @@ If the project uses `yarn` or `pnpm`, use the appropriate installer instead.
 
 ### 4a. `.github/copilot-instructions.md`
 
-**If it does not exist:**
-Copy `quorum/.github/copilot-instructions.md` to `.github/copilot-instructions.md`.
+The automated init command (`npx @balpal4495/quorum@latest init`) handles this step automatically — it creates or appends to `.github/copilot-instructions.md` at the project root.
 
-**If it already exists:**
-Append the entire contents of `quorum/.github/copilot-instructions.md` to the existing file, preceded by this separator:
+**If you are completing this step manually:**
+
+Check whether `.github/copilot-instructions.md` already exists.
+
+**If it does not exist:** Fetch the Quorum copilot instructions from the Quorum GitHub repo (`balpal4495/Quorum`) at `.github/copilot-instructions.md` and write it to `.github/copilot-instructions.md` in the project root.
+
+**If it already exists and does not contain `<!-- quorum -->`:** Append the Quorum instructions to the existing file, preceded by:
 
 ```markdown
 ---
 
-<!-- Quorum: appended by setup -->
+<!-- quorum -->
 ```
 
 Do not replace or overwrite existing content.
