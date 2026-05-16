@@ -1,0 +1,39 @@
+{
+  "schema_version": 2,
+  "topic": "PR #24",
+  "decision": "feat: Compass module — product-direction synthesis",
+  "key_insight": "feat: Compass module — product-direction synthesis",
+  "affected_areas": [
+    ".github/copilot-instructions.md",
+    "README.md",
+    "bin/commands/compass.js",
+    "bin/quorum.js",
+    "modules/README.md",
+    "modules/compass/__tests__/behavior.test.ts",
+    "modules/compass/__tests__/propose.test.ts",
+    "modules/compass/__tests__/score.test.ts",
+    "modules/compass/behavior.ts",
+    "modules/compass/create.ts"
+  ],
+  "scope": [
+    "cli",
+    "ci",
+    "docs",
+    "npm"
+  ],
+  "alternatives_considered": [],
+  "rejected_reason": [],
+  "supersedes": null,
+  "superseded_by": null,
+  "status": "open",
+  "confidence": 0.4,
+  "source_quality": "metadata-derived",
+  "needs_human_summary": true,
+  "source_module": "pr-merge",
+  "evidence_cited": [],
+  "work_ref": {
+    "type": "pr",
+    "ref": "PR #24"
+  },
+  "outcome": "## What\n\nAdds **Compass** — the sixth Quorum module — and sharpens the README/package positioning that was cut from PR #23.\n\n---\n\n## Compass (`modules/compass/`)\n\nGrounds product decisions in Chronicle memory and current codebase behaviour. No analytics connections required.\n\n### CLI subcommands\n\n| Subcommand | LLM | Output |\n|---|---|---|\n| `quorum compass map` | No | Behaviour map from code, docs, tests, CLI |\n| `quorum compass opportunities` | No | Gaps from behaviour map |\n| `quorum compass "
+}
