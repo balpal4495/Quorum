@@ -227,7 +227,7 @@ describe("council/deliberate", () => {
     expect(result.blockers[0].required_fix).toBeDefined()
   })
 
-  it("risk classifier reduces advisor/reviewer count for low-risk designs", async () => {
+  it("skips Council entirely for low-risk designs (jury-only fast path)", async () => {
     const llm = vi.fn().mockResolvedValue(validChairmanJson)
     const lowRiskInput: CouncilInput = {
       outcome: "Rename internal helper functions in the reporting module",
@@ -236,9 +236,10 @@ describe("council/deliberate", () => {
       jury_output: mockJuryOutput,
     }
     const deps: CouncilDeps = { llm, oracle: mockOracle() }
-    await deliberate(lowRiskInput, deps)
-    // Low risk → jury-only mode → advisorCount=1, reviewerCount=1
-    // frame(1) + advisors(1) + reviewers(1) + chairman(1) = 4
-    expect(llm.mock.calls.length).toBe(4)
+    const result = await deliberate(lowRiskInput, deps)
+    expect(result.satisfied).toBe(true)
+    expect(result.recommendation).toBe("proceed")
+    expect(llm.mock.calls.length).toBe(0)
+    expect(deps.oracle.propose).not.toHaveBeenCalled()
   })
 })

@@ -10,8 +10,6 @@ const DEFAULT_ADVISOR_COUNT = 5
 const DEFAULT_REVIEWER_COUNT = 5
 const LITE_ADVISOR_COUNT = 1
 const LITE_REVIEWER_COUNT = 2
-const JURY_ONLY_ADVISOR_COUNT = 1
-const JURY_ONLY_REVIEWER_COUNT = 1
 
 /**
  * Run the Council deliberation pipeline.
@@ -44,14 +42,26 @@ export async function deliberate(
 
   // Classify risk to determine Council mode and advisor/reviewer counts
   const risk = classifyRisk(input.outcome, input.design, input.evidence)
+
+  if (risk.council_mode === "jury-only") {
+    return {
+      satisfied: true,
+      verdict: "Skipped — low-risk design passed by Jury without Council review.",
+      blockers: [],
+      warnings: [],
+      challenges: [],
+      evidence_cited: [],
+      citation_validation: { valid_ids: [], hallucinated_ids: [] },
+      advisor_split: { proceed: 0, redesign: 0, "investigate-more": 0 },
+      recommendation: "proceed",
+    }
+  }
+
   let defaultAdvisors = DEFAULT_ADVISOR_COUNT
   let defaultReviewers = DEFAULT_REVIEWER_COUNT
   if (risk.council_mode === "lite") {
     defaultAdvisors = LITE_ADVISOR_COUNT
     defaultReviewers = LITE_REVIEWER_COUNT
-  } else if (risk.council_mode === "jury-only") {
-    defaultAdvisors = JURY_ONLY_ADVISOR_COUNT
-    defaultReviewers = JURY_ONLY_REVIEWER_COUNT
   }
   const advisorCount = deps.advisorCount ?? defaultAdvisors
   const reviewerCount = deps.reviewerCount ?? defaultReviewers
