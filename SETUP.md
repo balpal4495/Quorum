@@ -293,6 +293,7 @@ These commands are available globally after `npm install -g @balpal4495/quorum`:
 | `quorum commit <id>` | Approve and index a proposal |
 | `quorum sentinel coverage [--path <dir>]` | Chronicle coverage of source files |
 | `quorum growth` | Chronicle learning health — growth rate, last commit, pending proposals |
+| `quorum evolve` | Consolidate Chronicle — merges duplicates, resolves contradictions, promotes open entries (needs LLM) |
 
 `quorum check` exit codes: `0` = low/medium risk · `1` = high · `2` = critical
 

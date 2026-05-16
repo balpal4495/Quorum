@@ -37,6 +37,7 @@ After `npm install -g @balpal4495/quorum` (or `npx @balpal4495/quorum`), you get
 | `quorum commit <id>` | Approve and index a pending proposal | No |
 | `quorum sentinel [coverage]` | Chronicle coverage of your source files | No |
 | `quorum growth` | Chronicle learning health — growth rate, days since last commit, pending proposals | No |
+| `quorum evolve` | Consolidate and improve Chronicle entries — merges duplicates, resolves contradictions, promotes open entries | Yes |
 
 ### `quorum check` — instant risk triage before the full pipeline
 
