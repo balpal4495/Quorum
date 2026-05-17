@@ -57,6 +57,46 @@ export async function readCommitted(chronicleDir) {
   return results.sort((a, b) => b.timestamp?.localeCompare(a.timestamp ?? "") ?? 0)
 }
 
+/**
+ * Read all evidence records from .chronicle/evidence/.
+ * Returns array sorted newest-first by ingested_at.
+ */
+export async function readEvidence(chronicleDir) {
+  const dir = path.join(chronicleDir, "evidence")
+  let files
+  try { files = await fs.readdir(dir) } catch { return [] }
+  const results = []
+  for (const file of files) {
+    if (!file.endsWith(".json")) continue
+    try {
+      const raw = await fs.readFile(path.join(dir, file), "utf8")
+      results.push(JSON.parse(raw))
+    } catch { /* skip malformed */ }
+  }
+  return results.sort((a, b) =>
+    (b.ingested_at ?? "").localeCompare(a.ingested_at ?? ""))
+}
+
+/**
+ * Read all source records from .chronicle/sources/.
+ * Returns array sorted newest-first by ingested_at.
+ */
+export async function readSources(chronicleDir) {
+  const dir = path.join(chronicleDir, "sources")
+  let files
+  try { files = await fs.readdir(dir) } catch { return [] }
+  const results = []
+  for (const file of files) {
+    if (!file.endsWith(".json")) continue
+    try {
+      const raw = await fs.readFile(path.join(dir, file), "utf8")
+      results.push(JSON.parse(raw))
+    } catch { /* skip malformed */ }
+  }
+  return results.sort((a, b) =>
+    (b.ingested_at ?? "").localeCompare(a.ingested_at ?? ""))
+}
+
 /** entryText mirrors the shared/types.ts entryText helper. */
 export function entryText(entry) {
   return `${entry.key_insight}. ${entry.decision ?? ""}`.trim().replace(/\.\.$/, ".")

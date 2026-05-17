@@ -2,6 +2,9 @@
 
 ## Week 2026-W20
 
+### [pr fix/compass-generic-sources]
+- **[6983cf49]** bin/commands/compass.js — `validated` (0.95) — compass map was scanning quorum own docs and bin/ structure in any host project, producing a map of quorum features rather than the host product surface.. Replaced four quorum-specific source scanners in compass.js with generic project detection: scanDocs now scans all root .md files + standard docs/ dirs; scanCli detects CLI layouts (bin/commands, bin/, src/commands) and falls through to Next.js app/pages route scanning; scanRepo scans top-level dirs against a source-hint list instead of hardcoding modules/; inferArea derives from route path segments or tags instead of a fixed quorum module list; mapBehaviors removes the hardcoded EXPECTED gap list and compass-specific gap.
+
 ### [pr PR #1]
 - **[d99b3438]** CLAUDE.md, GEMINI.md, SETUP.md, bin/init.js — `validated` (0.88) — Support Claude Code, Gemini CLI, and Copilot as first-class agents via conditional instruction files; Gemini is opt-in at runtime — projects without it are fully unaffected. Support Claude Code, Gemini CLI, and Copilot as first-class agents via conditional instruction files; Gemini is opt-in at runtime — projects without it are fully unaffected
 
@@ -30,6 +33,17 @@
 - **[66c3b4bb]** scripts/chronicle-growth.js, .github/workflows/chronicle-on-merge.yml — `validated` (0.91) — chronicle-on-merge.yml posts a PR comment on every merge showing Chronicle entry count delta and which entries were committed during that PR — team-visible proof of learning attached to specific work.. chronicle-on-merge.yml posts a PR comment on every merge showing Chronicle entry count delta and which entries were committed during that PR — team-visible proof of learning attached to specific work.
 - **[090c7dc6]** modules/advisor/ask.ts, modules/setup.ts — `validated` (0.97) — Advisor is a strictly read-only path — it never calls oracle.propose() or oracle.commit(). Advisor is a strictly read-only path — it never calls oracle.propose() or oracle.commit(). Any write to Chronicle must go through Jury/Council or direct oracle.propose() in the host application.
 - **[3efb1789]** modules/advisor/ask.ts, modules/advisor/prompt.ts — `validated` (0.92) — Advisor validates its own answers before returning — retries up to 2 times when confidence < 0.7 or blockers are present, passing the previous answer as context. Advisor validates its own answers before returning — retries up to 2 times when confidence < 0.7 or blockers are present, passing the previous answer as context
+
+### [pr PR #24]
+- **[e950480e]** modules/compass/propose.ts, modules/compass/index.ts — `validated` (0.98) — Compass must only stage Chronicle entries via oracle.propose() — never commit autonomously.. All Compass-generated Chronicle entries must use oracle.propose() and wait for human commit(). Compass must never call oracle.commit() autonomously.
+- **[d09c0b34]** modules/compass/behavior.ts, modules/compass/types.ts — `validated` (0.90) — Compass outputs are directional signals synthesised from project structure — not authoritative product state. Confidence + generated_at are mandatory.. Compass behaviors, gaps, pathways, and bets are LLM-synthesised directional signals. They must never be presented as authoritative product state. All output surfaces must include a confidence score and a generated_at timestamp.
+
+### [pr PR #30]
+- **[2caf9c75]** bin/commands/compass.js, modules/compass/score.ts — `validated` (0.95) — LLM score fields must be coerced through parseFloat(v) || 0, not ?? 0, because ?? does not catch non-numeric strings.. computeScore and any dimension-weighted scoring must coerce all LLM-returned values through parseFloat() with a 0 fallback. The ?? 0 pattern does not guard against non-numeric strings like "high", "~0.7", or template placeholders.
+
+### [pr PR #32]
+- **[291551d8]** modules/compass/__tests__/behavior.test.ts, modules/compass/behavior.ts, modules/compass/sources/index.ts — `open` (0.40) — fix(compass): port generic project scanner to programmatic API. fix(compass): port generic project scanner to programmatic API
+- **[cfa54f83]** modules/compass/sources/index.ts, bin/commands/compass.js — `validated` (0.95) — Compass source scanners must produce findings about the host project. Any hardcoded reference to quorum module names in scanner logic is a defect.. Compass source scanners must produce findings about the host project. Any hardcoded reference to quorum module names (oracle, advisor, jury, council, sentinel, compass, chronicle) in scanner logic is a defect.
 
 ### [pr PR #6]
 - **[10b848a2]** docs, README.md, mermaid — `validated` (0.97) — Mermaid node labels do not support \n line breaks — the escape is parsed literally and causes the entire diagram to fail silently on GitHub with a blank render and no error message.
