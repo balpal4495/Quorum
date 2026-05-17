@@ -77,7 +77,8 @@ export async function createLanceDBStore(chronicleDir: string): Promise<VectorSt
     async getAll() {
       const t = await getOrCreateTable()
       if (!t) return []
-      const rows: LanceRow[] = await t.query().execute()
+      // vectordb v0.4.x has no t.query() — use filter with a tautology to fetch all rows
+      const rows: LanceRow[] = await t.filter("id IS NOT NULL").execute()
       return rows.map(row => JSON.parse(row.payload) as ChronicleEntry)
     },
   }

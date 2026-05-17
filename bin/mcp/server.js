@@ -27,8 +27,11 @@ import {
   toolBrief,
   toolCoverage,
   toolGrowth,
+  toolCompass,
   commitProposal,
   deleteProposal,
+  updateProposal,
+  setLLM,
 } from "./tools.js"
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -125,9 +128,15 @@ async function handleMCP(body, defaultProjectRoot) {
           mimeType:    "application/json",
         },
         {
+          uri:         "chronicle://compass",
+          name:        "Compass product direction",
+          description: "Latest Compass map: behaviours, gaps, and opportunities detected from the codebase.",
+          mimeType:    "application/json",
+        },
+        {
           uriTemplate: "chronicle://entry/{id}",
           name:        "Chronicle entry",
-          description: "A single committed Chronicle entry by ID (prefix or full UUID).",
+          description: "A single committed Chronicle entry by id or 8-char prefix.",
           mimeType:    "application/json",
         },
       ],
@@ -157,6 +166,11 @@ async function handleMCP(body, defaultProjectRoot) {
 
     if (uri === "chronicle://growth") {
       const result = await toolGrowth({ projectRoot: defaultProjectRoot })
+      return rpcOk(id, { contents: [{ uri, mimeType: "application/json", text: JSON.stringify(result, null, 2) }] })
+    }
+
+    if (uri === "chronicle://compass") {
+      const result = await toolCompass({ subcommand: "map", projectRoot: defaultProjectRoot })
       return rpcOk(id, { contents: [{ uri, mimeType: "application/json", text: JSON.stringify(result, null, 2) }] })
     }
 
@@ -198,7 +212,9 @@ function setCORS(res) {
 
 // ── Server factory ────────────────────────────────────────────────────────────
 
-export async function createServer({ projectRoot, chronicleDir }) {
+export async function createServer({ projectRoot, chronicleDir, llm = null }) {
+  // Wire LLM into tools module so advisor/check/compass MCP tools work
+  setLLM(llm)
   let uiHtml
   try {
     uiHtml = await fs.readFile(UI_PATH, "utf8")
@@ -282,6 +298,24 @@ export async function createServer({ projectRoot, chronicleDir }) {
         } catch (err) {
           return json(res, 404, { error: err.message })
         }
+      }
+
+      // ── REST: edit/patch proposal ───────────────────────────────────────────
+      if (proposalMatch && req.method === "PATCH") {
+        try {
+          const body   = await readBody(req)
+          const result = await updateProposal(proposalMatch[1], body, chronicleDir)
+          return json(res, 200, result)
+        } catch (err) {
+          return json(res, 400, { error: err.message })
+        }
+      }
+
+      // ── REST: compass ───────────────────────────────────────────────────────
+      if (pathname === "/api/compass" && req.method === "GET") {
+        const subcommand = new URL(req.url, "http://localhost").searchParams.get("subcommand") ?? "map"
+        const result = await toolCompass({ subcommand, projectRoot })
+        return json(res, 200, result)
       }
 
       // ── Web UI ──────────────────────────────────────────────────────────────

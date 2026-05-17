@@ -1,6 +1,7 @@
 import { c } from "../shared/colors.js"
 import { findChronicleDir } from "../shared/chronicle.js"
 import { createServer } from "../mcp/server.js"
+import { detectProvider } from "../shared/llm.js"
 
 function parseArgs(argv) {
   const portIdx = argv.indexOf("--port")
@@ -9,11 +10,12 @@ function parseArgs(argv) {
     : Number(argv.find(a => /^\d{2,5}$/.test(a)) ?? 3000)
   const hostIdx = argv.indexOf("--host")
   const host = hostIdx !== -1 ? argv[hostIdx + 1] : "localhost"
-  return { port: isNaN(port) ? 3000 : port, host }
+  const noLlm = argv.includes("--no-llm")
+  return { port: isNaN(port) ? 3000 : port, host, noLlm }
 }
 
 export async function run(argv) {
-  const { port, host } = parseArgs(argv)
+  const { port, host, noLlm } = parseArgs(argv)
 
   const projectRoot  = process.cwd()
   const chronicleDir = await findChronicleDir(projectRoot)
@@ -23,14 +25,31 @@ export async function run(argv) {
     process.exit(1)
   }
 
-  const server = await createServer({ projectRoot, chronicleDir })
+  // Auto-detect LLM provider unless --no-llm is passed
+  let llmProvider = null
+  let llmName = null
+  if (!noLlm) {
+    const detected = await detectProvider()
+    if (detected) {
+      llmProvider = detected.llm
+      llmName     = detected.name
+    }
+  }
+
+  const server = await createServer({ projectRoot, chronicleDir, llm: llmProvider })
 
   server.listen(port, host, () => {
     const base = `http://${host}:${port}`
     console.log(`\n${c.bold("Quorum")}  ${c.dim(`serving ${projectRoot}`)}\n`)
     console.log(`  ${c.cyan("UI")}         ${c.dim(base + "/")}`)
     console.log(`  ${c.cyan("MCP")}        ${c.dim(base + "/mcp")}`)
-    console.log(`  ${c.cyan("Chronicle")}  ${c.dim(chronicleDir)}\n`)
+    console.log(`  ${c.cyan("Chronicle")}  ${c.dim(chronicleDir)}`)
+    if (llmName) {
+      console.log(`  ${c.cyan("LLM")}        ${c.dim(llmName + " (advisor/check/compass enabled)")}`)
+    } else {
+      console.log(`  ${c.cyan("LLM")}        ${c.dim("none — LLM tools return CLI fallback hints")}`)
+    }
+    console.log()
     console.log(c.bold("Claude Desktop") + c.dim(" — add to claude_desktop_config.json:"))
     console.log(c.dim(JSON.stringify({
       mcpServers: { quorum: { type: "streamable-http", url: `${base}/mcp` } }

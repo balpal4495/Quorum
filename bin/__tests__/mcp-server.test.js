@@ -474,7 +474,7 @@ describe("POST /mcp — tools/call", () => {
     expect(typeof result.content).toBe("string")
   })
 
-  it("quorum_advisor returns todo status", async () => {
+  it("quorum_advisor returns no-llm status when no provider is configured", async () => {
     const { dir } = await makeChronicle(tmpDir)
     srv = await startServer(tmpDir, dir)
 
@@ -485,7 +485,7 @@ describe("POST /mcp — tools/call", () => {
 
     expect(body.error).toBeUndefined()
     const result = JSON.parse(body.result.content[0].text)
-    expect(result.status).toBe("todo")
+    expect(result.status).toBe("no-llm")
   })
 
   it("returns -32601 for unknown tool name", async () => {
@@ -555,7 +555,7 @@ describe("unknown route", () => {
 // ── MCP Resources ─────────────────────────────────────────────────────────────
 
 describe("POST /mcp — resources/list", () => {
-  it("returns all five chronicle:// resources", async () => {
+  it("returns all six chronicle:// resources", async () => {
     const { dir } = await makeChronicle(tmpDir)
     srv = await startServer(tmpDir, dir)
 
@@ -570,7 +570,8 @@ describe("POST /mcp — resources/list", () => {
     expect(uris).toContain("chronicle://coverage")
     expect(uris).toContain("chronicle://growth")
     expect(uris).toContain("chronicle://entry/{id}")
-    expect(uris).toHaveLength(5)
+    expect(uris).toContain("chronicle://compass")
+    expect(uris).toHaveLength(6)
   })
 
   it("each resource has a name, description, and mimeType", async () => {

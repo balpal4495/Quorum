@@ -1,0 +1,77 @@
+{
+  "schema_version": 2,
+  "topic": "governance-ui/mcp-resource-layer",
+  "decision": "Build a human governance console at quorum serve /app (Phase 1: Proposal Review UI — browse, approve, reject, edit pending proposals with evidence inline). Extend quorum serve rather than adding new entry commands. MCP resource layer (quorum://chronicle/*, quorum://growth, quorum://sentinel/coverage, quorum://compass/map) for agent context. quorum_commit_proposal MCP tool must not auto-commit — it returns a proposal ID; the only commit paths are quorum commit <id> CLI or the UI approve button. Phase 2 (Chronicle browser + Growth dashboard) and Phase 3 (Sentinel + Compass maps) gate on Phase 1 usage evidence. Phase 4 (MCP Apps embedded widgets) is a research item, not roadmap.",
+  "key_insight": "The governance UI closes the biggest UX gap in Quorum: the human-gate principle is validated across Chronicle, but reviewing raw JSON proposals in .chronicle/proposals/ is friction that deters real use. Proposal Review UI directly strengthens the most important Quorum invariant — humans approve memory — without weakening it. Agents stage; humans commit. This boundary must hold across CLI, MCP, and UI.",
+  "affected_areas": [
+    "bin/commands/serve.js",
+    "bin/ui/app.html",
+    "bin/mcp/tools.js",
+    "bin/mcp/server.js"
+  ],
+  "scope": [
+    "ui",
+    "mcp",
+    "governance",
+    "chronicle",
+    "human-gate",
+    "proposal-review"
+  ],
+  "alternatives_considered": [
+    "quorum mcp --ui as separate command from quorum serve",
+    "quorum_commit_proposal as an auto-committing MCP tool",
+    "MCP Apps (embedded UI widgets) as Phase 1 priority",
+    "Full dashboard (all pages) as v1 scope"
+  ],
+  "rejected_reason": [
+    "Separate serve/mcp commands duplicate the server entrypoint — quorum serve already exists and is the right extension point",
+    "Auto-committing MCP tool violates the agents-stage-humans-commit invariant; prompt-level guardrails are not security",
+    "MCP Apps spec is immature and depends on third-party host rendering support; risk outweighs reward in Phase 1",
+    "Full dashboard as v1 risks shipping nothing — Proposal Review alone has the highest ROI and lowest scope"
+  ],
+  "status": "open",
+  "confidence": 0.8,
+  "source_module": "council",
+  "evidence_cited": [
+    "17c26113",
+    "e950480e",
+    "090c7dc6",
+    "bf448871",
+    "d09c0b34",
+    "09676e84"
+  ],
+  "jury": {
+    "confidence": 0.79,
+    "recommendation": "proceed",
+    "council_brief": "pressure-test",
+    "breakdown": {
+      "evidence_support": 0.82,
+      "feasibility": 0.8,
+      "risk": 0.78,
+      "completeness": 0.76
+    }
+  },
+  "council": {
+    "satisfied": true,
+    "recommendation": "proceed",
+    "conditions": [
+      "quorum_commit_proposal MCP tool must not auto-commit — return proposal ID only",
+      "Phase 1 (Proposal Review UI) ships as v1; Phases 2-3 are v2; Phase 4 (MCP Apps) is research",
+      "quorum serve is the single entrypoint — no new top-level commands for starting the server"
+    ]
+  },
+  "compass": {
+    "score": 0.81,
+    "strategic_alignment": 0.88,
+    "risks": [
+      "UI becomes substitute for good agent prompting rather than complement",
+      "MCP Apps spec immaturity creates Phase 4 long-tail dependency"
+    ]
+  },
+  "work_ref": {
+    "type": "discussion",
+    "ref": "Copilot governance UI proposal — May 2026"
+  },
+  "id": "2b6aef43-09e3-4a35-9113-eef6310ef524",
+  "timestamp": "2026-05-17T16:02:10.302Z"
+}

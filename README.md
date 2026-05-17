@@ -380,6 +380,43 @@ Writes to `.chronicle/committed/`, updates `SUMMARY.md`, removes the proposal. A
 
 ---
 
+### `quorum serve` — governance UI + MCP server
+
+```bash
+quorum serve              # starts on http://localhost:4242
+quorum serve --port 8080  # custom port
+quorum serve --no-llm     # disable LLM auto-detection
+```
+
+Starts a single HTTP server that provides:
+
+- **Governance UI** at `/` — browse committed entries, review and approve pending proposals (with inline evidence, Jury breakdown, and Council conditions), track Chronicle health, and run Compass product-direction analysis.
+- **MCP server** at `POST /mcp` — JSON-RPC 2.0 endpoint exposing 10 tools and 6 resources to any MCP-compatible agent.
+- **REST API** — used by the UI and accessible directly:
+
+| Route | Description |
+|---|---|
+| `GET /api/entries?q=<query>` | Search committed Chronicle entries |
+| `GET /api/proposals` | List pending proposals |
+| `GET /api/coverage` | Chronicle coverage map |
+| `GET /api/growth` | Chronicle health score |
+| `GET /api/compass?subcommand=map\|brief\|opportunities\|bets` | Compass product direction |
+| `PATCH /api/proposals/:id` | Edit a pending proposal before committing |
+
+**MCP resources** (readable by agents via `resources/read`):
+
+```
+chronicle://summary          chronicle://proposals
+chronicle://coverage         chronicle://growth
+chronicle://compass          chronicle://entry/{id}
+```
+
+**MCP tools**: `quorum_query`, `quorum_brief`, `quorum_stage`, `quorum_pending`, `quorum_coverage`, `quorum_growth`, `quorum_help`, `quorum_advisor`\*, `quorum_check`, `quorum_compass`\*
+
+\* LLM-powered tools auto-activate when `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, or `GEMINI_API_KEY` is set. Without a key they return a `no-llm` status with CLI fallback instructions.
+
+---
+
 ### `quorum growth` — is Chronicle actually learning?
 
 ```bash

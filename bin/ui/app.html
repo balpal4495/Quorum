@@ -351,6 +351,179 @@
   ::-webkit-scrollbar       { width: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* ── Growth ── */
+  .health-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .health-stat {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+  }
+  .health-stat-val {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1;
+  }
+  .health-stat-lbl {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+  }
+  .health-score-wrap {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+  }
+  .health-score-num {
+    font-size: 52px;
+    font-weight: 800;
+    line-height: 1;
+  }
+  .health-score-text { flex: 1; }
+  .health-score-label {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    margin-bottom: 4px;
+  }
+  .health-hint { font-size: 13px; color: var(--muted); }
+  .hint-thriving { color: var(--green); }
+  .hint-healthy  { color: var(--accent); }
+  .hint-slow     { color: var(--yellow); }
+  .hint-stalled  { color: var(--red); }
+
+  /* ── Compass ── */
+  .compass-output {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    font-family: var(--mono);
+    font-size: 12px;
+    white-space: pre-wrap;
+    color: var(--muted);
+    max-height: 500px;
+    overflow-y: auto;
+    line-height: 1.6;
+  }
+
+  /* ── Edit modal ── */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.65);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px;
+    width: min(560px, 94vw);
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .modal h3 { font-size: 15px; font-weight: 700; margin-bottom: 16px; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 5px; }
+  .field input, .field textarea, .field select {
+    width: 100%;
+    padding: 8px 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font: inherit;
+    font-size: 13px;
+    outline: none;
+    transition: border-color .15s;
+    resize: vertical;
+  }
+  .field input:focus, .field textarea:focus, .field select:focus { border-color: var(--accent); }
+  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+
+  /* ── Evidence/jury breakdown on proposals ── */
+  .evidence-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+  .evidence-tag {
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba(124,110,255,.12);
+    color: var(--accent);
+    border: 1px solid rgba(124,110,255,.2);
+  }
+  .breakdown-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 3px;
+  }
+  .breakdown-label { width: 128px; flex-shrink: 0; }
+  .breakdown-bar {
+    flex: 1;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--border);
+    overflow: hidden;
+  }
+  .breakdown-fill { height: 100%; border-radius: 2px; background: var(--accent); }
+  .breakdown-pct { width: 28px; text-align: right; color: var(--muted); }
+  .jury-section {
+    margin-top: 10px;
+    padding: 8px 10px;
+    background: rgba(124,110,255,.05);
+    border: 1px solid rgba(124,110,255,.12);
+    border-radius: 6px;
+  }
+  .jury-section-title {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .council-section {
+    margin-top: 8px;
+    padding: 8px 10px;
+    background: rgba(82,168,224,.05);
+    border: 1px solid rgba(82,168,224,.12);
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--blue);
+  }
+  .council-section-title {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .council-section ul { margin: 0 0 0 14px; }
+  .council-section li { margin-bottom: 2px; color: var(--blue); }
 </style>
 </head>
 <body>
@@ -361,6 +534,8 @@
     <button class="active" onclick="showTab('chronicle')">Chronicle</button>
     <button onclick="showTab('proposals')">Proposals <span class="badge" id="proposalCount" style="display:none"></span></button>
     <button onclick="showTab('coverage')">Coverage</button>
+    <button onclick="showTab('growth')">Growth</button>
+    <button onclick="showTab('compass')">Compass</button>
   </nav>
 </header>
 
@@ -386,7 +561,62 @@
     <p class="section-sub">Source files with Chronicle entries referencing them.</p>
     <div id="coverageView"><div class="loading">Loading…</div></div>
   </div>
+
+  <!-- ── Growth tab ───────────────────────────────────────────────── -->
+  <div id="tab-growth" class="tab">
+    <h2 class="section-heading">Growth</h2>
+    <p class="section-sub">Chronicle memory health — how actively this codebase is learning.</p>
+    <div id="growthView"><div class="loading">Loading…</div></div>
+  </div>
+
+  <!-- ── Compass tab ──────────────────────────────────────────────── -->
+  <div id="tab-compass" class="tab">
+    <h2 class="section-heading">Compass</h2>
+    <p class="section-sub">Product-direction synthesis — behaviours, gaps, and opportunities.</p>
+    <div class="toolbar" style="margin-bottom:20px">
+      <select id="compassSubcmd" style="max-width:200px;flex:none;padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font:inherit;font-size:13px;outline:none">
+        <option value="map">Behaviour map</option>
+        <option value="brief">Direction brief</option>
+        <option value="opportunities">Opportunities</option>
+        <option value="bets">Strategic bets</option>
+      </select>
+      <button class="btn" onclick="loadCompass()" style="flex:none">Run</button>
+    </div>
+    <div id="compassView"><div class="empty">Select a subcommand and click Run.<small>Requires an LLM provider configured for quorum serve.</small></div></div>
+  </div>
 </main>
+
+<!-- ── Edit proposal modal ───────────────────────────────────────────── -->
+<div class="modal-overlay" id="editModal" onclick="closeEditModal(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <h3>Edit proposal</h3>
+    <input type="hidden" id="editId">
+    <div class="field">
+      <label>Topic</label>
+      <input type="text" id="editTopic">
+    </div>
+    <div class="field">
+      <label>Decision / key insight</label>
+      <textarea id="editDecision" rows="5"></textarea>
+    </div>
+    <div class="field">
+      <label>Status</label>
+      <select id="editStatus">
+        <option value="open">open</option>
+        <option value="validated">validated</option>
+        <option value="refuted">refuted</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Confidence (0–1)</label>
+      <input type="number" id="editConfidence" min="0" max="1" step="0.05">
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeEditModal()">Cancel</button>
+      <button class="btn btn-approve" onclick="saveEdit()">Save changes</button>
+    </div>
+  </div>
+</div>
 
 <div id="toast"></div>
 
@@ -396,6 +626,7 @@
 let allEntries    = []
 let allProposals  = []
 let coverageData  = null
+let growthData    = null
 let searchTimer   = null
 let activeTab     = "chronicle"
 
@@ -404,19 +635,22 @@ let activeTab     = "chronicle"
 window.addEventListener("DOMContentLoaded", () => {
   loadChronicle()
   loadProposals()
-  // Lazy-load coverage when tab is first opened
+  // Other tabs loaded lazily on first open
 })
 
 // ── Tab switching ──────────────────────────────────────────────────────────
 
+const TAB_NAMES = ["chronicle", "proposals", "coverage", "growth", "compass"]
+
 function showTab(name) {
   document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"))
   document.querySelectorAll("nav button").forEach((b, i) => {
-    b.classList.toggle("active", ["chronicle","proposals","coverage"][i] === name)
+    b.classList.toggle("active", TAB_NAMES[i] === name)
   })
   document.getElementById(`tab-${name}`).classList.add("active")
   activeTab = name
   if (name === "coverage" && !coverageData) loadCoverage()
+  if (name === "growth"   && !growthData)   loadGrowth()
 }
 
 // ── Toast ──────────────────────────────────────────────────────────────────
@@ -541,10 +775,49 @@ async function loadProposals() {
   }
 }
 
+function juryBreakdown(jury) {
+  if (!jury?.breakdown) return ""
+  const dims = [
+    ["Evidence support",  jury.breakdown.evidence_support],
+    ["Feasibility",       jury.breakdown.feasibility],
+    ["Risk",              jury.breakdown.risk],
+    ["Completeness",      jury.breakdown.completeness],
+  ]
+  const rows = dims.filter(([,v]) => v != null).map(([label, v]) => {
+    const pct = Math.round(v * 100)
+    return `<div class="breakdown-row">
+      <span class="breakdown-label">${esc(label)}</span>
+      <span class="breakdown-bar"><span class="breakdown-fill" style="width:${pct}%"></span></span>
+      <span class="breakdown-pct">${pct}%</span>
+    </div>`
+  }).join("")
+  if (!rows) return ""
+  return `<div class="jury-section">
+    <div class="jury-section-title">Jury · confidence ${Math.round((jury.confidence ?? 0) * 100)}% · ${esc(jury.recommendation ?? "")}</div>
+    ${rows}
+  </div>`
+}
+
+function councilConditions(council) {
+  if (!council?.conditions?.length) return ""
+  const items = council.conditions.map(c => `<li>${esc(c)}</li>`).join("")
+  const sat = council.satisfied ? "✓ satisfied" : "✗ not satisfied"
+  return `<div class="council-section">
+    <div class="council-section-title">Council · ${esc(sat)} · ${esc(council.recommendation ?? "")}</div>
+    <ul>${items}</ul>
+  </div>`
+}
+
+function evidenceTags(ids) {
+  if (!ids?.length) return ""
+  const tags = ids.map(id => `<span class="evidence-tag">${esc(String(id).slice(0,8))}</span>`).join("")
+  return `<div class="evidence-tags">${tags}</div>`
+}
+
 function renderProposals(proposals) {
   const el = document.getElementById("proposalList")
   if (!proposals.length) {
-    el.innerHTML = `<div class="empty">No pending proposals<small>AI agents stage proposals via <code>chronicle_propose</code> or <code>quorum commit --list</code></small></div>`
+    el.innerHTML = `<div class="empty">No pending proposals<small>AI agents stage proposals via <code>quorum_stage</code> MCP tool or <code>oracle.propose()</code></small></div>`
     return
   }
   el.innerHTML = proposals.map(p => `
@@ -555,13 +828,18 @@ function renderProposals(proposals) {
       </div>
       <div class="card-body">${esc(p.decision ?? p.key_insight ?? "")}</div>
       ${areas(p.affected_areas)}
+      ${evidenceTags(p.evidence_cited)}
+      ${juryBreakdown(p.jury)}
+      ${councilConditions(p.council)}
       <div class="card-meta" style="margin-top:10px">
         <span style="font-family:var(--mono);font-size:11px;color:var(--muted)">${esc(p.proposalId?.slice(0,8))}</span>
         ${confidenceBar(p.confidence)}
+        ${p.source_module ? `<span style="font-size:11px;color:var(--muted)">${esc(p.source_module)}</span>` : ""}
       </div>
       <div class="actions">
         <button class="btn btn-approve" onclick="approveProposal('${esc(p.proposalId)}', this)">✓ Approve</button>
         <button class="btn btn-reject"  onclick="rejectProposal('${esc(p.proposalId)}', this)">✕ Reject</button>
+        <button class="btn"             onclick="openEditModal('${esc(p.proposalId)}')">Edit</button>
       </div>
     </div>
   `).join("")
@@ -599,6 +877,48 @@ async function rejectProposal(id, btn) {
   } catch (err) {
     btn.disabled = false
     btn.textContent = "✕ Reject"
+    toast(err.message, "err")
+  }
+}
+
+// ── Edit modal ────────────────────────────────────────────────────────────
+
+function openEditModal(id) {
+  const p = allProposals.find(x => x.proposalId === id)
+  if (!p) return
+  document.getElementById("editId").value         = id
+  document.getElementById("editTopic").value       = p.topic ?? ""
+  document.getElementById("editDecision").value    = p.decision ?? p.key_insight ?? ""
+  document.getElementById("editStatus").value      = p.status ?? "open"
+  document.getElementById("editConfidence").value  = p.confidence ?? 0.7
+  document.getElementById("editModal").classList.add("open")
+}
+
+function closeEditModal(e) {
+  if (e && e.target !== document.getElementById("editModal")) return
+  document.getElementById("editModal").classList.remove("open")
+}
+
+async function saveEdit() {
+  const id         = document.getElementById("editId").value
+  const topic      = document.getElementById("editTopic").value.trim()
+  const decision   = document.getElementById("editDecision").value.trim()
+  const status     = document.getElementById("editStatus").value
+  const confidence = parseFloat(document.getElementById("editConfidence").value)
+
+  if (!topic || !decision) { toast("Topic and decision are required", "err"); return }
+
+  try {
+    const res = await fetch(`/api/proposals/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ topic, decision, key_insight: decision, status, confidence }),
+    })
+    if (!res.ok) throw new Error((await res.json()).error)
+    document.getElementById("editModal").classList.remove("open")
+    toast("Proposal updated")
+    loadProposals()
+  } catch (err) {
     toast(err.message, "err")
   }
 }
@@ -669,6 +989,99 @@ function renderCoverage(data) {
     </div>` : ""}
 
     ${totalFiles === 0 ? `<div class="empty">No source files found</div>` : ""}
+  `
+}
+
+// ── Growth ────────────────────────────────────────────────────────────────
+
+async function loadGrowth() {
+  document.getElementById("growthView").innerHTML = `<div class="loading">Loading…</div>`
+  try {
+    const res = await fetch("/api/growth")
+    growthData = await res.json()
+    renderGrowth(growthData)
+  } catch (err) {
+    document.getElementById("growthView").innerHTML =
+      `<div class="empty">Failed to load growth data<small>${esc(err.message)}</small></div>`
+  }
+}
+
+function renderGrowth(data) {
+  const { health, entries, proposals, hint } = data
+  const col = health >= 80 ? "var(--green)" : health >= 60 ? "var(--accent)" : health >= 40 ? "var(--yellow)" : "var(--red)"
+  const label = health >= 80 ? "THRIVING" : health >= 60 ? "HEALTHY" : health >= 40 ? "SLOW" : "STALLED"
+
+  document.getElementById("growthView").innerHTML = `
+    <div class="health-score-wrap">
+      <div class="health-score-num" style="color:${col}">${health}</div>
+      <div class="health-score-text">
+        <div class="health-score-label" style="color:${col}">${label}</div>
+        <div class="health-hint">${esc(hint ?? "")}</div>
+      </div>
+    </div>
+
+    <div class="health-grid">
+      <div class="health-stat">
+        <div class="health-stat-val">${entries.total}</div>
+        <div class="health-stat-lbl">Total entries</div>
+      </div>
+      <div class="health-stat">
+        <div class="health-stat-val" style="color:var(--green)">${entries.byStatus.validated ?? 0}</div>
+        <div class="health-stat-lbl">Validated</div>
+      </div>
+      <div class="health-stat">
+        <div class="health-stat-val" style="color:var(--blue)">${entries.byStatus.open ?? 0}</div>
+        <div class="health-stat-lbl">Open</div>
+      </div>
+      <div class="health-stat">
+        <div class="health-stat-val" style="color:var(--red)">${entries.byStatus.refuted ?? 0}</div>
+        <div class="health-stat-lbl">Refuted</div>
+      </div>
+      <div class="health-stat">
+        <div class="health-stat-val" style="color:var(--yellow)">${proposals.pending}</div>
+        <div class="health-stat-lbl">Pending proposals</div>
+      </div>
+      <div class="health-stat">
+        <div class="health-stat-val">${Math.round((entries.avgConfidence ?? 0) * 100)}%</div>
+        <div class="health-stat-lbl">Avg confidence</div>
+      </div>
+    </div>
+
+    ${proposals.pending > 0 ? `
+      <div class="card" style="border-color:rgba(224,185,82,.3);background:rgba(224,185,82,.04)">
+        <div class="card-body" style="color:var(--yellow)">
+          ${proposals.pending} proposal${proposals.pending === 1 ? "" : "s"} awaiting approval.
+          <a href="#" onclick="showTab('proposals');return false" style="color:var(--accent);text-decoration:none;margin-left:6px">Review →</a>
+        </div>
+      </div>` : ""}
+  `
+}
+
+// ── Compass ───────────────────────────────────────────────────────────────
+
+async function loadCompass() {
+  const subcommand = document.getElementById("compassSubcmd").value
+  document.getElementById("compassView").innerHTML = `<div class="loading">Running compass ${esc(subcommand)}…</div>`
+  try {
+    const res  = await fetch(`/api/compass?subcommand=${encodeURIComponent(subcommand)}`)
+    const data = await res.json()
+    renderCompass(data, subcommand)
+  } catch (err) {
+    document.getElementById("compassView").innerHTML =
+      `<div class="empty">Failed to run compass<small>${esc(err.message)}</small></div>`
+  }
+}
+
+function renderCompass(data, subcommand) {
+  const el = document.getElementById("compassView")
+  if (data.status === "no-llm") {
+    el.innerHTML = `<div class="empty">${esc(data.message)}<small>Set ANTHROPIC_API_KEY, OPENAI_API_KEY, or GEMINI_API_KEY and restart quorum serve.</small></div>`
+    return
+  }
+  const output = data.output ?? JSON.stringify(data, null, 2)
+  el.innerHTML = `
+    <div style="font-size:12px;color:var(--muted);margin-bottom:10px">compass ${esc(subcommand)}</div>
+    <div class="compass-output">${esc(output)}</div>
   `
 }
 </script>
