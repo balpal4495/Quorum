@@ -553,6 +553,173 @@
     border-radius: 0 var(--radius) var(--radius) 0;
   }
 
+  /* ── Advisor chat ── */
+  .chat-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-height: 520px;
+    overflow-y: auto;
+    padding-bottom: 4px;
+    margin-bottom: 14px;
+  }
+  .chat-bubble {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    max-width: 92%;
+  }
+  .chat-bubble--user { align-self: flex-end; }
+  .chat-bubble--ai   { align-self: flex-start; }
+  .chat-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--muted);
+  }
+  .chat-bubble--user .chat-label { text-align: right; }
+  .chat-body {
+    font-size: 13px;
+    line-height: 1.6;
+    padding: 10px 14px;
+    border-radius: var(--radius);
+  }
+  .chat-bubble--user .chat-body {
+    background: rgba(124,110,255,.15);
+    color: var(--text);
+    border-radius: var(--radius) var(--radius) 2px var(--radius);
+  }
+  .chat-bubble--ai .chat-body {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 2px var(--radius) var(--radius) var(--radius);
+  }
+  .chat-citations {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 4px;
+  }
+  .chat-citation {
+    font-size: 11px;
+    font-family: var(--mono);
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba(82,168,224,.1);
+    color: var(--blue);
+  }
+  .chat-confidence {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+  .chat-input-row {
+    display: flex;
+    gap: 8px;
+  }
+  .chat-input-row input {
+    flex: 1;
+    padding: 10px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font: inherit;
+    font-size: 13px;
+    outline: none;
+    transition: border-color .15s;
+  }
+  .chat-input-row input:focus { border-color: var(--accent); }
+
+  /* ── Check ── */
+  .risk-banner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: var(--radius);
+    margin-bottom: 16px;
+    border: 1px solid var(--border);
+  }
+  .risk-level {
+    font-size: 18px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+  }
+  .risk-critical { background: rgba(224,82,82,.12);   color: var(--red);    border-color: rgba(224,82,82,.3); }
+  .risk-high     { background: rgba(224,185,82,.12);  color: var(--yellow); border-color: rgba(224,185,82,.3); }
+  .risk-medium   { background: rgba(82,168,224,.10);  color: var(--blue);   border-color: rgba(82,168,224,.3); }
+  .risk-low      { background: rgba(52,201,122,.10);  color: var(--green);  border-color: rgba(52,201,122,.3); }
+  .preflight-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    margin-bottom: 6px;
+  }
+  .preflight-ok  { color: var(--green); }
+  .preflight-bad { color: var(--yellow); }
+
+  /* ── Ingest ── */
+  .ingest-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 14px;
+  }
+  .ingest-section-title {
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    color: var(--text);
+  }
+  .ingest-result {
+    margin-top: 10px;
+    font-size: 12px;
+    font-family: var(--mono);
+    color: var(--muted);
+    line-height: 1.8;
+  }
+
+  /* ── Sentinel drift ── */
+  .drift-flag {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--yellow);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+  }
+  .drift-flag-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .drift-flag-body {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+  .drift-missing {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 6px;
+  }
+  .drift-path {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 2px 6px;
+    background: rgba(224,82,82,.1);
+    color: var(--red);
+    border-radius: 4px;
+  }
+
   /* ── Edit modal ── */
   .modal-overlay {
     display: none;
@@ -667,6 +834,14 @@
     <button onclick="showTab('coverage')">Coverage</button>
     <button onclick="showTab('growth')">Growth</button>
     <button onclick="showTab('compass')">Compass</button>
+    <button onclick="showTab('advisor')">Advisor</button>
+    <button onclick="showTab('check')">Check</button>
+    <button onclick="showTab('ingest')">Ingest</button>
+    <button onclick="showTab('sentinel')">Sentinel</button>
+    <button onclick="showTab('advisor')">Advisor</button>
+    <button onclick="showTab('check')">Check</button>
+    <button onclick="showTab('ingest')">Ingest</button>
+    <button onclick="showTab('sentinel')">Sentinel</button>
   </nav>
 </header>
 
@@ -714,6 +889,98 @@
       <button class="btn" onclick="loadCompass()" style="flex:none">Run</button>
     </div>
     <div id="compassView"><div class="empty">Select a subcommand and click Run.<small>Requires an LLM provider configured for quorum serve.</small></div></div>
+  </div>
+
+  <!-- ── Advisor tab ──────────────────────────────────────────────── -->
+  <div id="tab-advisor" class="tab">
+    <h2 class="section-heading">Advisor</h2>
+    <p class="section-sub">Ask plain-language questions answered from Chronicle memory.</p>
+    <div class="chat-wrap" id="advisorChat"></div>
+    <div class="chat-input-row">
+      <input id="advisorInput" type="text" placeholder="Ask anything about your codebase…" autocomplete="off"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAdvisorMsg()}">
+      <button class="btn" onclick="sendAdvisorMsg()">Ask</button>
+    </div>
+    <p style="font-size:12px;color:var(--muted);margin-top:8px">Requires an LLM provider. Answers are grounded in Chronicle entries.</p>
+  </div>
+
+  <!-- ── Check tab ────────────────────────────────────────────────── -->
+  <div id="tab-check" class="tab">
+    <h2 class="section-heading">Risk Check</h2>
+    <p class="section-sub">Instant risk triage against known sensitive patterns — no LLM required.</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+      <div class="field">
+        <label>Outcome (what changes)</label>
+        <textarea id="checkOutcome" rows="5" placeholder="e.g. Add JWT refresh token rotation to the auth service…"></textarea>
+      </div>
+      <div class="field">
+        <label>Design / approach</label>
+        <textarea id="checkDesign" rows="5" placeholder="e.g. Store tokens in Redis with 7-day TTL, invalidate on logout…"></textarea>
+      </div>
+    </div>
+    <button class="btn" onclick="runCheck()">Check risk</button>
+    <div id="checkResult" style="margin-top:16px"></div>
+  </div>
+
+  <!-- ── Ingest tab ───────────────────────────────────────────────── -->
+  <div id="tab-ingest" class="tab">
+    <h2 class="section-heading">Ingest</h2>
+    <p class="section-sub">Add low-trust evidence to Chronicle from git history, files, or URLs. Nothing is committed automatically — run <code style="font-family:var(--mono);font-size:12px">quorum commit --list</code> to review.</p>
+
+    <div class="ingest-section">
+      <div class="ingest-section-title">Git history</div>
+      <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+        <div class="field" style="margin:0;flex:1;min-width:140px">
+          <label>Since (ISO 8601 duration)</label>
+          <input id="ingestGitSince" type="text" value="P90D" placeholder="P90D">
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;padding-bottom:1px">
+          <input type="checkbox" id="ingestGitPropose">
+          <label for="ingestGitPropose" style="font-size:13px">Also stage as proposals</label>
+        </div>
+        <button class="btn" style="flex:none" onclick="runIngest('git')">Ingest commits</button>
+      </div>
+      <div class="ingest-result" id="ingestGitResult"></div>
+    </div>
+
+    <div class="ingest-section">
+      <div class="ingest-section-title">Files</div>
+      <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+        <div class="field" style="margin:0;flex:1;min-width:200px">
+          <label>Paths (comma-separated, relative to project root)</label>
+          <input id="ingestFilePaths" type="text" placeholder="docs/RFC.md, src/lib/triage.ts">
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;padding-bottom:1px">
+          <input type="checkbox" id="ingestFilePropose">
+          <label for="ingestFilePropose" style="font-size:13px">Also stage as proposals</label>
+        </div>
+        <button class="btn" style="flex:none" onclick="runIngest('files')">Ingest files</button>
+      </div>
+      <div class="ingest-result" id="ingestFileResult"></div>
+    </div>
+
+    <div class="ingest-section">
+      <div class="ingest-section-title">URL</div>
+      <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+        <div class="field" style="margin:0;flex:1;min-width:260px">
+          <label>URL (http/https only)</label>
+          <input id="ingestUrl" type="text" placeholder="https://example.com/rfc">
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;padding-bottom:1px">
+          <input type="checkbox" id="ingestUrlPropose">
+          <label for="ingestUrlPropose" style="font-size:13px">Also stage as proposals</label>
+        </div>
+        <button class="btn" style="flex:none" onclick="runIngest('url')">Ingest URL</button>
+      </div>
+      <div class="ingest-result" id="ingestUrlResult"></div>
+    </div>
+  </div>
+
+  <!-- ── Sentinel tab ─────────────────────────────────────────────── -->
+  <div id="tab-sentinel" class="tab">
+    <h2 class="section-heading">Sentinel</h2>
+    <p class="section-sub">Chronicle entries whose referenced files no longer exist — structural drift detection.</p>
+    <div id="sentinelView"><div class="loading">Loading…</div></div>
   </div>
 </main>
 
@@ -771,7 +1038,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
 // ── Tab switching ──────────────────────────────────────────────────────────
 
-const TAB_NAMES = ["chronicle", "proposals", "coverage", "growth", "compass"]
+const TAB_NAMES = ["chronicle", "proposals", "coverage", "growth", "compass", "advisor", "check", "ingest", "sentinel"]
 
 function showTab(name) {
   document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"))
@@ -780,8 +1047,9 @@ function showTab(name) {
   })
   document.getElementById(`tab-${name}`).classList.add("active")
   activeTab = name
-  if (name === "coverage" && !coverageData) loadCoverage()
-  if (name === "growth"   && !growthData)   loadGrowth()
+  if (name === "coverage"  && !coverageData) loadCoverage()
+  if (name === "growth"    && !growthData)   loadGrowth()
+  if (name === "sentinel"  && !sentinelLoaded) loadSentinel()
 }
 
 // ── Toast ──────────────────────────────────────────────────────────────────
@@ -1314,6 +1582,220 @@ function renderCompass(data, subcommand) {
   else inner = `<pre style="font-size:12px;line-height:1.6;white-space:pre-wrap;color:var(--muted)">${esc(JSON.stringify(d, null, 2))}</pre>`
 
   el.innerHTML = `<div style="padding-bottom:16px">${inner}</div>`
+}
+
+// ── Advisor ───────────────────────────────────────────────────────────────
+
+let advisorHistory = []   // { role: "user"|"ai", text, citations, confidence }
+
+function renderAdvisorHistory() {
+  const wrap = document.getElementById("advisorChat")
+  if (!advisorHistory.length) {
+    wrap.innerHTML = `<div class="empty" style="margin:0">No messages yet. Ask a question above.<small>e.g. "What decisions have been made about auth?" or "What should I tackle next?"</small></div>`
+    return
+  }
+  wrap.innerHTML = advisorHistory.map(m => {
+    if (m.role === "user") {
+      return `<div class="chat-bubble chat-bubble--user">
+        <span class="chat-label">You</span>
+        <div class="chat-body">${esc(m.text)}</div>
+      </div>`
+    }
+    const confPct = m.confidence != null ? Math.round(m.confidence * 100) : null
+    const confHtml = confPct != null ? `<div class="chat-confidence">${confPct}% confidence</div>` : ""
+    const citHtml = m.citations?.length
+      ? `<div class="chat-citations">${m.citations.map(c => `<span class="chat-citation">${esc(c)}</span>`).join("")}</div>`
+      : ""
+    const parts = []
+    if (m.what_we_know) parts.push(`<strong>What we know:</strong> ${esc(m.what_we_know)}`)
+    if (m.recommendation) parts.push(`<strong>Recommendation:</strong> ${esc(m.recommendation)}`)
+    if (m.next_step) parts.push(`<strong>Next step:</strong> ${esc(m.next_step)}`)
+    if (m.risks?.length) parts.push(`<strong>Risks:</strong> ${m.risks.map(r => esc(r)).join("; ")}`)
+    return `<div class="chat-bubble chat-bubble--ai">
+      <span class="chat-label">Advisor</span>
+      <div class="chat-body">${parts.length ? parts.join("<br>") : esc(m.text)}</div>
+      ${confHtml}${citHtml}
+    </div>`
+  }).join("")
+  wrap.scrollTop = wrap.scrollHeight
+}
+
+async function sendAdvisorMsg() {
+  const input = document.getElementById("advisorInput")
+  const question = input.value.trim()
+  if (!question) return
+  input.value = ""
+  advisorHistory.push({ role: "user", text: question })
+  renderAdvisorHistory()
+
+  // Placeholder while waiting
+  advisorHistory.push({ role: "ai", text: "Thinking…", _pending: true })
+  renderAdvisorHistory()
+
+  try {
+    const res  = await fetch("/api/advisor", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ question }) })
+    const data = await res.json()
+    // Remove placeholder
+    advisorHistory = advisorHistory.filter(m => !m._pending)
+
+    if (data.status === "no-llm") {
+      advisorHistory.push({ role: "ai", text: "No LLM provider configured. " + data.message })
+    } else if (data.error) {
+      advisorHistory.push({ role: "ai", text: "Error: " + data.error })
+    } else {
+      const citations = (data.evidence ?? []).map(e => (e.id ?? "").slice(0, 8)).filter(Boolean)
+      advisorHistory.push({
+        role: "ai",
+        what_we_know:   data.what_we_know,
+        recommendation: data.recommendation,
+        next_step:      data.next_step,
+        risks:          data.risks,
+        confidence:     data.confidence,
+        citations,
+      })
+    }
+  } catch (err) {
+    advisorHistory = advisorHistory.filter(m => !m._pending)
+    advisorHistory.push({ role: "ai", text: "Request failed: " + err.message })
+  }
+  renderAdvisorHistory()
+}
+
+// ── Check ─────────────────────────────────────────────────────────────────
+
+async function runCheck() {
+  const outcome = document.getElementById("checkOutcome").value.trim()
+  const design  = document.getElementById("checkDesign").value.trim()
+  if (!outcome && !design) { toast("Enter an outcome or design first", "err"); return }
+
+  const el = document.getElementById("checkResult")
+  el.innerHTML = `<div class="loading">Analysing…</div>`
+
+  try {
+    const res  = await fetch("/api/check", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ outcome, design }) })
+    const data = await res.json()
+    if (data.error) { el.innerHTML = `<div class="empty">Error: ${esc(data.error)}</div>`; return }
+
+    const { risk, preflight } = data
+    const level = risk?.level ?? "low"
+    const riskLabel = { critical: "Critical", high: "High", medium: "Medium", low: "Low" }[level] ?? level
+    const reasons = (risk?.reasons ?? []).filter(r => r !== "no sensitive patterns detected")
+
+    let html = `<div class="risk-banner risk-${level}">
+      <span class="risk-level">${riskLabel}</span>
+      <span style="font-size:13px">${reasons.length ? reasons.join(" · ") : "No sensitive patterns detected"}</span>
+    </div>`
+
+    html += `<div style="display:flex;flex-wrap:wrap;gap:16px">`
+
+    // Preflight flags
+    html += `<div style="min-width:200px">`
+    html += `<div class="cp-section-label" style="margin-bottom:8px">Preflight flags</div>`
+    const sensitive = preflight?.sensitive_areas ?? []
+    if (sensitive.length) {
+      html += sensitive.map(a => `<div class="preflight-row preflight-bad"><span>⚠</span> ${esc(a)}</div>`).join("")
+    } else {
+      html += `<div class="preflight-row preflight-ok"><span>✓</span> No sensitive areas</div>`
+    }
+    html += `<div class="preflight-row ${preflight?.rollback_mentioned ? "preflight-ok" : "preflight-bad"}">
+      <span>${preflight?.rollback_mentioned ? "✓" : "·"}</span> Rollback ${preflight?.rollback_mentioned ? "mentioned" : "not mentioned"}
+    </div>`
+    html += `<div class="preflight-row ${preflight?.test_strategy_mentioned ? "preflight-ok" : "preflight-bad"}">
+      <span>${preflight?.test_strategy_mentioned ? "✓" : "·"}</span> Tests ${preflight?.test_strategy_mentioned ? "mentioned" : "not mentioned"}
+    </div>`
+    html += `</div></div>`
+
+    el.innerHTML = html
+  } catch (err) {
+    el.innerHTML = `<div class="empty">Request failed: ${esc(err.message)}</div>`
+  }
+}
+
+// ── Ingest ────────────────────────────────────────────────────────────────
+
+async function runIngest(type) {
+  let body = { type }
+  let resultEl
+
+  if (type === "git") {
+    body.since   = document.getElementById("ingestGitSince").value.trim() || "P90D"
+    body.propose = document.getElementById("ingestGitPropose").checked
+    resultEl = document.getElementById("ingestGitResult")
+  } else if (type === "files") {
+    const raw = document.getElementById("ingestFilePaths").value.trim()
+    if (!raw) { toast("Enter at least one file path", "err"); return }
+    body.paths   = raw
+    body.propose = document.getElementById("ingestFilePropose").checked
+    resultEl = document.getElementById("ingestFileResult")
+  } else if (type === "url") {
+    const u = document.getElementById("ingestUrl").value.trim()
+    if (!u) { toast("Enter a URL", "err"); return }
+    body.urls    = u
+    body.propose = document.getElementById("ingestUrlPropose").checked
+    resultEl = document.getElementById("ingestUrlResult")
+  }
+
+  resultEl.textContent = "Running…"
+  try {
+    const res  = await fetch("/api/ingest", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) })
+    const data = await res.json()
+    if (data.error) { resultEl.textContent = "Error: " + data.error; return }
+
+    let out = `✓ ${data.added} added, ${data.skipped} skipped`
+    if (body.propose && data.added > 0) out += ` — proposals staged, run quorum commit --list to review`
+    if (data.items?.length) {
+      out += "\n" + data.items.slice(0, 8).map(i => `  ${i.ref}  ${i.summary}`).join("\n")
+      if (data.items.length > 8) out += `\n  … and ${data.items.length - 8} more`
+    }
+    resultEl.textContent = out
+    if (data.added > 0) toast(`Ingested ${data.added} ${type} item${data.added !== 1 ? "s" : ""}`)
+  } catch (err) {
+    resultEl.textContent = "Request failed: " + err.message
+  }
+}
+
+// ── Sentinel ──────────────────────────────────────────────────────────────
+
+let sentinelLoaded = false
+
+async function loadSentinel() {
+  sentinelLoaded = true
+  const el = document.getElementById("sentinelView")
+  try {
+    const res  = await fetch("/api/sentinel/drift")
+    const data = await res.json()
+    renderSentinel(data)
+  } catch (err) {
+    el.innerHTML = `<div class="empty">Failed to load sentinel data<small>${esc(err.message)}</small></div>`
+  }
+}
+
+function renderSentinel(data) {
+  const el = document.getElementById("sentinelView")
+  const { total = 0, flagged = 0, flags = [], note = "" } = data
+
+  let html = `<div style="display:flex;gap:20px;margin-bottom:18px;flex-wrap:wrap">`
+  html += `<div style="text-align:center;min-width:100px"><div style="font-size:28px;font-weight:800;color:var(--text)">${total}</div><div style="font-size:12px;color:var(--muted)">Chronicle entries</div></div>`
+  html += `<div style="text-align:center;min-width:100px"><div style="font-size:28px;font-weight:800;color:${flagged > 0 ? "var(--yellow)" : "var(--green)"}">${flagged}</div><div style="font-size:12px;color:var(--muted)">Structurally drifted</div></div>`
+  html += `</div>`
+
+  if (note) html += `<p style="font-size:12px;color:var(--muted);margin-bottom:16px">${esc(note)}</p>`
+
+  if (!flags.length) {
+    html += `<div class="empty">No drift detected — all affected_areas paths resolve to existing files.</div>`
+  } else {
+    for (const f of flags) {
+      html += `<div class="drift-flag">
+        <div class="drift-flag-title">[${esc(f.entryId)}] ${esc(f.topic)}</div>
+        <div class="drift-flag-body">${esc(f.decision)}</div>
+        <div class="drift-missing">
+          ${f.missingFiles.map(p => `<span class="drift-path">${esc(p)}</span>`).join("")}
+        </div>
+      </div>`
+    }
+  }
+
+  el.innerHTML = html
 }
 </script>
 </body>

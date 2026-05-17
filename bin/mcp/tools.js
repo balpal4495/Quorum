@@ -327,6 +327,163 @@ export async function toolCompass({ subcommand = "brief", goal, idea, projectRoo
 }
 
 /**
+ * Ingest files, git history, or a URL into .chronicle/sources/ and
+ * .chronicle/evidence/ as low-trust drafts (confidence 0.4).
+ * Returns { added, skipped, items } — no console output, no process.exit.
+ */
+export async function toolIngest({ type = "git", paths, since = "P90D", urls, propose = false, projectRoot } = {}) {
+  const { promisify } = await import("util")
+  const { execFile }  = await import("child_process")
+  const { createHash, randomUUID: uuid } = await import("crypto")
+  const execFileAsync = promisify(execFile)
+
+  const { projectRoot: root, chronicleDir } = await resolve(projectRoot)
+  const sourcesDir   = path.join(chronicleDir, "sources")
+  const evidenceDir  = path.join(chronicleDir, "evidence")
+  const proposalsDir = path.join(chronicleDir, "proposals")
+  await fs.mkdir(sourcesDir,  { recursive: true })
+  await fs.mkdir(evidenceDir, { recursive: true })
+  if (propose) await fs.mkdir(proposalsDir, { recursive: true })
+
+  // Load existing content hashes to skip duplicates
+  const existingHashes = new Set()
+  for (const f of await fs.readdir(sourcesDir).catch(() => [])) {
+    if (!f.endsWith(".json")) continue
+    try {
+      const s = JSON.parse(await fs.readFile(path.join(sourcesDir, f), "utf8"))
+      if (s.content_hash) existingHashes.add(s.content_hash)
+    } catch { /* skip malformed */ }
+  }
+
+  async function writeRecord({ hash, kind, sourceRef, title, summary, scope }) {
+    const id = uuid()
+    const ts = new Date().toISOString()
+    await fs.writeFile(path.join(sourcesDir, `${id}.json`), JSON.stringify(
+      { id, kind, source_ref: sourceRef, content_hash: hash, ingested_at: ts, schema_version: 2 }, null, 2), "utf8")
+
+    const evidenceId = uuid()
+    const evidence = {
+      id: evidenceId, schema_version: 2,
+      topic: `ingest/${kind}/${title.slice(0, 40).replace(/\s+/g, "-").toLowerCase()}`,
+      key_insight: summary.slice(0, 200), decision: summary.slice(0, 200),
+      scope, affected_areas: [], status: "open", confidence: 0.4,
+      source_quality: "metadata-derived", needs_human_summary: true,
+      source_module: "ingest", evidence_cited: [],
+      alternatives_considered: [], rejected_reason: [],
+      ingested_at: ts, source_id: id,
+    }
+    await fs.writeFile(path.join(evidenceDir, `${evidenceId}.json`), JSON.stringify(evidence, null, 2), "utf8")
+    if (propose) {
+      const propId = uuid()
+      await fs.writeFile(path.join(proposalsDir, `${propId}.json`), JSON.stringify({ ...evidence, id: propId }, null, 2), "utf8")
+    }
+  }
+
+  let added = 0, skipped = 0
+  const items = []
+
+  if (type === "git") {
+    // Parse ISO 8601 duration PnD/PnM/PnY safely — never raw user input to shell
+    const match = /^P(?:(\d+)Y)?(?:(\d+)M)?(?:(\d+)D)?$/.exec(since ?? "P90D")
+    const days = match ? (parseInt(match[1] ?? "0") * 365 + parseInt(match[2] ?? "0") * 30 + parseInt(match[3] ?? "0")) : 90
+    const sinceArg = `${days > 0 ? days : 90} days ago`
+
+    let stdout
+    try {
+      const res = await execFileAsync("git", ["log", `--since=${sinceArg}`, "--format=%H|%s|%ae|%ad", "--date=iso"], { cwd: root })
+      stdout = res.stdout.trim()
+    } catch { return { added: 0, skipped: 0, items: [], error: "git log failed — is this a git repository?" } }
+
+    for (const line of stdout.split("\n").filter(Boolean)) {
+      const [commitHash, subject = ""] = line.split("|")
+      if (!commitHash) continue
+      const fingerprint = createHash("sha256").update(commitHash).digest("hex").slice(0, 16)
+      if (existingHashes.has(fingerprint)) { skipped++; continue }
+      const short = commitHash.slice(0, 7)
+      await writeRecord({ hash: fingerprint, kind: "git-commit", sourceRef: commitHash, title: subject, summary: `${short}: ${subject}`, scope: ["source", "git"] })
+      items.push({ ref: short, summary: subject.slice(0, 80) })
+      added++
+    }
+  } else if (type === "url") {
+    const urlList = Array.isArray(urls) ? urls : (urls ? [urls] : [])
+    for (const u of urlList.filter(Boolean)) {
+      let parsed
+      try { parsed = new URL(u) } catch { skipped++; continue }
+      if (!["http:", "https:"].includes(parsed.protocol)) { skipped++; continue }
+      const fingerprint = createHash("sha256").update(u).digest("hex").slice(0, 16)
+      if (existingHashes.has(fingerprint)) { skipped++; continue }
+      let text = ""
+      try {
+        const res = await fetch(u, { signal: AbortSignal.timeout(15000) })
+        const html = await res.text()
+        text = html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 2000)
+      } catch { skipped++; continue }
+      const title = parsed.pathname.split("/").filter(Boolean).pop() ?? parsed.hostname
+      const summary = text.slice(0, 200) || u
+      await writeRecord({ hash: fingerprint, kind: "url", sourceRef: u, title, summary, scope: ["docs"] })
+      items.push({ ref: u.slice(0, 60), summary: summary.slice(0, 80) })
+      added++
+    }
+  } else if (type === "files") {
+    const TEXT_EXTS = new Set([".md", ".txt", ".js", ".mjs", ".ts", ".tsx", ".jsx", ".json", ".yaml", ".yml", ".toml", ".sh", ".html", ".css", ".csv"])
+    const pathList = Array.isArray(paths) ? paths : (paths ? String(paths).split(",").map(p => p.trim()) : [])
+    for (const p of pathList.filter(Boolean)) {
+      const abs = path.isAbsolute(p) ? p : path.join(root, p)
+      if (!TEXT_EXTS.has(path.extname(abs).toLowerCase())) { skipped++; continue }
+      let content
+      try { content = await fs.readFile(abs, "utf8") } catch { skipped++; continue }
+      const fingerprint = createHash("sha256").update(content.slice(0, 3000)).digest("hex").slice(0, 16)
+      if (existingHashes.has(fingerprint)) { skipped++; continue }
+      const rel = path.relative(root, abs).replace(/\\/g, "/")
+      const lines = content.split("\n").map(l => l.trim()).filter(Boolean)
+      const summary = (lines.find(l => l.startsWith("#")) ?? lines[0] ?? rel).replace(/^#+\s*/, "").slice(0, 200)
+      await writeRecord({ hash: fingerprint, kind: "file", sourceRef: rel, title: path.basename(abs), summary, scope: ["docs"] })
+      items.push({ ref: rel, summary: summary.slice(0, 80) })
+      added++
+    }
+  }
+
+  return { added, skipped, items: items.slice(0, 30) }
+}
+
+/**
+ * Structural drift check — Chronicle entries whose affected_areas paths no
+ * longer exist as files in the codebase. LLM-free and fast.
+ */
+export async function toolSentinelDrift({ projectRoot } = {}) {
+  const { projectRoot: root, chronicleDir } = await resolve(projectRoot)
+  const entries = await readCommitted(chronicleDir)
+
+  const flags = []
+  for (const entry of entries) {
+    if (!entry.affected_areas?.length) continue
+    const missingFiles = []
+    for (const area of entry.affected_areas) {
+      const abs = path.join(root, area)
+      const exists = await fs.access(abs).then(() => true).catch(() => false)
+      if (!exists) missingFiles.push(area)
+    }
+    if (missingFiles.length > 0) {
+      flags.push({
+        entryId:      (entry.id ?? "").slice(0, 8),
+        topic:        entry.topic,
+        decision:     (entry.decision ?? entry.key_insight ?? "").slice(0, 160),
+        missingFiles,
+        confidence:   entry.confidence,
+        status:       entry.status,
+      })
+    }
+  }
+
+  return {
+    total:   entries.length,
+    flagged: flags.length,
+    flags,
+    note: "Structural check: entries whose affected_areas paths no longer exist. For semantic drift (did the code meaning change?) run: quorum sentinel --drift from the CLI.",
+  }
+}
+
+/**
  * Call once at server startup to wire the LLM provider into LLM-powered tools.
  */
 export function setLLM(llmProvider) {
