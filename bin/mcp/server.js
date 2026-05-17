@@ -10,6 +10,10 @@
  *   GET  /api/growth        Memory health report
  *   POST /api/proposals/:id/commit   Human-gate: approve a proposal
  *   DELETE /api/proposals/:id        Reject / delete a proposal
+ *   POST /api/advisor                Ask a question answered from Chronicle (LLM)
+ *   POST /api/check                  Instant risk triage (no LLM)
+ *   POST /api/ingest                 Ingest files, git history, or URLs
+ *   GET  /api/sentinel/drift         Structural drift check
  *
  * MCP also exposes resources:
  *   chronicle://summary      chronicle://proposals
@@ -28,6 +32,10 @@ import {
   toolCoverage,
   toolGrowth,
   toolCompass,
+  toolAdvisor,
+  toolCheck,
+  toolIngest,
+  toolSentinelDrift,
   commitProposal,
   deleteProposal,
   updateProposal,
@@ -315,6 +323,33 @@ export async function createServer({ projectRoot, chronicleDir, llm = null }) {
       if (pathname === "/api/compass" && req.method === "GET") {
         const subcommand = new URL(req.url, "http://localhost").searchParams.get("subcommand") ?? "map"
         const result = await toolCompass({ subcommand, projectRoot })
+        return json(res, 200, result)
+      }
+
+      // ── REST: advisor ───────────────────────────────────────────────────────
+      if (pathname === "/api/advisor" && req.method === "POST") {
+        const body = await readBody(req)
+        const result = await toolAdvisor({ question: body.question, projectRoot })
+        return json(res, 200, result)
+      }
+
+      // ── REST: check ─────────────────────────────────────────────────────────
+      if (pathname === "/api/check" && req.method === "POST") {
+        const body = await readBody(req)
+        const result = await toolCheck({ outcome: body.outcome ?? "", design: body.design ?? "", projectRoot })
+        return json(res, 200, result)
+      }
+
+      // ── REST: ingest ────────────────────────────────────────────────────────
+      if (pathname === "/api/ingest" && req.method === "POST") {
+        const body = await readBody(req)
+        const result = await toolIngest({ ...body, projectRoot })
+        return json(res, 200, result)
+      }
+
+      // ── REST: sentinel drift ────────────────────────────────────────────────
+      if (pathname === "/api/sentinel/drift" && req.method === "GET") {
+        const result = await toolSentinelDrift({ projectRoot })
         return json(res, 200, result)
       }
 
