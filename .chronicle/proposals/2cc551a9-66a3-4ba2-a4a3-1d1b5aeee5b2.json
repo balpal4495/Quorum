@@ -1,0 +1,29 @@
+{
+  "schema_version": 2,
+  "topic": "PR #31",
+  "decision": "fix(compass): replace quorum-specific source scanners with generic project detection",
+  "key_insight": "fix(compass): replace quorum-specific source scanners with generic project detection",
+  "affected_areas": [
+    ".github/workflows/auto-release.yml",
+    "bin/commands/compass.js"
+  ],
+  "scope": [
+    "cli",
+    "ci"
+  ],
+  "alternatives_considered": [],
+  "rejected_reason": [],
+  "supersedes": null,
+  "superseded_by": null,
+  "status": "open",
+  "confidence": 0.4,
+  "source_quality": "metadata-derived",
+  "needs_human_summary": true,
+  "source_module": "pr-merge",
+  "evidence_cited": [],
+  "work_ref": {
+    "type": "pr",
+    "ref": "PR #31"
+  },
+  "outcome": "compass map previously scanned quorum's own file structure in every host project — finding README.md, CLAUDE.md, AGENTS.md, bin/commands/*.js, and modules/ — producing a map of quorum's features rather than the user's product surface.\n\n## What changed\n\n**scanDocs** — was: fixed target list of quorum filenames (`README.md`, `SETUP.md`, `CLAUDE.md`, `AGENTS.md`, `modules/README.md`, `quorum/CLAUDE.md`, `docs`)\nNow: scans all `.md` files at project root + standard docs dirs (`docs/`, `documentation"
+}
