@@ -14,8 +14,9 @@ const execAsync = promisify(exec)
  *   3. OPENAI_BASE_URL (no key)     → OpenAI-compatible endpoint (Azure, Groq, etc.)
  *   4. GEMINI_API_KEY               → Google Gemini (API)
  *   5. claude CLI in PATH           → Claude Code (CLI subprocess, --print mode)
- *   6. gemini CLI in PATH           → Google Gemini (CLI subprocess)
- *   7. OLLAMA_HOST / localhost:11434 → Ollama (last resort — local models)
+ *   6. copilot CLI in PATH          → GitHub Copilot CLI (-p / --prompt mode)
+ *   7. gemini CLI in PATH           → Google Gemini (CLI subprocess)
+ *   8. OLLAMA_HOST / localhost:11434 → Ollama (last resort — local models)
  *
  * All detected providers are tried in order. A 429 / quota / rate-limit error
  * from one provider causes a silent fallback to the next rather than a hard
@@ -40,9 +41,10 @@ export async function detectProvider() {
  */
 async function gatherCandidates() {
   // Probe async sources concurrently
-  const [ollamaModel, claudeCLIAvail, geminiCLIAvail] = await Promise.all([
+  const [ollamaModel, claudeCLIAvail, copilotCLIAvail, geminiCLIAvail] = await Promise.all([
     probeOllama(process.env.OLLAMA_HOST || "http://localhost:11434"),
     probeClaudeCLI(),
+    probeCopilotCLI(),
     probeGeminiCLI(),
   ])
 
@@ -83,6 +85,13 @@ async function gatherCandidates() {
     candidates.push({
       llm:  createClaudeCLIProvider(),
       name: "Claude Code CLI",
+    })
+  }
+
+  if (copilotCLIAvail) {
+    candidates.push({
+      llm:  createCopilotCLIProvider(),
+      name: "Copilot CLI",
     })
   }
 
@@ -294,6 +303,63 @@ function createClaudeCLIProvider() {
       })
       child.stdin.write(fullPrompt)
       child.stdin.end()
+    })
+  }
+}
+
+async function probeCopilotCLI() {
+  // Must be in PATH (VS Code installs a shell wrapper into PATH automatically)
+  try {
+    await execAsync("which copilot")
+  } catch {
+    return false
+  }
+
+  // Must have at least one session in ~/.copilot/session-state/ — created after first auth
+  try {
+    const { readdir } = await import("fs/promises")
+    const { homedir } = await import("os")
+    const sessions = await readdir(path.join(homedir(), ".copilot", "session-state")).catch(() => [])
+    return sessions.length > 0
+  } catch {
+    return false
+  }
+}
+
+function createCopilotCLIProvider() {
+  return function llm(messages) {
+    return new Promise((resolve, reject) => {
+      const system      = messages.find(m => m.role === "system")?.content ?? ""
+      const userContent = messages.filter(m => m.role !== "system").map(m => m.content).join("\n\n")
+      const fullPrompt  = system ? `${system}\n\n${userContent}` : userContent
+
+      // Use --output-format json so we can parse the JSONL event stream reliably
+      const child = spawn("copilot", ["-p", fullPrompt, "--output-format", "json"], {
+        stdio: ["ignore", "pipe", "pipe"],
+      })
+
+      let out = "", err = ""
+      child.stdout.on("data", d => { out += d })
+      child.stderr.on("data", d => { err += d })
+      child.on("error", reject)
+      child.on("close", code => {
+        if (code !== 0) {
+          return reject(new Error(`copilot CLI exited ${code}: ${err.slice(0, 200)}`))
+        }
+        // Parse JSONL stream — find the assistant.message event
+        const content = out.split("\n")
+          .filter(Boolean)
+          .reduce((found, line) => {
+            if (found) return found
+            try {
+              const evt = JSON.parse(line)
+              if (evt.type === "assistant.message" && evt.data?.content) return evt.data.content
+            } catch { /* skip non-JSON lines */ }
+            return null
+          }, null)
+        if (content == null) return reject(new Error("copilot CLI: no assistant.message event in output"))
+        resolve(content)
+      })
     })
   }
 }
