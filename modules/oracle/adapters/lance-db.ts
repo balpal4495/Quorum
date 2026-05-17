@@ -15,20 +15,25 @@ import type { VectorStore } from "../types.js"
 import type { ChronicleEntry } from "../../shared/types.js"
 import path from "path"
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const lancedb = require("vectordb")
-
 interface LanceRow {
   id: string
   vector: number[]
   /** ChronicleEntry serialised as JSON string. */
   payload: string
   _distance?: number
+  [key: string]: unknown
 }
 
 export async function createLanceDBStore(chronicleDir: string): Promise<VectorStore> {
+  // Dynamic import keeps this file valid ESM — `vectordb` is CJS-only and has
+  // no ESM export, so a top-level `require()` would throw in ESM scope.
+  const lancedbMod = await import("vectordb")
+  const lancedb = lancedbMod.default ?? lancedbMod
   const tableDir = path.join(chronicleDir, "entries")
-  const db = await lancedb.connect(tableDir)
+  // Cast to any — `vectordb` is a CJS-only package whose TypeScript declarations
+  // are incomplete (e.g. `metric` option not typed in WriteOptions).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db: any = await lancedb.connect(tableDir)
   let table: any = null
 
   async function getOrCreateTable(firstRow?: LanceRow): Promise<any> {
