@@ -1,0 +1,27 @@
+{
+  "schema_version": 2,
+  "topic": "PR #34",
+  "decision": "fix(oracle): replace require(vectordb) with dynamic import — ESM-safe",
+  "key_insight": "fix(oracle): replace require(vectordb) with dynamic import — ESM-safe",
+  "affected_areas": [
+    "modules/oracle/adapters/lance-db.ts"
+  ],
+  "scope": [
+    "oracle"
+  ],
+  "alternatives_considered": [],
+  "rejected_reason": [],
+  "supersedes": null,
+  "superseded_by": null,
+  "status": "open",
+  "confidence": 0.4,
+  "source_quality": "metadata-derived",
+  "needs_human_summary": true,
+  "source_module": "pr-merge",
+  "evidence_cited": [],
+  "work_ref": {
+    "type": "pr",
+    "ref": "PR #34"
+  },
+  "outcome": "## Problem\n\n`modules/oracle/adapters/lance-db.ts` mixed ESM and CJS syntax:\n\n```ts\nimport path from \"path\"           // ESM — marks the file as ES Module\nconst lancedb = require(\"vectordb\") // CJS — require() doesn't exist in ESM\n```\n\nWhen Node sees `import` at the top, it treats the whole file as an ES Module. In ESM scope, `require` is not defined. Any consumer calling `setup()` (which wires the full Oracle with LanceDB) hits:\n\n```\nReferenceError: require is not defined in ES module scope\n```\n"
+}
