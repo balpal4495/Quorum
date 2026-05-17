@@ -80,7 +80,7 @@ jobs:
         working-directory: /tmp/quorum-smoke
 
       - name: quorum check
-        run: npx --prefix /tmp/quorum-smoke quorum check --outcome "payments succeed" --design "charge card on order create"
+        run: npx --prefix /tmp/quorum-smoke quorum check --outcome "search returns relevant results" --design "add keyword filter to query"
         working-directory: /tmp/quorum-smoke
 
       - name: quorum compass map
