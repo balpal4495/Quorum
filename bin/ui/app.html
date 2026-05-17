@@ -351,6 +351,284 @@
   ::-webkit-scrollbar       { width: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* ── Advisor chat ── */
+  .advisor-form {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+  .advisor-form input {
+    flex: 1;
+    padding: 10px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font: inherit;
+    font-size: 13px;
+    outline: none;
+    transition: border-color .15s;
+  }
+  .advisor-form input:focus { border-color: var(--accent); }
+  .advisor-form input::placeholder { color: var(--muted); }
+
+  .advisor-thread {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .advisor-q {
+    align-self: flex-end;
+    background: rgba(124,110,255,.14);
+    border: 1px solid rgba(124,110,255,.25);
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    max-width: 70%;
+    font-size: 13px;
+    color: var(--text);
+    word-break: break-word;
+  }
+
+  .advisor-status {
+    align-self: flex-start;
+    color: var(--muted);
+    font-size: 12px;
+    padding: 4px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .spinner {
+    width: 12px; height: 12px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+    flex-shrink: 0;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .advisor-result {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  .advisor-result-section {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+  }
+  .advisor-result-section:last-child { border-bottom: none; }
+
+  .advisor-section-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  .advisor-section-body {
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.5;
+  }
+
+  .pill-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 6px;
+  }
+
+  .pill {
+    font-size: 12px;
+    padding: 3px 10px;
+    border-radius: 99px;
+    background: rgba(255,255,255,.05);
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+  .pill-red    { background: rgba(224,82,82,.1);  border-color: rgba(224,82,82,.25);   color: var(--red); }
+  .pill-yellow { background: rgba(224,185,82,.1); border-color: rgba(224,185,82,.25);  color: var(--yellow); }
+  .pill-blue   { background: rgba(82,168,224,.1); border-color: rgba(82,168,224,.25);  color: var(--blue); }
+
+  .evidence-list {
+    margin-top: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .evidence-item {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 6px 10px;
+    background: rgba(255,255,255,.03);
+    border-radius: 4px;
+    color: var(--muted);
+    border-left: 2px solid var(--border);
+  }
+
+  .no-llm-notice {
+    background: rgba(224,185,82,.06);
+    border: 1px solid rgba(224,185,82,.2);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    font-size: 13px;
+    color: var(--yellow);
+  }
+  .no-llm-notice strong { display: block; margin-bottom: 4px; }
+  .no-llm-notice .muted { color: var(--muted); font-size: 12px; margin-top: 6px; }
+
+  /* ── Compass ── */
+  .compass-toolbar {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+
+  .compass-area-input {
+    flex: 1;
+    min-width: 160px;
+    padding: 8px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font: inherit;
+    font-size: 13px;
+    outline: none;
+    transition: border-color .15s;
+  }
+  .compass-area-input:focus { border-color: var(--accent); }
+  .compass-area-input::placeholder { color: var(--muted); }
+
+  .compass-tabs {
+    display: flex;
+    gap: 2px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 3px;
+    margin-bottom: 20px;
+  }
+  .compass-tab-btn {
+    padding: 6px 14px;
+    border: none;
+    background: none;
+    color: var(--muted);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: background .15s, color .15s;
+  }
+  .compass-tab-btn:hover { color: var(--text); }
+  .compass-tab-btn.active { background: rgba(124,110,255,.2); color: var(--accent); }
+
+  .compass-view { display: none; }
+  .compass-view.active { display: block; }
+
+  .area-group {
+    margin-bottom: 24px;
+  }
+  .area-group-title {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--muted);
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .behavior-item {
+    padding: 10px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 7px;
+    font-size: 13px;
+  }
+  .behavior-name {
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: var(--text);
+  }
+  .behavior-summary { color: var(--muted); font-size: 12px; }
+
+  .gap-item {
+    padding: 10px 14px;
+    background: rgba(224,185,82,.04);
+    border: 1px solid rgba(224,185,82,.2);
+    border-radius: var(--radius);
+    margin-bottom: 7px;
+  }
+  .gap-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    color: var(--yellow);
+    margin-bottom: 4px;
+  }
+  .gap-text { font-size: 12px; color: var(--muted); }
+
+  .compass-brief-result {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .brief-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .brief-card-header {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    color: var(--muted);
+  }
+  .brief-card-body {
+    padding: 12px 16px;
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.5;
+  }
+  .brief-card-body ul {
+    margin: 0;
+    padding-left: 18px;
+  }
+  .brief-card-body li {
+    margin-bottom: 4px;
+    color: var(--muted);
+    font-size: 12px;
+  }
+
+  /* ── Coverage heatmap ── */
+  .heat-bar {
+    display: inline-block;
+    width: 32px;
+    height: 8px;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
 </style>
 </head>
 <body>
@@ -360,7 +638,9 @@
   <nav>
     <button class="active" onclick="showTab('chronicle')">Chronicle</button>
     <button onclick="showTab('proposals')">Proposals <span class="badge" id="proposalCount" style="display:none"></span></button>
+    <button onclick="showTab('advisor')">Advisor</button>
     <button onclick="showTab('coverage')">Coverage</button>
+    <button onclick="showTab('compass')">Compass</button>
   </nav>
 </header>
 
@@ -386,6 +666,35 @@
     <p class="section-sub">Source files with Chronicle entries referencing them.</p>
     <div id="coverageView"><div class="loading">Loading…</div></div>
   </div>
+
+  <!-- ── Advisor tab ──────────────────────────────────────────────── -->
+  <div id="tab-advisor" class="tab">
+    <h2 class="section-heading">Advisor</h2>
+    <p class="section-sub">Ask plain-language questions. Answers are grounded in Chronicle evidence.</p>
+    <div class="advisor-form">
+      <input type="text" id="advisorInput" placeholder="What has the team decided about auth?" autocomplete="off"
+        onkeydown="if(event.key==='Enter')askAdvisor()">
+      <button class="btn" onclick="askAdvisor()" id="advisorBtn">Ask</button>
+    </div>
+    <div id="advisorThread" class="advisor-thread"></div>
+  </div>
+
+  <!-- ── Compass tab ──────────────────────────────────────────────── -->
+  <div id="tab-compass" class="tab">
+    <h2 class="section-heading">Compass</h2>
+    <p class="section-sub">Product surface map and direction synthesis.</p>
+    <div class="compass-toolbar">
+      <input type="text" id="compassArea" class="compass-area-input" placeholder="Filter by area (optional)…" autocomplete="off">
+      <button class="btn" onclick="loadCompassMap()">Map</button>
+      <button class="btn" onclick="loadCompassBrief()" id="compassBriefBtn">Brief (LLM)</button>
+    </div>
+    <div class="compass-tabs">
+      <button class="compass-tab-btn active" onclick="showCompassView('map')">Behaviours</button>
+      <button class="compass-tab-btn" onclick="showCompassView('brief')">Direction Brief</button>
+    </div>
+    <div id="compassMapView" class="compass-view active"><div class="empty">Click Map to scan the product surface.</div></div>
+    <div id="compassBriefView" class="compass-view"><div class="empty">Click Brief (LLM) to synthesise product direction.</div></div>
+  </div>
 </main>
 
 <div id="toast"></div>
@@ -393,11 +702,14 @@
 <script>
 // ── State ──────────────────────────────────────────────────────────────────
 
+const TABS = ["chronicle","proposals","advisor","coverage","compass"]
 let allEntries    = []
 let allProposals  = []
 let coverageData  = null
+let compassMapData = null
 let searchTimer   = null
 let activeTab     = "chronicle"
+let advisorRunning = false
 
 // ── Bootstrap ─────────────────────────────────────────────────────────────
 
@@ -412,11 +724,12 @@ window.addEventListener("DOMContentLoaded", () => {
 function showTab(name) {
   document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"))
   document.querySelectorAll("nav button").forEach((b, i) => {
-    b.classList.toggle("active", ["chronicle","proposals","coverage"][i] === name)
+    b.classList.toggle("active", TABS[i] === name)
   })
   document.getElementById(`tab-${name}`).classList.add("active")
   activeTab = name
   if (name === "coverage" && !coverageData) loadCoverage()
+  if (name === "compass" && !compassMapData) loadCompassMap()
 }
 
 // ── Toast ──────────────────────────────────────────────────────────────────
@@ -621,8 +934,17 @@ function renderCoverage(data) {
   const { percentage, totalFiles, coveredFiles, coverageByFile } = data
   const covered   = coverageByFile.filter(f => f.covered)
   const uncovered = coverageByFile.filter(f => !f.covered)
+  const maxEntries = Math.max(1, ...covered.map(f => f.entryIds.length))
 
   const colorPct = percentage >= 70 ? "var(--green)" : percentage >= 40 ? "var(--accent)" : "var(--yellow)"
+
+  function heatColor(n) {
+    const ratio = n / maxEntries
+    if (ratio >= 0.8) return "#34c97a"
+    if (ratio >= 0.5) return "#52a8e0"
+    if (ratio >= 0.2) return "#7c6eff"
+    return "#3a3a44"
+  }
 
   document.getElementById("coverageView").innerHTML = `
     <div class="coverage-header">
@@ -648,9 +970,9 @@ function renderCoverage(data) {
     ${covered.length ? `
     <div class="cov-section">
       <div class="cov-section-title">Covered — ${covered.length} files</div>
-      ${covered.map(f => `
+      ${covered.sort((a,b) => b.entryIds.length - a.entryIds.length).map(f => `
         <div class="file-row">
-          <span class="file-dot dot-green"></span>
+          <span class="heat-bar" style="background:${heatColor(f.entryIds.length)}"></span>
           <span class="file-name">${esc(f.file)}</span>
           <span class="file-entries">${f.entryIds.length} ${f.entryIds.length === 1 ? "entry" : "entries"}</span>
         </div>
@@ -670,7 +992,289 @@ function renderCoverage(data) {
 
     ${totalFiles === 0 ? `<div class="empty">No source files found</div>` : ""}
   `
+// ── Advisor ────────────────────────────────────────────────────────────────
+
+async function askAdvisor() {
+  const input = document.getElementById("advisorInput")
+  const q = input.value.trim()
+  if (!q || advisorRunning) return
+
+  advisorRunning = true
+  const btn = document.getElementById("advisorBtn")
+  btn.disabled = true
+  btn.textContent = "Asking…"
+
+  const thread = document.getElementById("advisorThread")
+
+  // Question bubble
+  const qEl = document.createElement("div")
+  qEl.className = "advisor-q"
+  qEl.textContent = q
+  thread.appendChild(qEl)
+  input.value = ""
+
+  // Status
+  const statusEl = document.createElement("div")
+  statusEl.className = "advisor-status"
+  statusEl.innerHTML = `<div class="spinner"></div><span id="advisorStatusText">Searching Chronicle…</span>`
+  thread.appendChild(statusEl)
+  thread.scrollTop = thread.scrollHeight
+
+  try {
+    const evtSource = new EventSource(`/api/advisor?q=${encodeURIComponent(q)}`)
+    evtSource.onmessage = (e) => {
+      if (e.data === "[DONE]") {
+        evtSource.close()
+        statusEl.remove()
+        advisorRunning = false
+        btn.disabled = false
+        btn.textContent = "Ask"
+        return
+      }
+      const msg = JSON.parse(e.data)
+      if (msg.type === "status") {
+        document.getElementById("advisorStatusText").textContent = msg.text
+      } else if (msg.type === "result") {
+        statusEl.remove()
+        thread.appendChild(renderAdvisorResult(msg.data, msg.evidence))
+        thread.scrollTop = thread.scrollHeight
+      } else if (msg.type === "no_llm") {
+        statusEl.remove()
+        thread.appendChild(renderAdvisorNoLLM(msg.evidence))
+        thread.scrollTop = thread.scrollHeight
+      } else if (msg.type === "error") {
+        statusEl.remove()
+        const errEl = document.createElement("div")
+        errEl.className = "no-llm-notice"
+        errEl.innerHTML = `<strong>Error</strong>${esc(msg.message)}`
+        thread.appendChild(errEl)
+      }
+    }
+    evtSource.onerror = () => {
+      evtSource.close()
+      statusEl.textContent = "Connection lost."
+      advisorRunning = false
+      btn.disabled = false
+      btn.textContent = "Ask"
+    }
+  } catch (err) {
+    statusEl.textContent = "Failed: " + err.message
+    advisorRunning = false
+    btn.disabled = false
+    btn.textContent = "Ask"
+  }
 }
+
+function renderAdvisorResult(r, evidence) {
+  const wrap = document.createElement("div")
+  wrap.className = "advisor-result"
+
+  function section(label, body) {
+    return `<div class="advisor-result-section">
+      <div class="advisor-section-label">${label}</div>
+      <div class="advisor-section-body">${body}</div>
+    </div>`
+  }
+
+  function pills(arr, cls) {
+    if (!arr?.length) return ""
+    return `<div class="pill-list">${arr.map(i => `<span class="pill ${cls ?? ""}">${esc(i)}</span>`).join("")}</div>`
+  }
+
+  let html = ""
+  if (r.what_we_know) html += section("What we know", esc(r.what_we_know))
+  if (r.recommendation) html += section("Recommendation", `<strong>${esc(r.recommendation)}</strong>`)
+  if (r.blockers?.length) html += section("Blockers", pills(r.blockers, "pill-red"))
+  if (r.risks?.length) html += section("Risks", pills(r.risks, "pill-yellow"))
+  if (r.next_step) html += section("Next step", `<code style="font-family:var(--mono);font-size:12px;color:var(--blue)">${esc(r.next_step)}</code>`)
+  if (evidence?.length) {
+    const evHtml = evidence.map(e =>
+      `<div class="evidence-item">[${esc((e.id ?? "").slice(0,8))}] ${esc(e.decision ?? e.key_insight ?? "")}</div>`
+    ).join("")
+    html += section("Evidence used", `<div class="evidence-list">${evHtml}</div>`)
+  }
+
+  wrap.innerHTML = html
+  return wrap
+}
+
+function renderAdvisorNoLLM(evidence) {
+  const wrap = document.createElement("div")
+  wrap.className = "no-llm-notice"
+  wrap.innerHTML = `<strong>No LLM configured</strong>
+    Set ANTHROPIC_API_KEY or OPENAI_API_KEY to enable synthesis.
+    <div class="muted">Chronicle evidence found:</div>
+    <div class="evidence-list" style="margin-top:8px">${
+      (evidence?.length
+        ? evidence.map(e => `<div class="evidence-item">[${esc((e.id ?? "").slice(0,8))}] ${esc(e.decision ?? e.key_insight ?? "")}</div>`)
+        : ["<div class='evidence-item'>No matching entries found.</div>"]
+      ).join("")
+    }</div>`
+  return wrap
+}
+
+// ── Compass ────────────────────────────────────────────────────────────────
+
+function showCompassView(name) {
+  document.querySelectorAll(".compass-view").forEach(v => v.classList.remove("active"))
+  document.querySelectorAll(".compass-tab-btn").forEach((b, i) => {
+    b.classList.toggle("active", ["map","brief"][i] === name)
+  })
+  document.getElementById(`compass${name.charAt(0).toUpperCase()+name.slice(1)}View`).classList.add("active")
+}
+
+async function loadCompassMap() {
+  const area = document.getElementById("compassArea")?.value?.trim() || ""
+  const mapEl = document.getElementById("compassMapView")
+  mapEl.innerHTML = `<div class="loading">Scanning product surface…</div>`
+  showCompassView("map")
+  try {
+    const url = area ? `/api/compass/map?area=${encodeURIComponent(area)}` : "/api/compass/map"
+    const res = await fetch(url)
+    compassMapData = await res.json()
+    renderCompassMap(compassMapData)
+  } catch (err) {
+    mapEl.innerHTML = `<div class="empty">Failed to load map<small>${esc(err.message)}</small></div>`
+  }
+}
+
+function renderCompassMap(data) {
+  const mapEl = document.getElementById("compassMapView")
+  const { behaviors, gaps, confidence } = data
+
+  if (!behaviors.length && !gaps.length) {
+    mapEl.innerHTML = `<div class="empty">No behaviours found<small>Ensure the project has CLI commands, routes, or documented features.</small></div>`
+    return
+  }
+
+  // Group by area
+  const byArea = {}
+  for (const b of behaviors) {
+    const area = b.area ?? "general"
+    ;(byArea[area] = byArea[area] ?? []).push(b)
+  }
+
+  const areaHtml = Object.entries(byArea).map(([area, items]) => `
+    <div class="area-group">
+      <div class="area-group-title">${esc(area)}</div>
+      ${items.map(b => `
+        <div class="behavior-item">
+          <div class="behavior-name">${esc(b.name)}</div>
+          <div class="behavior-summary">${esc(b.current_behavior)}</div>
+        </div>
+      `).join("")}
+    </div>
+  `).join("")
+
+  const gapsHtml = gaps.length ? `
+    <div class="area-group">
+      <div class="area-group-title">Gaps — ${gaps.length} documented areas without code</div>
+      ${gaps.map(g => `
+        <div class="gap-item">
+          <div class="gap-label">gap · ${esc(g.area)}</div>
+          <div class="gap-text">${esc(g.gap)}</div>
+        </div>
+      `).join("")}
+    </div>
+  ` : ""
+
+  mapEl.innerHTML = `
+    <div style="font-size:12px;color:var(--muted);margin-bottom:16px">
+      ${behaviors.length} behaviours · ${gaps.length} gaps · confidence ${Math.round(confidence * 100)}%
+    </div>
+    ${areaHtml}
+    ${gapsHtml}
+  `
+}
+
+async function loadCompassBrief() {
+  const area = document.getElementById("compassArea")?.value?.trim() || ""
+  const briefEl = document.getElementById("compassBriefView")
+  const btn = document.getElementById("compassBriefBtn")
+  btn.disabled = true
+  btn.textContent = "Synthesising…"
+  briefEl.innerHTML = `<div class="advisor-status"><div class="spinner"></div><span id="compassBriefStatus">Scanning product surface…</span></div>`
+  showCompassView("brief")
+
+  try {
+    const url = area ? `/api/compass/brief?area=${encodeURIComponent(area)}` : "/api/compass/brief"
+    const evtSource = new EventSource(url)
+    evtSource.onmessage = (e) => {
+      if (e.data === "[DONE]") {
+        evtSource.close()
+        btn.disabled = false
+        btn.textContent = "Brief (LLM)"
+        return
+      }
+      const msg = JSON.parse(e.data)
+      if (msg.type === "status") {
+        const statusSpan = document.getElementById("compassBriefStatus")
+        if (statusSpan) statusSpan.textContent = msg.text
+      } else if (msg.type === "result") {
+        briefEl.innerHTML = ""
+        briefEl.appendChild(renderCompassBrief(msg.data))
+      } else if (msg.type === "no_llm") {
+        briefEl.innerHTML = `<div class="no-llm-notice">
+          <strong>No LLM configured</strong>
+          Set ANTHROPIC_API_KEY or OPENAI_API_KEY to use Compass Brief.
+          <div class="muted">Switch to the Behaviours tab to see the product map without an LLM.</div>
+        </div>`
+        if (msg.behaviorMap) { compassMapData = msg.behaviorMap; renderCompassMap(msg.behaviorMap) }
+      } else if (msg.type === "error") {
+        briefEl.innerHTML = `<div class="no-llm-notice"><strong>Error</strong>${esc(msg.message)}</div>`
+      }
+    }
+    evtSource.onerror = () => {
+      evtSource.close()
+      briefEl.innerHTML = `<div class="empty">Connection lost.</div>`
+      btn.disabled = false
+      btn.textContent = "Brief (LLM)"
+    }
+  } catch (err) {
+    briefEl.innerHTML = `<div class="empty">${esc(err.message)}</div>`
+    btn.disabled = false
+    btn.textContent = "Brief (LLM)"
+  }
+}
+
+function renderCompassBrief(d) {
+  const wrap = document.createElement("div")
+  wrap.className = "compass-brief-result"
+
+  function card(header, body) {
+    const el = document.createElement("div")
+    el.className = "brief-card"
+    el.innerHTML = `<div class="brief-card-header">${header}</div><div class="brief-card-body">${body}</div>`
+    return el
+  }
+
+  function listItems(arr) {
+    if (!arr?.length) return "<em style='color:var(--muted)'>None</em>"
+    return `<ul>${arr.map(i => `<li>${esc(i)}</li>`).join("")}</ul>`
+  }
+
+  if (d.product_direction) {
+    wrap.appendChild(card("Product Direction",
+      `<strong style="font-size:14px;line-height:1.4">${esc(d.product_direction)}</strong>`))
+  }
+  if (d.known_from_chronicle?.length) wrap.appendChild(card("Known from Chronicle", listItems(d.known_from_chronicle)))
+  if (d.known_from_behavior?.length) wrap.appendChild(card("Known from Behaviour", listItems(d.known_from_behavior)))
+  if (d.inferred?.length) wrap.appendChild(card("Inferred", listItems(d.inferred)))
+  if (d.unknowns?.length) wrap.appendChild(card("Unknowns", listItems(d.unknowns)))
+  if (d.recommended_next_step) {
+    wrap.appendChild(card("Recommended Next Step",
+      `<code style="font-family:var(--mono);font-size:12px;color:var(--blue)">${esc(d.recommended_next_step)}</code>`))
+  }
+  if (typeof d.confidence === "number") {
+    const pct = Math.round(d.confidence * 100)
+    const col = pct >= 70 ? "var(--green)" : pct >= 50 ? "var(--accent)" : "var(--yellow)"
+    wrap.appendChild(card("Confidence",
+      `<span style="color:${col};font-size:16px;font-weight:700">${pct}%</span>`))
+  }
+  return wrap
+}
+
 </script>
 </body>
 </html>
+

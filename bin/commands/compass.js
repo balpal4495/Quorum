@@ -35,7 +35,7 @@ function queryChronicle(entries, query, limit = 8) {
     .map(({ entry }) => entry)
 }
 
-function collectBearings(entries, area) {
+export function collectBearings(entries, area) {
   const queries = [
     area ?? "product direction goals decisions",
     "rejected approaches refuted alternatives",
@@ -59,7 +59,7 @@ function collectBearings(entries, area) {
   return bearings
 }
 
-function formatBearings(bearings) {
+export function formatBearings(bearings) {
   if (!bearings.length) return "No Chronicle entries found."
   return bearings
     .map(b => {
@@ -218,7 +218,7 @@ async function scanRepo(rootDir) {
   return findings
 }
 
-async function collectTerrain(rootDir, area) {
+export async function collectTerrain(rootDir, area) {
   const [docs, pkg, cli, repo] = await Promise.all([
     scanDocs(rootDir, area),
     scanPackage(rootDir),
@@ -228,7 +228,7 @@ async function collectTerrain(rootDir, area) {
   return [...docs, ...pkg, ...cli, ...repo]
 }
 
-function formatTerrain(findings, limit = 40) {
+export function formatTerrain(findings, limit = 40) {
   if (!findings.length) return "No product behaviour found in sources."
   const groups = {}
   for (const f of findings.slice(0, limit)) {
@@ -257,7 +257,7 @@ function findingToRef(f) {
   return { id: f.id, kind: f.kind, source: f.source, path: f.path ?? f.source, summary: f.summary, confidence: f.confidence }
 }
 
-function mapBehaviors(findings, area) {
+export function mapBehaviors(findings, area) {
   const behaviors = []
 
   // CLI command behaviors
@@ -356,7 +356,7 @@ Rules:
 7. Return only valid JSON matching the requested schema.
 8. When no analytics/support data is connected, always state: "No direct user signal connected."`
 
-function buildBriefPrompt(chronicleCtx, behaviorCtx, area) {
+export function buildBriefPrompt(chronicleCtx, behaviorCtx, area) {
   return `Produce a Compass Brief — a summary of current product direction.
 
 ${area ? `Focus area: ${area}\n` : ""}
@@ -435,7 +435,7 @@ Score total = strategic_fit*20 + user_problem_clarity*15 + evidence_strength*20 
 
 // ── LLM helper ────────────────────────────────────────────────────────────────
 
-function parseLLMJson(raw) {
+export function parseLLMJson(raw) {
   const cleaned = raw.replace(/^```(?:json)?\s*/m, "").replace(/\s*```$/m, "").trim()
   try {
     return JSON.parse(cleaned)
@@ -458,7 +458,7 @@ function parseLLMJson(raw) {
   }
 }
 
-async function callLLM(llm, userPrompt) {
+export async function callLLM(llm, userPrompt) {
   if (!llm) throw new Error("LLM provider is required for this subcommand. Set ANTHROPIC_API_KEY or OPENAI_API_KEY.")
   return llm([
     { role: "system", content: COMPASS_SYSTEM_PROMPT },
