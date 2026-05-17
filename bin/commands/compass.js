@@ -753,7 +753,13 @@ async function loadLastArtifact(chronicleDir) {
 
 // ── Main ─────────────────────────────────────────────────────────────────────
 
-export async function run(argv) {
+/**
+ * @param {string[]} argv
+ * @param {Function|null} [injectedLlm] - Pre-detected LLM provider. When
+ *   supplied, provider detection is skipped entirely (avoids the ~1.5 s Ollama
+ *   probe on every MCP/serve request).
+ */
+export async function run(argv, injectedLlm) {
   const [subcommand, ...rest] = argv
 
   if (!subcommand || subcommand === "--help" || subcommand === "-h") {
@@ -794,8 +800,8 @@ export async function run(argv) {
   }
 
   const NO_LLM_CMDS = new Set(["map", "opportunities", "behavior", "propose", "outcome"])
-  const provider = NO_LLM_CMDS.has(subcommand) ? null : await detectProvider()
-  const llm = provider?.llm
+  const llm = injectedLlm
+    ?? (NO_LLM_CMDS.has(subcommand) ? null : (await detectProvider())?.llm)
 
   // ── Shared context helper ─────────────────────────────────────────────────
 
