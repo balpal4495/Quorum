@@ -1,0 +1,30 @@
+{
+  "schema_version": 2,
+  "topic": "compass/source-scanners — project-agnostic redesign",
+  "decision": "Replaced four quorum-specific source scanners in compass.js with generic project detection: scanDocs now scans all root .md files + standard docs/ dirs; scanCli detects CLI layouts (bin/commands, bin/, src/commands) and falls through to Next.js app/pages route scanning; scanRepo scans top-level dirs against a source-hint list instead of hardcoding modules/; inferArea derives from route path segments or tags instead of a fixed quorum module list; mapBehaviors removes the hardcoded EXPECTED gap list and compass-specific gap.",
+  "key_insight": "compass map was scanning quorum own docs and bin/ structure in any host project, producing a map of quorum features rather than the host product surface.",
+  "affected_areas": [
+    "bin/commands/compass.js"
+  ],
+  "scope": [
+    "compass",
+    "source-scanning",
+    "portability"
+  ],
+  "alternatives_considered": [
+    "Add --source-dirs CLI flag for explicit targeting",
+    "Auto-detect project type and switch scanners"
+  ],
+  "rejected_reason": [
+    "--source-dirs flag deferred as optional future enhancement; generic heuristics cover the common cases (CLI tools, Next.js apps, libraries) without user configuration",
+    "Type detection was implicit in the fallback order (CLI pattern first, then web routes) rather than an explicit switch"
+  ],
+  "status": "validated",
+  "confidence": 0.95,
+  "source_module": "compass",
+  "evidence_cited": [],
+  "work_ref": {
+    "type": "pr",
+    "ref": "fix/compass-generic-sources"
+  }
+}
