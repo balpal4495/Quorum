@@ -1,0 +1,30 @@
+{
+  "schema_version": 2,
+  "topic": "compass/invariant — writes must go through oracle.propose(), never oracle.commit()",
+  "decision": "All Compass-generated Chronicle entries must use oracle.propose() and wait for human commit(). Compass must never call oracle.commit() autonomously.",
+  "key_insight": "Compass must only stage Chronicle entries via oracle.propose() — never commit autonomously.",
+  "affected_areas": [
+    "modules/compass/propose.ts",
+    "modules/compass/index.ts"
+  ],
+  "scope": [
+    "compass",
+    "oracle",
+    "invariants",
+    "human-gate"
+  ],
+  "alternatives_considered": [
+    "Auto-commit low-confidence entries"
+  ],
+  "rejected_reason": [
+    "Auto-commit bypasses the human gate that is the core safety property of Chronicle"
+  ],
+  "status": "validated",
+  "confidence": 0.98,
+  "source_module": "compass",
+  "evidence_cited": [],
+  "work_ref": {
+    "type": "pr",
+    "ref": "PR #24"
+  }
+}

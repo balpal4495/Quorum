@@ -1,0 +1,29 @@
+{
+  "schema_version": 2,
+  "topic": "compass/invariant — scoring must tolerate malformed LLM numeric fields",
+  "decision": "computeScore and any dimension-weighted scoring must coerce all LLM-returned values through parseFloat() with a 0 fallback. The ?? 0 pattern does not guard against non-numeric strings like \"high\", \"~0.7\", or template placeholders.",
+  "key_insight": "LLM score fields must be coerced through parseFloat(v) || 0, not ?? 0, because ?? does not catch non-numeric strings.",
+  "affected_areas": [
+    "bin/commands/compass.js",
+    "modules/compass/score.ts"
+  ],
+  "scope": [
+    "compass",
+    "invariants",
+    "llm-robustness"
+  ],
+  "alternatives_considered": [
+    "Validate LLM output schema with Zod before scoring"
+  ],
+  "rejected_reason": [
+    "Schema validation is complementary but does not replace numeric coercion; partial responses still need graceful degradation"
+  ],
+  "status": "validated",
+  "confidence": 0.95,
+  "source_module": "compass",
+  "evidence_cited": [],
+  "work_ref": {
+    "type": "pr",
+    "ref": "PR #30"
+  }
+}

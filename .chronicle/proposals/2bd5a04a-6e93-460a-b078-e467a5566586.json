@@ -1,0 +1,28 @@
+{
+  "schema_version": 2,
+  "topic": "ci/smoke-test — npm pack tarball install validates the published package",
+  "decision": "CI must include an npm pack smoke test that installs the produced tarball into a blank temp project and runs quorum init, advisor brief, check, compass map, and commit --list. This catches raw .ts import errors, missing-await issues, and broken exports that unit tests cannot detect.",
+  "key_insight": "Unit tests pass even when the published package is broken. An npm pack smoke test is the only gate that catches import/export and CLI wiring bugs before release.",
+  "affected_areas": [
+    ".github/workflows/ci.yml"
+  ],
+  "scope": [
+    "ci",
+    "smoke-test",
+    "release-safety"
+  ],
+  "alternatives_considered": [
+    "Run smoke test only in auto-release.yml, not CI"
+  ],
+  "rejected_reason": [
+    "Smoke testing only at release means broken PRs are merged before the issue is caught — it must run on every PR"
+  ],
+  "status": "validated",
+  "confidence": 0.95,
+  "source_module": "sentinel",
+  "evidence_cited": [],
+  "work_ref": {
+    "type": "pr",
+    "ref": "PR #33"
+  }
+}
