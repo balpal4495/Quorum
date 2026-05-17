@@ -1,0 +1,29 @@
+{
+  "schema_version": 2,
+  "topic": "PR #44",
+  "decision": "fix(compass): eliminate ANSI codes, double LLM detection, and pre-wrap UI",
+  "key_insight": "fix(compass): eliminate ANSI codes, double LLM detection, and pre-wrap UI",
+  "affected_areas": [
+    "bin/commands/compass.js",
+    "bin/mcp/tools.js",
+    "bin/ui/app.html"
+  ],
+  "scope": [
+    "cli"
+  ],
+  "alternatives_considered": [],
+  "rejected_reason": [],
+  "supersedes": null,
+  "superseded_by": null,
+  "status": "open",
+  "confidence": 0.4,
+  "source_quality": "metadata-derived",
+  "needs_human_summary": true,
+  "source_module": "pr-merge",
+  "evidence_cited": [],
+  "work_ref": {
+    "type": "pr",
+    "ref": "PR #44"
+  },
+  "outcome": "## Summary\n\nThree bugs found while dogfooding `quorum serve` on the Compass UI.\n\n### 1. Slowness — `detectProvider()` running twice per request\n\n`compass.js run()` called `detectProvider()` internally — re-running all CLI probes (1.5s Ollama timeout, keychain `security` check, file reads) on **every** compass request.\n\nFix: `compass.js run()` now accepts an `injectedLlm` parameter. `toolCompass` passes `_llm` directly, skipping detection entirely.\n\n### 2. Wrong provider used (Gemini instead of C"
+}
