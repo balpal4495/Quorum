@@ -1,0 +1,29 @@
+{
+  "schema_version": 2,
+  "topic": "compass/invariant — map host project, never quorum internals",
+  "decision": "Compass source scanners must produce findings about the host project. Any hardcoded reference to quorum module names (oracle, advisor, jury, council, sentinel, compass, chronicle) in scanner logic is a defect.",
+  "key_insight": "Compass source scanners must produce findings about the host project. Any hardcoded reference to quorum module names in scanner logic is a defect.",
+  "affected_areas": [
+    "modules/compass/sources/index.ts",
+    "bin/commands/compass.js"
+  ],
+  "scope": [
+    "compass",
+    "portability",
+    "invariants"
+  ],
+  "alternatives_considered": [
+    "Opt-in host-project mode via --root flag"
+  ],
+  "rejected_reason": [
+    "Generic scanning by default is the only safe assumption; opt-in would mean every consumer gets quorum internals until they configure it"
+  ],
+  "status": "validated",
+  "confidence": 0.95,
+  "source_module": "compass",
+  "evidence_cited": [],
+  "work_ref": {
+    "type": "pr",
+    "ref": "PR #32"
+  }
+}

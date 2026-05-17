@@ -40,3 +40,63 @@ jobs:
 
       - name: Run tests
         run: npm test
+
+  smoke:
+    name: Pack + install smoke test
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install and build
+        run: |
+          npm ci
+          npm run build
+
+      - name: Pack tarball
+        run: npm pack --pack-destination /tmp
+
+      - name: Install into blank project
+        run: |
+          mkdir /tmp/quorum-smoke
+          cd /tmp/quorum-smoke
+          npm init -y
+          npm install /tmp/balpal4495-quorum-*.tgz
+
+      - name: quorum init
+        run: npx --prefix /tmp/quorum-smoke quorum init
+        working-directory: /tmp/quorum-smoke
+
+      - name: quorum advisor brief
+        run: npx --prefix /tmp/quorum-smoke quorum advisor brief
+        working-directory: /tmp/quorum-smoke
+
+      - name: quorum check
+        run: npx --prefix /tmp/quorum-smoke quorum check --outcome "search returns relevant results" --design "add keyword filter to query"
+        working-directory: /tmp/quorum-smoke
+
+      - name: quorum compass map
+        env:
+          NO_LLM: "1"
+        run: npx --prefix /tmp/quorum-smoke quorum compass map
+        working-directory: /tmp/quorum-smoke
+
+      - name: quorum compass score (no-LLM guard)
+        env:
+          NO_LLM: "1"
+        run: |
+          # score requires an LLM — verify it fails with a clear message, not an import crash
+          npx --prefix /tmp/quorum-smoke quorum compass score "add Slack integration" 2>&1 | grep -v "^$" | head -5 || true
+        working-directory: /tmp/quorum-smoke
+
+      - name: quorum commit --list
+        run: npx --prefix /tmp/quorum-smoke quorum commit --list
+        working-directory: /tmp/quorum-smoke

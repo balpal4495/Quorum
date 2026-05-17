@@ -1,0 +1,33 @@
+{
+  "schema_version": 2,
+  "topic": "compass/invariant — CLI and module scanner behaviour must stay aligned",
+  "decision": "bin/commands/compass.js (CLI) and modules/compass/sources/index.ts (programmatic API) implement the same scanner logic in two places. Any change to one must be ported to the other in the same PR. A future refactor should unify them into a shared module.",
+  "key_insight": "CLI and programmatic Compass share no source — they diverge silently. Every scanner change must be applied to both, or the duplication consolidated.",
+  "affected_areas": [
+    "bin/commands/compass.js",
+    "modules/compass/sources/index.ts",
+    "modules/compass/behavior.ts"
+  ],
+  "scope": [
+    "compass",
+    "invariants",
+    "architecture",
+    "duplication-risk"
+  ],
+  "alternatives_considered": [
+    "Accept divergence and document the split",
+    "Immediately consolidate into a shared module"
+  ],
+  "rejected_reason": [
+    "Accepting divergence is how PR #32 happened — the CLI was fixed in PR #31 but the module was not updated",
+    "Immediate consolidation is the right long-term fix but requires a larger refactor than the current PRs scope"
+  ],
+  "status": "open",
+  "confidence": 0.85,
+  "source_module": "compass",
+  "evidence_cited": [],
+  "work_ref": {
+    "type": "pr",
+    "ref": "PR #32"
+  }
+}

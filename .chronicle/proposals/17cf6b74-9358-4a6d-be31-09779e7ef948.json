@@ -1,0 +1,29 @@
+{
+  "schema_version": 2,
+  "topic": "compass/invariant — outputs are directional signals, not product truth",
+  "decision": "Compass behaviors, gaps, pathways, and bets are LLM-synthesised directional signals. They must never be presented as authoritative product state. All output surfaces must include a confidence score and a generated_at timestamp.",
+  "key_insight": "Compass outputs are directional signals synthesised from project structure — not authoritative product state. Confidence + generated_at are mandatory.",
+  "affected_areas": [
+    "modules/compass/behavior.ts",
+    "modules/compass/types.ts"
+  ],
+  "scope": [
+    "compass",
+    "invariants",
+    "output-contract"
+  ],
+  "alternatives_considered": [
+    "Omit confidence scores for cleaner output"
+  ],
+  "rejected_reason": [
+    "Without confidence scores consumers cannot distinguish high-signal from speculative findings"
+  ],
+  "status": "validated",
+  "confidence": 0.9,
+  "source_module": "compass",
+  "evidence_cited": [],
+  "work_ref": {
+    "type": "pr",
+    "ref": "PR #24"
+  }
+}
