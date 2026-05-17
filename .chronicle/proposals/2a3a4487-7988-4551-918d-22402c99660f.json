@@ -1,0 +1,30 @@
+{
+  "schema_version": 2,
+  "topic": "PR #37",
+  "decision": "fix(llm): cascading provider fallback on quota errors + chronicle auto-detect tests",
+  "key_insight": "fix(llm): cascading provider fallback on quota errors + chronicle auto-detect tests",
+  "affected_areas": [
+    "bin/__tests__/chronicle.test.js",
+    "bin/shared/llm.js",
+    "package.json"
+  ],
+  "scope": [
+    "cli",
+    "npm"
+  ],
+  "alternatives_considered": [],
+  "rejected_reason": [],
+  "supersedes": null,
+  "superseded_by": null,
+  "status": "open",
+  "confidence": 0.4,
+  "source_quality": "metadata-derived",
+  "needs_human_summary": true,
+  "source_module": "pr-merge",
+  "evidence_cited": [],
+  "work_ref": {
+    "type": "pr",
+    "ref": "PR #37"
+  },
+  "outcome": "Two dev-experience improvements.\n\n## 1. LLM provider cascade fallback\n\n**Problem:** `detectProvider()` stopped at the first available API key. If `GEMINI_API_KEY` was set and Gemini returned 429, the error surfaced raw with no recovery:\n\n```\nAdvisor failed: Gemini API 429: You exceeded your current quota...\n```\n\n**Fix:** Collect _all_ available providers concurrently (Ollama probe runs in parallel with API-key checks). The returned `llm()` function is a cascading wrapper that tries each in prior"
+}
