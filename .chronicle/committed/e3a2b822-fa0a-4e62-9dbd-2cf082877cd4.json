@@ -1,0 +1,36 @@
+{
+  "schema_version": 2,
+  "topic": "cli/quorum-llm-command",
+  "decision": "quorum llm is a standalone diagnostic command that probes all providers in parallel and renders a status panel with active badge and per-provider setup hints.",
+  "key_insight": "quorum llm is a standalone diagnostic command that probes all providers in parallel and renders a status panel with active badge and per-provider setup hints.",
+  "affected_areas": [
+    "bin/commands/llm.js",
+    "bin/shared/llm.js",
+    "bin/quorum.js"
+  ],
+  "scope": [
+    "cli",
+    "llm",
+    "onboarding"
+  ],
+  "alternatives_considered": [
+    "Embed LLM status in quorum status command",
+    "Interactive wizard that prompts user to pick a provider"
+  ],
+  "rejected_reason": [
+    "quorum status is already dense — LLM setup is a distinct first-run concern",
+    "Interactive prompts add complexity; zero-config auto-detection is the design principle — the command should show what was found, not ask what to use"
+  ],
+  "status": "validated",
+  "confidence": 0.95,
+  "source_module": "council",
+  "evidence_cited": [
+    "a183c37e"
+  ],
+  "work_ref": {
+    "type": "pr",
+    "ref": "PR #41"
+  },
+  "id": "e3a2b822-fa0a-4e62-9dbd-2cf082877cd4",
+  "timestamp": "2026-05-17T20:41:57.154Z"
+}

@@ -1,0 +1,41 @@
+{
+  "schema_version": 2,
+  "topic": "llm/gh-copilot-vs-copilot-cli",
+  "decision": "gh copilot (the GitHub CLI extension) cannot be used as an LLM provider — it only supports shell command suggest/explain and returns 403 on chat API calls. The standalone copilot binary (shipped with VS Code Copilot Chat extension) supports -p/--prompt and is the correct integration point.",
+  "key_insight": "gh copilot (the GitHub CLI extension) cannot be used as an LLM provider — it only supports shell command suggest/explain and returns 403 on chat API calls. The standalone copilot binary (shipped with VS Code Copilot Chat extension) supports -p/--prompt and is the correct integration point.",
+  "affected_areas": [
+    "bin/shared/llm.js",
+    "bin/commands/llm.js"
+  ],
+  "scope": [
+    "llm",
+    "copilot",
+    "cli"
+  ],
+  "alternatives_considered": [
+    "Use gh copilot suggest/explain as a roundabout LLM proxy",
+    "Use the GitHub Copilot REST API directly with a token"
+  ],
+  "rejected_reason": [
+    "gh copilot is limited to shell command generation — calling the chat endpoint returns 403 (integration does not have GitHub chat enabled)",
+    "The GitHub Copilot REST API requires a specific token scope that gh auth does not provide by default"
+  ],
+  "notes": [
+    "gh copilot is installed via: gh extension install github/gh-copilot (tested v1.1.1)",
+    "The standalone copilot binary lives at: ~/Library/Application Support/Code/User/globalStorage/github.copilot-chat/copilotCli/copilot",
+    "The copilot binary is a shell wrapper that runs VS Code Electron node with copilotCLIShim.js",
+    "Auth probe: ~/.copilot/session-state/ has at least one UUID directory after first sign-in",
+    "Usage: copilot -p '<prompt>' --output-format json  ->  JSONL stream, extract assistant.message event",
+    "The copilot binary is added to PATH automatically by VS Code when the Copilot Chat extension is installed"
+  ],
+  "status": "validated",
+  "confidence": 0.98,
+  "source_module": "council",
+  "evidence_cited": [],
+  "work_ref": {
+    "type": "pr",
+    "ref": "PR #41"
+  },
+  "id": "578368f4-6141-4ac3-80a3-116b58caf065",
+  "timestamp": "2026-05-17T20:41:57.715Z"
+}
