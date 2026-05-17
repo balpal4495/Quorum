@@ -21,5 +21,7 @@
   "validation_plan": [
     "Verify README is touched in every feat/* PR before merge"
   ],
-  "evidence_cited": []
+  "evidence_cited": [],
+  "id": "17420910-f2ab-4df0-bce3-84481cae0ad8",
+  "timestamp": "2026-05-17T15:24:01.883Z"
 }
