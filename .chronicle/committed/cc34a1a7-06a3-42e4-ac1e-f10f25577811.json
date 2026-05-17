@@ -1,0 +1,35 @@
+{
+  "schema_version": 2,
+  "topic": "llm/provider-chain",
+  "decision": "LLM detection order updated to prioritise zero-config CLI tools (Claude Code CLI, Copilot CLI) over API keys, with Ollama moved to last resort.",
+  "key_insight": "LLM detection order updated to prioritise zero-config CLI tools (Claude Code CLI, Copilot CLI) over API keys, with Ollama moved to last resort.",
+  "affected_areas": [
+    "bin/shared/llm.js"
+  ],
+  "scope": [
+    "llm",
+    "cli",
+    "detection"
+  ],
+  "alternatives_considered": [
+    "Keep API keys first (original order)",
+    "Separate config file to specify provider preference"
+  ],
+  "rejected_reason": [
+    "Most users running Quorum via an agent already have Claude Code or Copilot authenticated — requiring them to set an API key is unnecessary friction",
+    "Config file adds maintenance surface with no benefit when detection works correctly"
+  ],
+  "status": "validated",
+  "confidence": 0.95,
+  "source_module": "council",
+  "evidence_cited": [
+    "a183c37e"
+  ],
+  "supersedes": "a183c37e",
+  "work_ref": {
+    "type": "pr",
+    "ref": "PR #41"
+  },
+  "id": "cc34a1a7-06a3-42e4-ac1e-f10f25577811",
+  "timestamp": "2026-05-17T20:41:56.210Z"
+}

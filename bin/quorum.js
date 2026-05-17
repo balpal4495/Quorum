@@ -23,6 +23,8 @@ ${c.bold("Usage:")}
   ${c.cyan("quorum advisor")} ${c.dim('"question"')}             Ask a plain-language question (uses LLM)
   ${c.cyan("quorum advisor query")} ${c.dim('"topic"')}          Search Chronicle entries (no LLM)
   ${c.cyan("quorum advisor brief")}                 High-level Chronicle summary (no LLM)
+  ${c.cyan("quorum llm")}                           Show LLM provider status and setup guide
+  ${c.cyan("quorum llm --test")}                    Send a live test request to the active provider
   ${c.cyan("quorum init")}                          Scaffold Quorum into a project
   ${c.cyan("quorum status")}                        Show Chronicle health and pending proposals
   ${c.cyan("quorum check")} --outcome <x> --design <y>  Preflight + risk (no LLM)
@@ -112,6 +114,12 @@ async function cli() {
 
   if (command === "advisor") {
     const { run } = await import(path.join(__dirname, "commands/advisor.js"))
+    await run(rest)
+    return
+  }
+
+  if (command === "llm") {
+    const { run } = await import(path.join(__dirname, "commands/llm.js"))
     await run(rest)
     return
   }

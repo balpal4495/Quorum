@@ -205,6 +205,79 @@ quorum advisor brief
 
 ---
 
+## LLM setup
+
+LLM-powered commands (`advisor`, `evolve`, `check`, `compass`, `serve`) auto-detect whichever provider is available. No config file is needed — Quorum picks the first working option from the list below.
+
+**Recommended: use a CLI tool you're already logged into.** No API key required.
+
+### Option 1 — Claude Code CLI (recommended)
+
+If you have [Claude Code](https://claude.ai/code) installed and are logged in, Quorum uses it automatically.
+
+```bash
+# Verify it's working
+echo "say hi" | claude --print
+```
+
+Quorum detects the `Claude Code-credentials` keychain entry (macOS) or a session file in `~/.claude/sessions/`. If the command above works, Quorum will use it.
+
+### Option 2 — GitHub Copilot CLI
+
+If you have the [GitHub Copilot CLI](https://docs.github.com/en/copilot/how-tos/use-copilot-agents/use-copilot-cli) installed and are logged in via VS Code, Quorum uses it automatically.
+
+```bash
+# Verify it's working
+copilot -p "say hi"
+```
+
+Quorum detects `~/.copilot/session-state/` having at least one session (created after first auth). If the command above works, Quorum will use it.
+
+### Option 3 — API keys
+
+Set any one of these environment variables:
+
+| Variable | Provider |
+|---|---|
+| `ANTHROPIC_API_KEY` | Anthropic Claude |
+| `OPENAI_API_KEY` | OpenAI |
+| `GEMINI_API_KEY` | Google Gemini |
+| `OPENAI_BASE_URL` | Any OpenAI-compatible endpoint (Azure, Groq, etc.) |
+
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...
+```
+
+### Option 4 — Gemini CLI
+
+If you have the [Gemini CLI](https://github.com/google-gemini/gemini-cli) installed and authenticated, Quorum uses it automatically.
+
+```bash
+# Verify it's working
+gemini -p "say hi"
+```
+
+### Option 5 — Ollama (local, last resort)
+
+If Ollama is running at `localhost:11434`, Quorum uses the first available model. Set `OLLAMA_MODEL` to pin a specific model, or `OLLAMA_HOST` for a non-default address.
+
+```bash
+ollama serve
+export OLLAMA_MODEL=llama3.2   # optional
+```
+
+### Checking what was detected
+
+```bash
+quorum serve   # startup line shows: LLM: Claude Code CLI
+```
+
+### No LLM — still useful
+
+Without any provider, `advisor query`, `advisor brief`, `check`, and `coverage` all work with no LLM. Commands output Chronicle evidence and a synthesis request that your agent (Claude Code, Copilot, Codex) can answer inline.
+
+---
+
 ## Upgrading from v1
 
 If your project has a `quorum/modules/` folder (the v1 vendored pattern), migrate in one step:
@@ -602,7 +675,7 @@ Refuted entries always elevate risk by at least one level. Citation validation s
 
 ### LLM auto-detection
 
-Quorum finds whichever LLM is available: `ANTHROPIC_API_KEY` → `OPENAI_API_KEY` → `GEMINI_API_KEY` → `OPENAI_BASE_URL` → Ollama at `localhost:11434` → authenticated `gemini` CLI. When running inside an AI agent with no separate key, commands output Chronicle evidence and a synthesis request — the agent answers inline.
+Quorum tries providers in this order: **Claude Code CLI** → **Copilot CLI** → `ANTHROPIC_API_KEY` → `OPENAI_API_KEY` → `GEMINI_API_KEY` → `OPENAI_BASE_URL` → Gemini CLI → Ollama. See [LLM setup](#llm-setup) for how to configure each option.
 
 ---
 

@@ -11,10 +11,12 @@ const execAsync = promisify(exec)
  * Detection order (highest priority first):
  *   1. ANTHROPIC_API_KEY            → Anthropic Claude
  *   2. OPENAI_API_KEY               → OpenAI (or compatible via OPENAI_BASE_URL)
- *   3. GEMINI_API_KEY               → Google Gemini (API)
- *   4. OPENAI_BASE_URL (no key)     → OpenAI-compatible endpoint (Azure, Groq, etc.)
- *   5. OLLAMA_HOST / localhost:11434 → Ollama (probed in parallel with the above)
- *   6. gemini CLI in PATH           → Google Gemini (CLI subprocess)
+ *   3. OPENAI_BASE_URL (no key)     → OpenAI-compatible endpoint (Azure, Groq, etc.)
+ *   4. GEMINI_API_KEY               → Google Gemini (API)
+ *   5. claude CLI in PATH           → Claude Code (CLI subprocess, --print mode)
+ *   6. copilot CLI in PATH          → GitHub Copilot CLI (-p / --prompt mode)
+ *   7. gemini CLI in PATH           → Google Gemini (CLI subprocess)
+ *   8. OLLAMA_HOST / localhost:11434 → Ollama (last resort — local models)
  *
  * All detected providers are tried in order. A 429 / quota / rate-limit error
  * from one provider causes a silent fallback to the next rather than a hard
@@ -39,8 +41,10 @@ export async function detectProvider() {
  */
 async function gatherCandidates() {
   // Probe async sources concurrently
-  const [ollamaModel, geminiCLIAvail] = await Promise.all([
+  const [ollamaModel, claudeCLIAvail, copilotCLIAvail, geminiCLIAvail] = await Promise.all([
     probeOllama(process.env.OLLAMA_HOST || "http://localhost:11434"),
+    probeClaudeCLI(),
+    probeCopilotCLI(),
     probeGeminiCLI(),
   ])
 
@@ -77,11 +81,17 @@ async function gatherCandidates() {
     })
   }
 
-  if (ollamaModel) {
-    const host = process.env.OLLAMA_HOST || "http://localhost:11434"
+  if (claudeCLIAvail) {
     candidates.push({
-      llm:  createOpenAICompatProvider("", `${host}/v1`, ollamaModel),
-      name: `Ollama (${ollamaModel})`,
+      llm:  createClaudeCLIProvider(),
+      name: "Claude Code CLI",
+    })
+  }
+
+  if (copilotCLIAvail) {
+    candidates.push({
+      llm:  createCopilotCLIProvider(),
+      name: "Copilot CLI",
     })
   }
 
@@ -89,6 +99,15 @@ async function gatherCandidates() {
     candidates.push({
       llm:  createGeminiCLIProvider(),
       name: "Gemini CLI",
+    })
+  }
+
+  // Ollama is last — local models are the slowest fallback
+  if (ollamaModel) {
+    const host = process.env.OLLAMA_HOST || "http://localhost:11434"
+    candidates.push({
+      llm:  createOpenAICompatProvider("", `${host}/v1`, ollamaModel),
+      name: `Ollama (${ollamaModel})`,
     })
   }
 
@@ -137,6 +156,113 @@ export async function detectLLM() {
 /** Convenience wrapper — returns the provider name or null. */
 export async function detectLLMName() {
   return (await detectProvider())?.name ?? null
+}
+
+/**
+ * Probe all providers and return a priority-ordered status array suitable for
+ * display (e.g. quorum llm). Each entry:
+ *   { id, name, detected: bool, note: string|null }
+ * 'detected' = true  → provider is ready to use right now
+ * 'note'            → setup hint when not detected, or detail when detected
+ */
+export async function probeAll() {
+  // Run async probes in parallel
+  const [ollamaModel, claudeDetail, copilotDetail, geminiDetail] = await Promise.all([
+    probeOllama(process.env.OLLAMA_HOST || "http://localhost:11434"),
+    probeCliDetail("claude", async () => {
+      const { platform } = await import("os")
+      if (platform() === "darwin") {
+        await execAsync("security find-generic-password -s 'Claude Code-credentials' 2>/dev/null")
+        return true
+      }
+      const { readdir } = await import("fs/promises")
+      const { homedir } = await import("os")
+      const sessions = await readdir(path.join(homedir(), ".claude", "sessions")).catch(() => [])
+      return sessions.length > 0
+    }),
+    probeCliDetail("copilot", async () => {
+      const { readdir } = await import("fs/promises")
+      const { homedir } = await import("os")
+      const sessions = await readdir(path.join(homedir(), ".copilot", "session-state")).catch(() => [])
+      return sessions.length > 0
+    }),
+    probeCliDetail("gemini", async () => {
+      if (process.env.GOOGLE_GENAI_USE_VERTEXAI || process.env.GOOGLE_APPLICATION_CREDENTIALS) return true
+      const { readFile } = await import("fs/promises")
+      const { homedir } = await import("os")
+      const raw = await readFile(path.join(homedir(), ".gemini", "settings.json"), "utf8")
+      return !!JSON.parse(raw).selectedAuthType
+    }),
+  ])
+
+  const hasOpenAIKey  = !!process.env.OPENAI_API_KEY
+  const hasOpenAIBase = !!process.env.OPENAI_BASE_URL
+  let openAIName = "OpenAI API"
+  if (hasOpenAIBase && !hasOpenAIKey) {
+    try { openAIName = `OpenAI-compatible (${new URL(process.env.OPENAI_BASE_URL).hostname})` } catch { /**/ }
+  }
+
+  return [
+    {
+      id:       "anthropic",
+      name:     "Anthropic API",
+      detected: !!process.env.ANTHROPIC_API_KEY,
+      note:     process.env.ANTHROPIC_API_KEY ? null : "export ANTHROPIC_API_KEY=sk-ant-…",
+    },
+    {
+      id:       "openai",
+      name:     openAIName,
+      detected: hasOpenAIKey || hasOpenAIBase,
+      note:     hasOpenAIKey || hasOpenAIBase ? null : "export OPENAI_API_KEY=sk-…",
+    },
+    {
+      id:       "gemini-api",
+      name:     "Gemini API",
+      detected: !!process.env.GEMINI_API_KEY,
+      note:     process.env.GEMINI_API_KEY ? null : "export GEMINI_API_KEY=…",
+    },
+    {
+      id:       "claude-cli",
+      name:     "Claude Code CLI",
+      detected: claudeDetail.authed,
+      note:     claudeDetail.authed    ? null
+              : claudeDetail.inPath    ? "found in PATH but not signed in — run: claude"
+              :                          "install from claude.ai/code, then sign in once",
+    },
+    {
+      id:       "copilot-cli",
+      name:     "Copilot CLI",
+      detected: copilotDetail.authed,
+      note:     copilotDetail.authed   ? null
+              : copilotDetail.inPath   ? "found but no session — open VS Code and sign into Copilot Chat"
+              :                          "install VS Code + GitHub Copilot Chat extension",
+    },
+    {
+      id:       "gemini-cli",
+      name:     "Gemini CLI",
+      detected: geminiDetail.authed,
+      note:     geminiDetail.authed    ? null
+              : geminiDetail.inPath    ? "found but not authenticated — run: gemini auth"
+              :                          "npm install -g @google/gemini-cli, then: gemini auth",
+    },
+    {
+      id:       "ollama",
+      name:     "Ollama",
+      detected: !!ollamaModel,
+      note:     ollamaModel ?? "run: ollama serve  (then: ollama pull llama3.2)",
+    },
+  ]
+}
+
+/**
+ * Probe a CLI binary — returns { inPath, authed }.
+ * authCheck is called only when the binary is found; errors are treated as "not authed".
+ */
+async function probeCliDetail(binary, authCheck) {
+  let inPath = false
+  try { await execAsync(`which ${binary}`); inPath = true } catch { /**/ }
+  if (!inPath) return { inPath: false, authed: false }
+  try { const authed = await authCheck(); return { inPath: true, authed: !!authed } } catch { return { inPath: true, authed: false } }
 }
 
 // ── Probe Ollama ───────────────────────────────────────────────────────────────
@@ -233,6 +359,115 @@ function createGeminiProvider(apiKey) {
     if (!res.ok) throw new Error(`Gemini API ${res.status}: ${(await res.text()).slice(0, 200)}`)
     const data = await res.json()
     return data.candidates?.[0]?.content?.parts?.[0]?.text ?? ""
+  }
+}
+
+async function probeClaudeCLI() {
+  // Must be in PATH
+  try {
+    await execAsync("which claude")
+  } catch {
+    return false
+  }
+
+  // Must have an active session — Claude Code stores OAuth tokens in the macOS keychain.
+  // A quick smoke-test is cheaper than shelling out; check the keychain entry exists.
+  // On non-macOS, fall back to checking ~/.claude/sessions/ for any session file.
+  try {
+    const { platform } = await import("os")
+    if (platform() === "darwin") {
+      await execAsync("security find-generic-password -s 'Claude Code-credentials' 2>/dev/null")
+      return true
+    }
+    // Non-macOS: check for at least one session file
+    const { readdir } = await import("fs/promises")
+    const { homedir } = await import("os")
+    const sessions = await readdir(path.join(homedir(), ".claude", "sessions")).catch(() => [])
+    return sessions.length > 0
+  } catch {
+    return false
+  }
+}
+
+function createClaudeCLIProvider() {
+  return function llm(messages) {
+    return new Promise((resolve, reject) => {
+      const system      = messages.find(m => m.role === "system")?.content ?? ""
+      const userContent = messages.filter(m => m.role !== "system").map(m => m.content).join("\n\n")
+
+      // Combine system + user into one prompt piped via stdin; --print for non-interactive output.
+      // Do NOT use --bare — that disables keychain OAuth and requires ANTHROPIC_API_KEY instead.
+      const fullPrompt = system ? `${system}\n\n${userContent}` : userContent
+      const child = spawn("claude", ["--print", "--output-format", "text"], { stdio: ["pipe", "pipe", "pipe"] })
+
+      let out = "", err = ""
+      child.stdout.on("data", d => { out += d })
+      child.stderr.on("data", d => { err += d })
+      child.on("error", reject)
+      child.on("close", code => {
+        if (code === 0) resolve(out.trim())
+        else reject(new Error(`claude CLI exited ${code}: ${err.slice(0, 200)}`))
+      })
+      child.stdin.write(fullPrompt)
+      child.stdin.end()
+    })
+  }
+}
+
+async function probeCopilotCLI() {
+  // Must be in PATH (VS Code installs a shell wrapper into PATH automatically)
+  try {
+    await execAsync("which copilot")
+  } catch {
+    return false
+  }
+
+  // Must have at least one session in ~/.copilot/session-state/ — created after first auth
+  try {
+    const { readdir } = await import("fs/promises")
+    const { homedir } = await import("os")
+    const sessions = await readdir(path.join(homedir(), ".copilot", "session-state")).catch(() => [])
+    return sessions.length > 0
+  } catch {
+    return false
+  }
+}
+
+function createCopilotCLIProvider() {
+  return function llm(messages) {
+    return new Promise((resolve, reject) => {
+      const system      = messages.find(m => m.role === "system")?.content ?? ""
+      const userContent = messages.filter(m => m.role !== "system").map(m => m.content).join("\n\n")
+      const fullPrompt  = system ? `${system}\n\n${userContent}` : userContent
+
+      // Use --output-format json so we can parse the JSONL event stream reliably
+      const child = spawn("copilot", ["-p", fullPrompt, "--output-format", "json"], {
+        stdio: ["ignore", "pipe", "pipe"],
+      })
+
+      let out = "", err = ""
+      child.stdout.on("data", d => { out += d })
+      child.stderr.on("data", d => { err += d })
+      child.on("error", reject)
+      child.on("close", code => {
+        if (code !== 0) {
+          return reject(new Error(`copilot CLI exited ${code}: ${err.slice(0, 200)}`))
+        }
+        // Parse JSONL stream — find the assistant.message event
+        const content = out.split("\n")
+          .filter(Boolean)
+          .reduce((found, line) => {
+            if (found) return found
+            try {
+              const evt = JSON.parse(line)
+              if (evt.type === "assistant.message" && evt.data?.content) return evt.data.content
+            } catch { /* skip non-JSON lines */ }
+            return null
+          }, null)
+        if (content == null) return reject(new Error("copilot CLI: no assistant.message event in output"))
+        resolve(content)
+      })
+    })
   }
 }
 
