@@ -1,6 +1,6 @@
 {
   "name": "@balpal4495/quorum",
-  "version": "3.4.0",
+  "version": "3.5.0",
   "description": "Git-backed memory and design review for AI coding agents",
   "type": "module",
   "license": "MIT",
