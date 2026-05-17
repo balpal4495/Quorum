@@ -1,11 +1,18 @@
 /**
  * Quorum MCP tool definitions — pure logic, no HTTP.
  * Shared between the MCP JSON-RPC handler and the REST API used by the UI.
+ *
+ * Tool naming follows Keep's pattern: all tools share a consistent prefix.
+ * Tools marked [TODO] are stubs — LLM-powered tools are out of scope for the
+ * current stateless HTTP server and require a future quorum serve --llm design.
  */
 import { promises as fs } from "fs"
 import path from "path"
+import { fileURLToPath } from "url"
 import { randomUUID } from "crypto"
 import { findChronicleDir, readCommitted, readProposals, updateSummary } from "../shared/chronicle.js"
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 // ── BM25-lite search ──────────────────────────────────────────────────────────
 
@@ -88,7 +95,7 @@ async function resolve(projectRoot) {
   return { projectRoot: root, chronicleDir }
 }
 
-export async function toolChronicleQuery({ topic, projectRoot } = {}) {
+export async function toolQuery({ topic, projectRoot } = {}) {
   if (!topic) throw new Error("topic is required")
   const { chronicleDir } = await resolve(projectRoot)
   const entries = await readCommitted(chronicleDir)
@@ -96,7 +103,7 @@ export async function toolChronicleQuery({ topic, projectRoot } = {}) {
   return { query: topic, count: results.length, entries: results }
 }
 
-export async function toolChronicleBrief({ projectRoot } = {}) {
+export async function toolBrief({ projectRoot } = {}) {
   const { chronicleDir } = await resolve(projectRoot)
   const entries = await readCommitted(chronicleDir)
   const byStatus = { validated: 0, open: 0, refuted: 0, other: 0 }
@@ -120,7 +127,7 @@ export async function toolChronicleBrief({ projectRoot } = {}) {
   }
 }
 
-export async function toolChroniclePropose({ entry, projectRoot } = {}) {
+export async function toolStage({ entry, projectRoot } = {}) {
   if (!entry) throw new Error("entry object is required")
   const required = ["topic", "decision"]
   for (const k of required) {
@@ -149,7 +156,7 @@ export async function toolChroniclePropose({ entry, projectRoot } = {}) {
   return { proposalId, topic: proposal.topic }
 }
 
-export async function toolChroniclePending({ projectRoot } = {}) {
+export async function toolPending({ projectRoot } = {}) {
   const { chronicleDir } = await resolve(projectRoot)
   const proposals = await readProposals(chronicleDir)
   return {
@@ -165,7 +172,7 @@ export async function toolChroniclePending({ projectRoot } = {}) {
   }
 }
 
-export async function toolSentinelCoverage({ projectRoot } = {}) {
+export async function toolCoverage({ projectRoot } = {}) {
   const { projectRoot: root, chronicleDir } = await resolve(projectRoot)
   const [entries, files] = await Promise.all([
     readCommitted(chronicleDir),
@@ -178,15 +185,107 @@ export async function toolSentinelCoverage({ projectRoot } = {}) {
     return { file: relative, covered, entryIds }
   })
 
-  const coveredFiles   = coverageByFile.filter(f => f.covered)
-  const uncoveredFiles = coverageByFile.filter(f => !f.covered)
-  const percentage     = files.length === 0 ? 0
+  const coveredFiles = coverageByFile.filter(f => f.covered)
+  const percentage   = files.length === 0 ? 0
     : Math.round((coveredFiles.length / files.length) * 100)
 
   return { percentage, totalFiles: files.length, coveredFiles: coveredFiles.length, coverageByFile }
 }
 
-// ── Proposal commit (human-gate action — only callable from UI, not MCP AI tools) ──
+export async function toolGrowth({ projectRoot } = {}) {
+  const { chronicleDir } = await resolve(projectRoot)
+  const [entries, proposals] = await Promise.all([
+    readCommitted(chronicleDir),
+    readProposals(chronicleDir),
+  ])
+
+  const byStatus = { validated: 0, open: 0, refuted: 0, other: 0 }
+  let totalConfidence = 0
+  for (const e of entries) {
+    const k = e.status === "validated" || e.status === "open" || e.status === "refuted"
+      ? e.status : "other"
+    byStatus[k]++
+    totalConfidence += e.confidence ?? 0
+  }
+
+  const avgConfidence = entries.length > 0
+    ? Math.round((totalConfidence / entries.length) * 100) / 100
+    : 0
+
+  // Rough health score: reward validated entries, penalise refuted + pending
+  const health = entries.length === 0 ? 0 : Math.max(0, Math.min(100, Math.round(
+    (byStatus.validated / entries.length) * 100
+    - (byStatus.refuted / entries.length) * 20
+    - (proposals.length / Math.max(1, entries.length)) * 10
+  )))
+
+  return {
+    health,
+    entries: { total: entries.length, byStatus, avgConfidence },
+    proposals: { pending: proposals.length },
+    hint: health >= 80 ? "Chronicle is healthy."
+      : health >= 50 ? "Chronicle is growing — consider committing pending proposals."
+      : "Chronicle needs attention — validate open entries and reduce pending proposals.",
+  }
+}
+
+// Path to the modules README for quorum_help
+const HELP_PATH = path.join(__dirname, "../../modules/README.md")
+
+export async function toolHelp({ topic } = {}) {
+  let readme
+  try {
+    readme = await fs.readFile(HELP_PATH, "utf8")
+  } catch {
+    return { topic, content: "Quorum help text not found. See https://github.com/balpal4495/Quorum for documentation." }
+  }
+
+  if (!topic || topic === "index") {
+    // Return the first 100 lines as an index
+    const lines = readme.split("\n").slice(0, 100).join("\n")
+    return { topic: "index", content: lines }
+  }
+
+  // Find the heading that best matches the topic and return its section
+  const lines  = readme.split("\n")
+  const needle = topic.toLowerCase()
+  const start  = lines.findIndex(l => l.startsWith("#") && l.toLowerCase().includes(needle))
+
+  if (start === -1) {
+    return { topic, content: `No section found for "${topic}". Try quorum_help with topic="index" to browse available topics.` }
+  }
+
+  // Collect lines until the next same-level heading
+  const level = (lines[start].match(/^#+/) ?? [""])[0].length
+  const end   = lines.findIndex((l, i) => i > start && l.startsWith("#".repeat(level)) && l.length > level)
+  const section = lines.slice(start, end === -1 ? start + 60 : end).join("\n")
+
+  return { topic, content: section }
+}
+
+// ── [TODO] LLM-powered placeholders ──────────────────────────────────────────
+// These tools require a live LLM provider wired into quorum serve (--llm flag).
+// They are registered so AI clients can discover them, but return a clear
+// "not yet available" message rather than silently failing.
+
+const TODO_MESSAGE = (name) =>
+  `${name} requires an LLM provider. This is planned — run 'quorum ${name.replace("quorum_", "")}' from the CLI for now, or watch for a future 'quorum serve --llm' flag.`
+
+export async function toolAdvisor({ question } = {}) {
+  if (!question) throw new Error("question is required")
+  return { status: "todo", message: TODO_MESSAGE("quorum_advisor") }
+}
+
+export async function toolCheck({ outcome, design } = {}) {
+  if (!outcome && !design) throw new Error("outcome or design is required")
+  return { status: "todo", message: TODO_MESSAGE("quorum_check") }
+}
+
+export async function toolCompass({ subcommand } = {}) {
+  return { status: "todo", message: TODO_MESSAGE("quorum_compass") }
+}
+
+// ── Proposal commit (human-gate — UI only, never an MCP AI tool) ──────────────
 
 export async function commitProposal(proposalId, chronicleDir) {
   const proposalsDir = path.join(chronicleDir, "proposals")
@@ -217,36 +316,37 @@ export async function deleteProposal(proposalId, chronicleDir) {
   return { deleted: match.replace(".json", "") }
 }
 
-// ── MCP tool schema ───────────────────────────────────────────────────────────
+// ── MCP tool registry ─────────────────────────────────────────────────────────
 
 export const MCP_TOOLS = [
+  // ── Core: Chronicle (no LLM) ──
   {
-    name: "chronicle_query",
-    description: "Search Chronicle entries by topic using BM25. Returns the most relevant prior decisions and findings.",
+    name: "quorum_query",
+    description: "Search Chronicle entries by topic using BM25. Returns the most relevant prior decisions and findings. Always call this before proposing a design.",
     inputSchema: {
       type: "object",
       properties: {
         topic:       { type: "string", description: "Topic or keywords to search for" },
-        projectRoot: { type: "string", description: "Project root directory (defaults to server's cwd)" },
+        projectRoot: { type: "string", description: "Project root directory (defaults to server cwd)" },
       },
       required: ["topic"],
     },
-    fn: toolChronicleQuery,
+    fn: toolQuery,
   },
   {
-    name: "chronicle_brief",
+    name: "quorum_brief",
     description: "Return a full summary of all Chronicle entries — decisions, statuses, and confidence scores.",
     inputSchema: {
       type: "object",
       properties: {
-        projectRoot: { type: "string", description: "Project root directory (defaults to server's cwd)" },
+        projectRoot: { type: "string" },
       },
     },
-    fn: toolChronicleBrief,
+    fn: toolBrief,
   },
   {
-    name: "chronicle_propose",
-    description: "Stage a new Chronicle entry for human review. Returns a proposalId. A human must run quorum commit <id> to index it.",
+    name: "quorum_stage",
+    description: "Stage a new Chronicle entry for human review. Returns a proposalId. A human must approve it via the Quorum UI or 'quorum commit <id>'.",
     inputSchema: {
       type: "object",
       properties: {
@@ -270,28 +370,85 @@ export const MCP_TOOLS = [
       },
       required: ["entry"],
     },
-    fn: toolChroniclePropose,
+    fn: toolStage,
   },
   {
-    name: "chronicle_pending",
-    description: "List proposals awaiting human approval.",
+    name: "quorum_pending",
+    description: "List Chronicle proposals awaiting human approval.",
+    inputSchema: {
+      type: "object",
+      properties: { projectRoot: { type: "string" } },
+    },
+    fn: toolPending,
+  },
+  // ── Sentinel ──
+  {
+    name: "quorum_coverage",
+    description: "Return Chronicle coverage for source files — which files have Chronicle entries referencing them and which are undocumented.",
+    inputSchema: {
+      type: "object",
+      properties: { projectRoot: { type: "string" } },
+    },
+    fn: toolCoverage,
+  },
+  // ── Memory health ──
+  {
+    name: "quorum_growth",
+    description: "Report Chronicle memory health — entry counts by status, average confidence, pending proposals, and a health score with guidance.",
+    inputSchema: {
+      type: "object",
+      properties: { projectRoot: { type: "string" } },
+    },
+    fn: toolGrowth,
+  },
+  // ── Documentation ──
+  {
+    name: "quorum_help",
+    description: "Browse Quorum documentation. Call with topic='index' to see all available sections, or topic='<section>' to read a specific section.",
     inputSchema: {
       type: "object",
       properties: {
-        projectRoot: { type: "string" },
+        topic: { type: "string", description: "Documentation topic, or 'index' for the full list" },
       },
     },
-    fn: toolChroniclePending,
+    fn: toolHelp,
   },
+  // ── [TODO] LLM-powered tools ──
   {
-    name: "sentinel_coverage",
-    description: "Return Chronicle coverage for source files in the project — which files have entries referencing them and which do not.",
+    name: "quorum_advisor",
+    description: "[TODO] Ask a plain-language question answered from Chronicle using an LLM. Requires 'quorum serve --llm'. Use 'quorum advisor' CLI for now.",
     inputSchema: {
       type: "object",
       properties: {
-        projectRoot: { type: "string" },
+        question: { type: "string", description: "Plain-language question to answer from Chronicle" },
+      },
+      required: ["question"],
+    },
+    fn: toolAdvisor,
+  },
+  {
+    name: "quorum_check",
+    description: "[TODO] Run instant risk triage on a design against Chronicle evidence. Requires 'quorum serve --llm'. Use 'quorum check' CLI for now.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        outcome: { type: "string", description: "Desired outcome" },
+        design:  { type: "string", description: "Proposed design or approach" },
       },
     },
-    fn: toolSentinelCoverage,
+    fn: toolCheck,
+  },
+  {
+    name: "quorum_compass",
+    description: "[TODO] Product-direction synthesis — behaviours, pathways, bets, idea scoring. Requires 'quorum serve --llm'. Use 'quorum compass' CLI for now.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        subcommand: { type: "string", description: "One of: brief, map, pathways, bets, score, opportunities" },
+        goal:       { type: "string", description: "Goal for pathways subcommand" },
+        idea:       { type: "string", description: "Idea to score for score subcommand" },
+      },
+    },
+    fn: toolCompass,
   },
 ]

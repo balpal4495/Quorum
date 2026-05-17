@@ -7,8 +7,14 @@
  *   GET  /api/entries       All committed entries (+ ?q= search)
  *   GET  /api/proposals     Pending proposals
  *   GET  /api/coverage      Sentinel coverage report
+ *   GET  /api/growth        Memory health report
  *   POST /api/proposals/:id/commit   Human-gate: approve a proposal
  *   DELETE /api/proposals/:id        Reject / delete a proposal
+ *
+ * MCP also exposes resources:
+ *   chronicle://summary      chronicle://proposals
+ *   chronicle://coverage     chronicle://growth
+ *   chronicle://entry/{id}
  */
 import http from "http"
 import path from "path"
@@ -18,11 +24,9 @@ import { readCommitted, readProposals, findChronicleDir } from "../shared/chroni
 import {
   MCP_TOOLS,
   findRelevant,
-  toolChronicleQuery,
-  toolChronicleBrief,
-  toolChroniclePropose,
-  toolChroniclePending,
-  toolSentinelCoverage,
+  toolBrief,
+  toolCoverage,
+  toolGrowth,
   commitProposal,
   deleteProposal,
 } from "./tools.js"
@@ -54,7 +58,10 @@ async function handleMCP(body, defaultProjectRoot) {
   if (method === "initialize") {
     return rpcOk(id, {
       protocolVersion: "2024-11-05",
-      capabilities: { tools: { listChanged: false } },
+      capabilities: {
+        tools:     { listChanged: false },
+        resources: { subscribe: false, listChanged: false },
+      },
       serverInfo: { name: "quorum", version: "1.0.0" },
     })
   }
@@ -88,6 +95,84 @@ async function handleMCP(body, defaultProjectRoot) {
     } catch (err) {
       return rpcErr(id, -32603, err.message)
     }
+  }
+
+  if (method === "resources/list") {
+    return rpcOk(id, {
+      resources: [
+        {
+          uri:         "chronicle://summary",
+          name:        "Chronicle summary",
+          description: "Full status summary of all committed Chronicle entries.",
+          mimeType:    "application/json",
+        },
+        {
+          uri:         "chronicle://proposals",
+          name:        "Pending proposals",
+          description: "All Chronicle proposals awaiting human approval.",
+          mimeType:    "application/json",
+        },
+        {
+          uri:         "chronicle://coverage",
+          name:        "Sentinel coverage",
+          description: "Chronicle coverage map for source files in the project.",
+          mimeType:    "application/json",
+        },
+        {
+          uri:         "chronicle://growth",
+          name:        "Memory health",
+          description: "Chronicle health score, entry counts, and guidance.",
+          mimeType:    "application/json",
+        },
+        {
+          uriTemplate: "chronicle://entry/{id}",
+          name:        "Chronicle entry",
+          description: "A single committed Chronicle entry by ID (prefix or full UUID).",
+          mimeType:    "application/json",
+        },
+      ],
+    })
+  }
+
+  if (method === "resources/read") {
+    const { uri } = params
+    if (!uri) return rpcErr(id, -32602, "uri is required")
+
+    if (uri === "chronicle://summary") {
+      const result = await toolBrief({ projectRoot: defaultProjectRoot })
+      return rpcOk(id, { contents: [{ uri, mimeType: "application/json", text: JSON.stringify(result, null, 2) }] })
+    }
+
+    if (uri === "chronicle://proposals") {
+      const chronicleDir = await findChronicleDir(defaultProjectRoot)
+      if (!chronicleDir) return rpcErr(id, -32603, "No .chronicle/ found")
+      const proposals = await readProposals(chronicleDir)
+      return rpcOk(id, { contents: [{ uri, mimeType: "application/json", text: JSON.stringify(proposals, null, 2) }] })
+    }
+
+    if (uri === "chronicle://coverage") {
+      const result = await toolCoverage({ projectRoot: defaultProjectRoot })
+      return rpcOk(id, { contents: [{ uri, mimeType: "application/json", text: JSON.stringify(result, null, 2) }] })
+    }
+
+    if (uri === "chronicle://growth") {
+      const result = await toolGrowth({ projectRoot: defaultProjectRoot })
+      return rpcOk(id, { contents: [{ uri, mimeType: "application/json", text: JSON.stringify(result, null, 2) }] })
+    }
+
+    // chronicle://entry/{id}
+    const entryMatch = uri.match(/^chronicle:\/\/entry\/(.+)$/)
+    if (entryMatch) {
+      const entryId = decodeURIComponent(entryMatch[1])
+      const chronicleDir = await findChronicleDir(defaultProjectRoot)
+      if (!chronicleDir) return rpcErr(id, -32603, "No .chronicle/ found")
+      const entries = await readCommitted(chronicleDir)
+      const entry = entries.find(e => e.id === entryId || (e.id ?? "").startsWith(entryId))
+      if (!entry) return rpcErr(id, -32602, `Entry not found: ${entryId}`)
+      return rpcOk(id, { contents: [{ uri, mimeType: "application/json", text: JSON.stringify(entry, null, 2) }] })
+    }
+
+    return rpcErr(id, -32602, `Unknown resource URI: ${uri}`)
   }
 
   if (method === "ping") {
@@ -167,7 +252,13 @@ export async function createServer({ projectRoot, chronicleDir }) {
 
       // ── REST: coverage ──────────────────────────────────────────────────────
       if (pathname === "/api/coverage" && req.method === "GET") {
-        const result = await toolSentinelCoverage({ projectRoot })
+        const result = await toolCoverage({ projectRoot })
+        return json(res, 200, result)
+      }
+
+      // ── REST: growth ────────────────────────────────────────────────────────
+      if (pathname === "/api/growth" && req.method === "GET") {
+        const result = await toolGrowth({ projectRoot })
         return json(res, 200, result)
       }
 
