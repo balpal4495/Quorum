@@ -1,0 +1,35 @@
+{
+  "schema_version": 2,
+  "topic": "PR #40",
+  "decision": "feat(ingest): evidence ingestion layer — files, git history, URLs, bootstrap",
+  "key_insight": "feat(ingest): evidence ingestion layer — files, git history, URLs, bootstrap",
+  "affected_areas": [
+    "README.md",
+    "bin/__tests__/ingest.test.js",
+    "bin/commands/bootstrap.js",
+    "bin/commands/ingest-git.js",
+    "bin/commands/ingest-url.js",
+    "bin/commands/ingest.js",
+    "bin/quorum.js",
+    "bin/shared/chronicle.js"
+  ],
+  "scope": [
+    "cli",
+    "docs"
+  ],
+  "alternatives_considered": [],
+  "rejected_reason": [],
+  "supersedes": null,
+  "superseded_by": null,
+  "status": "open",
+  "confidence": 0.4,
+  "source_quality": "metadata-derived",
+  "needs_human_summary": true,
+  "source_module": "pr-merge",
+  "evidence_cited": [],
+  "work_ref": {
+    "type": "pr",
+    "ref": "PR #40"
+  },
+  "outcome": "## Summary\n\nAdds a project-context ingestion layer that turns real sources (docs, git history, URLs) into low-trust Chronicle evidence — without auto-committing anything.\n\n## New `.chronicle/` layout\n\n```\n.chronicle/\n  sources/    ← raw source records (files, URLs, git commits)\n  evidence/   ← extracted low-trust insights, not yet Chronicle\n  proposals/  ← awaiting human approval (existing)\n  committed/  ← approved knowledge (existing)\n```\n\n## New commands\n\n| Command | What it does |\n|---|---|\n|"
+}
