@@ -1,0 +1,29 @@
+{
+  "schema_version": 2,
+  "topic": "PR #33",
+  "decision": "feat(ci): add npm-pack smoke test job + Chronicle Compass invariants",
+  "key_insight": "feat(ci): add npm-pack smoke test job + Chronicle Compass invariants",
+  "affected_areas": [
+    ".github/workflows/ci.yml",
+    "package.json"
+  ],
+  "scope": [
+    "ci",
+    "npm"
+  ],
+  "alternatives_considered": [],
+  "rejected_reason": [],
+  "supersedes": null,
+  "superseded_by": null,
+  "status": "open",
+  "confidence": 0.4,
+  "source_quality": "metadata-derived",
+  "needs_human_summary": true,
+  "source_module": "pr-merge",
+  "evidence_cited": [],
+  "work_ref": {
+    "type": "pr",
+    "ref": "PR #33"
+  },
+  "outcome": "Addresses three concerns raised after PR #32:\n\n## 1. npm-pack smoke test (`.github/workflows/ci.yml`)\n\nNew `smoke` job runs after `test` on every PR/push to `main`:\n- `npm pack` the real tarball\n- Install into a blank temp directory\n- Run: `quorum init`, `advisor brief`, `check`, `compass map`, `compass score --json`, `commit --list`\n\nCatches raw `.ts` import errors, missing-await bugs, and broken package exports that unit tests cannot detect.\n\n## 2. Chronicle Compass invariants (6 proposals)\n\n|"
+}
