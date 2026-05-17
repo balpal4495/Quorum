@@ -31,6 +31,7 @@ ${c.bold("Usage:")}
   ${c.cyan("quorum growth")}                        Chronicle learning health and growth rate
   ${c.cyan("quorum evolve")}                        Consolidate and improve Chronicle entries (uses LLM)
   ${c.cyan("quorum compass")} <subcommand>          Product-direction synthesis (brief, map, pathways, bets, score)
+  ${c.cyan("quorum serve")}                         Start web UI + MCP server (default port 3000)
   ${c.cyan("quorum sync")}                          Refresh Quorum instruction blocks after npm update
   ${c.cyan("quorum migrate-v2")}                    Migrate from v1 vendored quorum/modules/ to npm package
   ${c.cyan("quorum --version")}                     Print version
@@ -151,6 +152,12 @@ async function cli() {
 
   if (command === "migrate-v2") {
     const { run } = await import(path.join(__dirname, "commands/migrate-v2.js"))
+    await run(rest)
+    return
+  }
+
+  if (command === "serve") {
+    const { run } = await import(path.join(__dirname, "commands/serve.js"))
     await run(rest)
     return
   }
