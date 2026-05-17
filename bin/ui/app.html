@@ -408,18 +408,149 @@
   .hint-stalled  { color: var(--red); }
 
   /* ── Compass ── */
-  .compass-output {
+  .cp-header {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .cp-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .cp-badge {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-weight: 600;
+    letter-spacing: .03em;
+  }
+  .cp-badge--hi   { background: rgba(52,201,122,.15); color: var(--green); }
+  .cp-badge--mid  { background: rgba(224,185,82,.15);  color: var(--yellow); }
+  .cp-badge--lo   { background: rgba(224,82,82,.15);   color: var(--red); }
+  .cp-direction {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1.6;
+    margin-bottom: 20px;
+    padding: 12px 14px;
+    background: rgba(124,110,255,.08);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 var(--radius) var(--radius) 0;
+  }
+  .cp-section {
+    margin-bottom: 16px;
+  }
+  .cp-section-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .cp-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .cp-item {
+    display: flex;
+    gap: 8px;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .cp-icon {
+    flex-shrink: 0;
+    width: 16px;
+    text-align: center;
+    margin-top: 1px;
+  }
+  .cp-known   .cp-icon { color: var(--green); }
+  .cp-inferred .cp-icon { color: var(--yellow); }
+  .cp-unknown  .cp-icon { color: var(--muted); }
+  .cp-next-step {
+    margin-top: 20px;
+    padding: 12px 14px;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: 16px;
-    font-family: var(--mono);
-    font-size: 12px;
-    white-space: pre-wrap;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .cp-next-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .08em;
     color: var(--muted);
-    max-height: 500px;
-    overflow-y: auto;
-    line-height: 1.6;
+  }
+  .cp-next-text {
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.5;
+  }
+  /* map / bets / opportunities */
+  .cp-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+    margin-bottom: 10px;
+  }
+  .cp-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+  .cp-card-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    flex: 1;
+  }
+  .cp-card-score {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 20px;
+  }
+  .cp-score-hi  { background: rgba(52,201,122,.15); color: var(--green); }
+  .cp-score-mid { background: rgba(224,185,82,.15);  color: var(--yellow); }
+  .cp-score-lo  { background: rgba(110,110,126,.15); color: var(--muted); }
+  .cp-card-body {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+  .cp-card-meta {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+  .cp-card-meta span { margin-right: 12px; }
+  .cp-area-tag {
+    display: inline-block;
+    font-size: 11px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: rgba(82,168,224,.12);
+    color: var(--blue);
+    margin-right: 4px;
+  }
+  .cp-gap-item {
+    font-size: 13px;
+    color: var(--yellow);
+    padding: 8px 12px;
+    border-left: 2px solid var(--yellow);
+    margin-bottom: 6px;
+    background: rgba(224,185,82,.05);
+    border-radius: 0 var(--radius) var(--radius) 0;
   }
 
   /* ── Edit modal ── */
@@ -1072,17 +1203,117 @@ async function loadCompass() {
   }
 }
 
+function confidenceBadge(conf) {
+  const pct = Math.round((conf ?? 0) * 100)
+  const cls = pct >= 70 ? 'cp-badge--hi' : pct >= 45 ? 'cp-badge--mid' : 'cp-badge--lo'
+  return `<span class="cp-badge ${cls}">${pct}% confidence</span>`
+}
+
+function cpList(items, cssClass, icon) {
+  if (!items?.length) return ''
+  return `<ul class="cp-list">${items.map(t => `<li class="cp-item ${cssClass}"><span class="cp-icon">${icon}</span><span>${esc(t)}</span></li>`).join('')}</ul>`
+}
+
+function scoreClass(total) {
+  return total >= 75 ? 'cp-score-hi' : total >= 55 ? 'cp-score-mid' : 'cp-score-lo'
+}
+
+function renderBrief(d) {
+  let html = `<div class="cp-header"><span class="cp-title">Direction Brief</span>${confidenceBadge(d.confidence)}</div>`
+  if (d.product_direction) html += `<div class="cp-direction">${esc(d.product_direction)}</div>`
+
+  if (d.known_from_chronicle?.length) {
+    html += `<div class="cp-section"><div class="cp-section-label">From Chronicle</div>${cpList(d.known_from_chronicle, 'cp-known', '✓')}</div>`
+  }
+  if (d.known_from_behavior?.length) {
+    html += `<div class="cp-section"><div class="cp-section-label">From code / docs</div>${cpList(d.known_from_behavior, 'cp-known', '✓')}</div>`
+  }
+  if (d.inferred?.length) {
+    html += `<div class="cp-section"><div class="cp-section-label">Inferred</div>${cpList(d.inferred, 'cp-inferred', '~')}</div>`
+  }
+  if (d.unknowns?.length) {
+    html += `<div class="cp-section"><div class="cp-section-label">Unknowns</div>${cpList(d.unknowns, 'cp-unknown', '?')}</div>`
+  }
+  if (d.assumptions?.length) {
+    html += `<div class="cp-section"><div class="cp-section-label">Assumptions</div>${cpList(d.assumptions, 'cp-unknown', '·')}</div>`
+  }
+  if (d.recommended_next_step) {
+    html += `<div class="cp-next-step"><span class="cp-next-label">Next step</span><span class="cp-next-text">${esc(d.recommended_next_step)}</span></div>`
+  }
+  return html
+}
+
+function renderMap(d) {
+  let html = `<div class="cp-header"><span class="cp-title">Behaviour Map</span>${confidenceBadge(d.confidence)}</div>`
+  if (d.behaviors?.length) {
+    html += `<div class="cp-section"><div class="cp-section-label">Behaviours (${d.behaviors.length})</div>`
+    for (const b of d.behaviors.slice(0, 30)) {
+      html += `<div class="cp-card" style="padding:10px 14px">`
+      html += `<div class="cp-card-header"><span class="cp-card-title">${esc(b.name)}</span><span class="cp-area-tag">${esc(b.area)}</span></div>`
+      html += `<div class="cp-card-body">${esc(b.current_behavior)}</div></div>`
+    }
+    html += `</div>`
+  }
+  if (d.gaps?.length) {
+    html += `<div class="cp-section"><div class="cp-section-label">Gaps (${d.gaps.length})</div>`
+    for (const g of d.gaps) html += `<div class="cp-gap-item">${esc(g.gap)}</div>`
+    html += `</div>`
+  }
+  if (!d.behaviors?.length && !d.gaps?.length) html += `<div class="empty">No behaviours found in this project.</div>`
+  return html
+}
+
+function renderBets(items) {
+  if (!items?.length) return `<div class="empty">No bets generated.</div>`
+  let html = `<div class="cp-header"><span class="cp-title">Strategic Bets</span></div>`
+  for (const b of items) {
+    const total = b.scores?.total ?? 0
+    html += `<div class="cp-card">`
+    html += `<div class="cp-card-header"><span class="cp-card-title">${esc(b.title)}</span><span class="cp-card-score ${scoreClass(total)}">${total}</span></div>`
+    if (b.thesis) html += `<div class="cp-card-body">${esc(b.thesis)}</div>`
+    if (b.first_experiment) html += `<div class="cp-card-meta"><span>First test: ${esc(b.first_experiment)}</span></div>`
+    if (b.kill_criteria?.[0]) html += `<div class="cp-card-meta" style="color:var(--red)">Kill if: ${esc(b.kill_criteria[0])}</div>`
+    if (b.assumptions?.length) html += `<div class="cp-card-meta">Assumes: ${esc(b.assumptions[0])}</div>`
+    html += `</div>`
+  }
+  return html
+}
+
+function renderOpportunities(items) {
+  if (!items?.length) return `<div class="empty">No gaps or opportunities found.</div>`
+  let html = `<div class="cp-header"><span class="cp-title">Opportunities (${items.length})</span></div>`
+  for (const o of items) {
+    html += `<div class="cp-card">`
+    html += `<div class="cp-card-header"><span class="cp-card-title">${esc(o.title ?? o.gap)}</span><span class="cp-area-tag">${esc(o.area)}</span></div>`
+    if (o.why_it_matters) html += `<div class="cp-card-body">${esc(o.why_it_matters)}</div>`
+    if (o.suggested_next_step) html += `<div class="cp-card-meta">Next: ${esc(o.suggested_next_step)}</div>`
+    html += `</div>`
+  }
+  return html
+}
+
 function renderCompass(data, subcommand) {
   const el = document.getElementById("compassView")
   if (data.status === "no-llm") {
     el.innerHTML = `<div class="empty">${esc(data.message)}<small>Set ANTHROPIC_API_KEY, OPENAI_API_KEY, or GEMINI_API_KEY and restart quorum serve.</small></div>`
     return
   }
-  const output = data.output ?? JSON.stringify(data, null, 2)
-  el.innerHTML = `
-    <div style="font-size:12px;color:var(--muted);margin-bottom:10px">compass ${esc(subcommand)}</div>
-    <div class="compass-output">${esc(output)}</div>
-  `
+
+  const d = data.data  // structured JSON from compass --json
+  if (!d) {
+    // fallback: raw text (shouldn't happen, but safe)
+    el.innerHTML = `<pre style="font-size:12px;line-height:1.6;white-space:pre-wrap;color:var(--muted)">${esc(data.output ?? JSON.stringify(data, null, 2))}</pre>`
+    return
+  }
+
+  let inner = ''
+  if (subcommand === 'brief')         inner = renderBrief(d)
+  else if (subcommand === 'map')      inner = renderMap(d)
+  else if (subcommand === 'bets')     inner = renderBets(Array.isArray(d) ? d : d.bets ?? [d])
+  else if (subcommand === 'opportunities') inner = renderOpportunities(Array.isArray(d) ? d : [])
+  else inner = `<pre style="font-size:12px;line-height:1.6;white-space:pre-wrap;color:var(--muted)">${esc(JSON.stringify(d, null, 2))}</pre>`
+
+  el.innerHTML = `<div style="padding-bottom:16px">${inner}</div>`
 }
 </script>
 </body>
