@@ -1,0 +1,27 @@
+{
+  "schema_version": 2,
+  "topic": "PR #35",
+  "decision": "feat(ci): add workflow_dispatch to auto-release",
+  "key_insight": "feat(ci): add workflow_dispatch to auto-release",
+  "affected_areas": [
+    ".github/workflows/auto-release.yml"
+  ],
+  "scope": [
+    "ci"
+  ],
+  "alternatives_considered": [],
+  "rejected_reason": [],
+  "supersedes": null,
+  "superseded_by": null,
+  "status": "open",
+  "confidence": 0.4,
+  "source_quality": "metadata-derived",
+  "needs_human_summary": true,
+  "source_module": "pr-merge",
+  "evidence_cited": [],
+  "work_ref": {
+    "type": "pr",
+    "ref": "PR #35"
+  },
+  "outcome": "## Why\n\nPR #34 (lance-db ESM fix) was merged without a `release:patch` label so no npm publish fired. We need a way to trigger a patch release without opening another dummy PR.\n\n## What\n\nAdds `workflow_dispatch` to `auto-release.yml` with a `bump_type` input (patch / minor / major, default: patch).\n\n- **Merging this PR** (with the `release:patch` label below) publishes v3.3.1 — covering the lance-db fix from PR #34\n- **Going forward**, any future unlabelled merge can be recovered with: _Actions "
+}
