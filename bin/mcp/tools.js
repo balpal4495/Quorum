@@ -288,7 +288,8 @@ export async function toolAdvisor({ question, projectRoot } = {}) {
 
   const store  = await createLanceDBStore(chronicleDir)
   const oracle = createOracleClient({ store, embed: xenovaEmbed })
-  const result = await ask({ question, oracle, llm: _llm })
+  const evidence = await oracle.query(question)
+  const result = await ask({ question, evidence }, { llm: _llm })
   return result
 }
 
