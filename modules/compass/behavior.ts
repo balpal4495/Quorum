@@ -14,9 +14,8 @@ export function mapBehaviorsFromFindings(
   const gaps: ProductBehaviorGap[] = []
   const contradictions: ProductBehaviorContradiction[] = []
 
-  // Group CLI commands into behaviours
-  const cliFindings = findings.filter(f => f.kind === "cli")
-  for (const f of cliFindings) {
+  // CLI command behaviors
+  for (const f of findings.filter(f => f.kind === "cli")) {
     behaviors.push({
       id: `behavior-cli-${f.id}`,
       area: inferArea(f),
@@ -29,60 +28,54 @@ export function mapBehaviorsFromFindings(
     })
   }
 
-  // Extract documented user flows from docs findings
-  const docsFindings = findings.filter(f => f.kind === "docs" && f.tags.includes("cli"))
-  for (const f of docsFindings) {
-    // Only add if not already covered by a CLI finding
-    const alreadyPresent = behaviors.some(b =>
-      b.current_behavior.toLowerCase().includes(extractCommand(f.summary).toLowerCase()) &&
-      extractCommand(f.summary).length > 3,
-    )
-    if (!alreadyPresent && extractCommand(f.summary)) {
-      behaviors.push({
-        id: `behavior-docs-${f.id}`,
-        area: inferArea(f),
-        name: `Documented: ${f.title}`,
-        description: f.summary,
-        current_behavior: f.summary,
-        evidence: [findingToRef(f)],
-        basis: ["documented"],
-        confidence: f.confidence * 0.9,
-      })
-    }
-  }
-
-  // Cross-reference: documented claims without implementation
-  const docsHeadings = findings.filter(f => f.kind === "docs" && !f.tags.includes("cli"))
-  const implementedAreas = new Set(behaviors.map(b => b.area))
-
-  // Detect gaps: central product promises with no CLI surface
-  const EXPECTED_AREAS = ["onboarding", "chronicle", "advisor", "review"]
-  for (const expected of EXPECTED_AREAS) {
-    const hasBehavior = behaviors.some(b => b.area === expected || b.name.toLowerCase().includes(expected))
-    if (!hasBehavior) {
-      const docRef = docsHeadings.find(f => f.summary.toLowerCase().includes(expected))
-      gaps.push({
-        id: `gap-${expected}`,
-        area: expected,
-        gap: `No first-class CLI command found for '${expected}'.`,
-        why_it_matters: `'${expected}' appears in product docs but has no dedicated CLI surface.`,
-        evidence: docRef ? [findingToRef(docRef)] : [],
-        confidence: 0.7,
-      })
-    }
-  }
-
-  // Gap: no product-direction module (Compass itself)
-  const hasCompass = behaviors.some(b => b.name.toLowerCase().includes("compass"))
-  if (!hasCompass) {
-    gaps.push({
-      id: "gap-product-direction",
-      area: "product direction",
-      gap: "No product behaviour mapping or direction module currently exists.",
-      why_it_matters: "Quorum helps agents avoid repeating engineering mistakes, but has no module to help avoid repeating product-direction mistakes.",
-      evidence: [],
-      confidence: 0.93,
+  // Web route behaviors (code findings with "route" tag)
+  for (const f of findings.filter(f => f.kind === "code" && f.tags.includes("route"))) {
+    behaviors.push({
+      id: `behavior-route-${f.id}`,
+      area: inferArea(f),
+      name: f.title,
+      description: f.summary,
+      current_behavior: f.summary,
+      evidence: [findingToRef(f)],
+      basis: ["implemented"],
+      confidence: f.confidence,
     })
+  }
+
+  // Documented feature headings (deduplicated, limited to reduce noise)
+  const codeNames = new Set(behaviors.map(b => b.name.toLowerCase()))
+  for (const f of findings.filter(f => f.kind === "docs").slice(0, 20)) {
+    const titleLower = f.title.toLowerCase()
+    if ([...codeNames].some(n => n.includes(titleLower.slice(0, 15)) || titleLower.includes(n.slice(0, 15)))) continue
+    behaviors.push({
+      id: `behavior-docs-${f.id}`,
+      area: inferArea(f),
+      name: f.title,
+      description: f.summary,
+      current_behavior: f.summary,
+      evidence: [findingToRef(f)],
+      basis: ["documented"],
+      confidence: f.confidence * 0.7,
+    })
+    codeNames.add(titleLower)
+  }
+
+  // Dynamic gap detection: documented areas with no implemented artifact
+  const implementedAreas = new Set(
+    behaviors.filter(b => b.basis[0] === "implemented").map(b => b.area),
+  )
+  const docAreas = behaviors.filter(b => b.basis[0] === "documented").map(b => b.area)
+  for (const docArea of new Set(docAreas)) {
+    if (!implementedAreas.has(docArea) && docArea !== "general") {
+      gaps.push({
+        id: `gap-${docArea}`,
+        area: docArea,
+        gap: `'${docArea}' is documented but no corresponding route, command, or source module was found.`,
+        why_it_matters: "May indicate planned-but-unbuilt functionality.",
+        evidence: [],
+        confidence: 0.6,
+      })
+    }
   }
 
   // Filter by area if provided
@@ -145,17 +138,19 @@ function findingToRef(f: ProductSourceFinding): CompassEvidenceRef {
 }
 
 function inferArea(f: ProductSourceFinding): string {
-  if (f.tags.includes("onboarding") || f.tags.includes("init")) return "onboarding"
-  if (f.tags.includes("chronicle") || f.tags.includes("commit") || f.tags.includes("proposal")) return "chronicle review"
-  if (f.tags.includes("advisor")) return "memory retrieval"
-  if (f.tags.includes("sentinel")) return "coverage"
-  if (f.tags.includes("compass")) return "product direction"
-  if (f.tags.includes("auth")) return "auth"
-  if (f.tags.includes("cli")) return "cli"
-  return "general"
-}
-
-function extractCommand(text: string): string {
-  const match = text.match(/`(quorum [^`]+)`/)
-  return match?.[1] ?? ""
+  // Route findings: derive area from the route path segments
+  if (f.tags.includes("route") && f.path) {
+    const parts = f.path.split("/").filter(p =>
+      p && !p.startsWith("(") && !p.startsWith("[") &&
+      !["app", "pages", "src", "route", "page", "index"].includes(p),
+    )
+    if (parts.length) return parts[0]
+  }
+  // Domain-specific tags take priority
+  const DOMAIN = ["auth", "payments", "database", "onboarding", "api", "llm", "config", "webhook", "middleware", "pii", "deploy"]
+  const domain = f.tags.find(t => DOMAIN.includes(t))
+  if (domain) return domain
+  // First non-infrastructure tag
+  const SKIP = new Set(["cli", "command", "code", "source", "directory", "module", "docs", "route", "page", "ui", "package", "identity", "description", "binary", "exports", "dependencies", "testing", "guaranteed-behavior", "workflow", "ci", "test"])
+  return f.tags.find(t => !SKIP.has(t) && !t.startsWith("subcommand:")) ?? "general"
 }
