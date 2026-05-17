@@ -1,0 +1,27 @@
+{
+  "schema_version": 2,
+  "topic": "PR #48",
+  "decision": "fix(advisor): pass correct OracleDeps keys to createOracleClient",
+  "key_insight": "fix(advisor): pass correct OracleDeps keys to createOracleClient",
+  "affected_areas": [
+    "bin/mcp/tools.js"
+  ],
+  "scope": [
+    "cli"
+  ],
+  "alternatives_considered": [],
+  "rejected_reason": [],
+  "supersedes": null,
+  "superseded_by": null,
+  "status": "open",
+  "confidence": 0.4,
+  "source_quality": "metadata-derived",
+  "needs_human_summary": true,
+  "source_module": "pr-merge",
+  "evidence_cited": [],
+  "work_ref": {
+    "type": "pr",
+    "ref": "PR #48"
+  },
+  "outcome": "## Summary\n\n`createOracleClient` expects `OracleDeps` with `{ vectorStore, embedder }` but `toolAdvisor` was passing `{ store, embed }` — wrong property names caused the Advisor tab to throw:\n\n```\nError: deps.embedder is not a function\n```\n\n**Fix:** one-line correction in `toolAdvisor`:\n\n```js\n// before\ncreateOracleClient({ store, embed: xenovaEmbed })\n\n// after\ncreateOracleClient({ vectorStore: store, embedder: xenovaEmbed })\n```\n\n## Tests\n\n274/274 passing."
+}
