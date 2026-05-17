@@ -27,7 +27,10 @@
   "files": [
     "dist/**",
     "bin/**",
-    "SETUP.md"
+    "SETUP.md",
+    "GEMINI.md",
+    ".github/copilot-instructions.md",
+    "modules/AGENTS.md"
   ],
   "exports": {
     ".": "./dist/setup.js",
