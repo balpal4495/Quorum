@@ -1,5 +1,6 @@
 import { c } from "../shared/colors.js"
 import { findChronicleDir } from "../shared/chronicle.js"
+import { detectProvider } from "../shared/llm.js"
 import { createServer } from "../mcp/server.js"
 
 function parseArgs(argv) {
@@ -23,14 +24,19 @@ export async function run(argv) {
     process.exit(1)
   }
 
-  const server = await createServer({ projectRoot, chronicleDir })
+  // Auto-detect LLM provider (non-blocking — serve still works without one)
+  const provider = await detectProvider()
+  const llm      = provider?.llm ?? null
+
+  const server = await createServer({ projectRoot, chronicleDir, llm })
 
   server.listen(port, host, () => {
     const base = `http://${host}:${port}`
     console.log(`\n${c.bold("Quorum")}  ${c.dim(`serving ${projectRoot}`)}\n`)
     console.log(`  ${c.cyan("UI")}         ${c.dim(base + "/")}`)
     console.log(`  ${c.cyan("MCP")}        ${c.dim(base + "/mcp")}`)
-    console.log(`  ${c.cyan("Chronicle")}  ${c.dim(chronicleDir)}\n`)
+    console.log(`  ${c.cyan("Chronicle")}  ${c.dim(chronicleDir)}`)
+    console.log(`  ${c.cyan("Advisor")}    ${llm ? c.green(provider.name) : c.dim("no LLM — set ANTHROPIC_API_KEY or OPENAI_API_KEY")}\n`)
     console.log(c.bold("Claude Desktop") + c.dim(" — add to claude_desktop_config.json:"))
     console.log(c.dim(JSON.stringify({
       mcpServers: { quorum: { type: "streamable-http", url: `${base}/mcp` } }

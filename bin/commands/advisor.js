@@ -28,7 +28,7 @@ function entryText(entry) {
   return (entry.decision ?? entry.key_insight ?? "").trim()
 }
 
-function findRelevant(entries, query, limit = 6) {
+export function findRelevant(entries, query, limit = 6) {
   return entries
     .map(e => ({ entry: e, score: scoreEntry(query, e) }))
     .filter(({ score }) => score > 0)
@@ -37,7 +37,7 @@ function findRelevant(entries, query, limit = 6) {
     .map(({ entry }) => entry)
 }
 
-function formatEvidenceForLLM(entries) {
+export function formatEvidenceForLLM(entries) {
   if (entries.length === 0) return "Chronicle has no prior entries on this topic."
   return entries.map(e => {
     const statusTag =
@@ -107,7 +107,7 @@ async function callLLM(llm, question, evidence, attempt, previous) {
   return parsed
 }
 
-async function runAdvisor(llm, question, evidence) {
+export async function runAdvisor(llm, question, evidence) {
   let last = null
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     const answer = await callLLM(llm, question, evidence, attempt, last)

@@ -2,12 +2,15 @@
  * Quorum HTTP server — MCP + Web UI on a single port.
  *
  * Routes:
- *   POST /mcp               MCP Streamable HTTP (JSON-RPC 2.0)
- *   GET  /                  Web UI
- *   GET  /api/entries       All committed entries (+ ?q= search)
- *   GET  /api/proposals     Pending proposals
- *   GET  /api/coverage      Sentinel coverage report
- *   GET  /api/growth        Memory health report
+ *   POST /mcp                        MCP Streamable HTTP (JSON-RPC 2.0)
+ *   GET  /                           Web UI
+ *   GET  /api/entries                All committed entries (+ ?q= search)
+ *   GET  /api/proposals              Pending proposals
+ *   GET  /api/coverage               Sentinel coverage report
+ *   GET  /api/growth                 Memory health report
+ *   GET  /api/advisor?q=...          SSE streaming advisor answer
+ *   GET  /api/compass/map            Behaviour map (no LLM)
+ *   GET  /api/compass/brief          SSE streaming compass brief
  *   POST /api/proposals/:id/commit   Human-gate: approve a proposal
  *   DELETE /api/proposals/:id        Reject / delete a proposal
  *
@@ -30,6 +33,17 @@ import {
   commitProposal,
   deleteProposal,
 } from "./tools.js"
+import { runAdvisor, findRelevant as advisorFindRelevant, formatEvidenceForLLM } from "../commands/advisor.js"
+import {
+  collectTerrain,
+  mapBehaviors,
+  collectBearings,
+  formatBearings,
+  formatTerrain,
+  callLLM as compassCallLLM,
+  parseLLMJson,
+  buildBriefPrompt,
+} from "../commands/compass.js"
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const UI_PATH   = path.join(__dirname, "../ui/app.html")
@@ -196,9 +210,27 @@ function setCORS(res) {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type")
 }
 
+function sseStart(res) {
+  res.writeHead(200, {
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-cache",
+    "Connection": "keep-alive",
+    "Access-Control-Allow-Origin": "*",
+  })
+}
+
+function sseWrite(res, payload) {
+  res.write(`data: ${JSON.stringify(payload)}\n\n`)
+}
+
+function sseDone(res) {
+  res.write(`data: [DONE]\n\n`)
+  res.end()
+}
+
 // ── Server factory ────────────────────────────────────────────────────────────
 
-export async function createServer({ projectRoot, chronicleDir }) {
+export async function createServer({ projectRoot, chronicleDir, llm = null }) {
   let uiHtml
   try {
     uiHtml = await fs.readFile(UI_PATH, "utf8")
@@ -260,6 +292,72 @@ export async function createServer({ projectRoot, chronicleDir }) {
       if (pathname === "/api/growth" && req.method === "GET") {
         const result = await toolGrowth({ projectRoot })
         return json(res, 200, result)
+      }
+
+      // ── REST: advisor (SSE streaming) ───────────────────────────────────────
+      if (pathname === "/api/advisor" && req.method === "GET") {
+        const q = url.searchParams.get("q")?.trim()
+        if (!q) return json(res, 400, { error: "q is required" })
+
+        sseStart(res)
+        sseWrite(res, { type: "status", text: "Searching Chronicle…" })
+
+        try {
+          const entries  = await readCommitted(chronicleDir)
+          const evidence = advisorFindRelevant(entries, q, 6)
+
+          if (!llm) {
+            sseWrite(res, { type: "no_llm", evidence })
+            return sseDone(res)
+          }
+
+          sseWrite(res, { type: "status", text: "Synthesising…" })
+          const result = await runAdvisor(llm, q, evidence)
+          sseWrite(res, { type: "result", data: result, evidence })
+        } catch (err) {
+          sseWrite(res, { type: "error", message: err.message })
+        }
+        return sseDone(res)
+      }
+
+      // ── REST: compass map (no LLM) ──────────────────────────────────────────
+      if (pathname === "/api/compass/map" && req.method === "GET") {
+        const area = url.searchParams.get("area")?.trim() || undefined
+        const findings   = await collectTerrain(projectRoot, area)
+        const behaviorMap = mapBehaviors(findings, area)
+        return json(res, 200, behaviorMap)
+      }
+
+      // ── REST: compass brief (SSE streaming) ─────────────────────────────────
+      if (pathname === "/api/compass/brief" && req.method === "GET") {
+        const area = url.searchParams.get("area")?.trim() || undefined
+
+        sseStart(res)
+        sseWrite(res, { type: "status", text: "Scanning product surface…" })
+
+        try {
+          const [entries, findings] = await Promise.all([
+            readCommitted(chronicleDir),
+            collectTerrain(projectRoot, area),
+          ])
+          const bearings     = collectBearings(entries, area)
+          const chronicleCtx = formatBearings(bearings)
+          const behaviorCtx  = formatTerrain(findings)
+          const behaviorMap  = mapBehaviors(findings, area)
+
+          if (!llm) {
+            sseWrite(res, { type: "no_llm", behaviorMap })
+            return sseDone(res)
+          }
+
+          sseWrite(res, { type: "status", text: "Synthesising direction…" })
+          const raw  = await compassCallLLM(llm, buildBriefPrompt(chronicleCtx, behaviorCtx, area))
+          const data = parseLLMJson(raw)
+          sseWrite(res, { type: "result", data, behaviorMap })
+        } catch (err) {
+          sseWrite(res, { type: "error", message: err.message })
+        }
+        return sseDone(res)
       }
 
       // ── REST: commit proposal (human-gate) ──────────────────────────────────

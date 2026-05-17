@@ -1,0 +1,27 @@
+{
+  "schema_version": 2,
+  "topic": "workflow/readme-documentation",
+  "key_insight": "README.md must be updated in every PR that adds a command, subcommand, flag, or user-visible behaviour — documentation drift is invisible without explicitly checking it",
+  "decision": "README update is part of every feature PR's definition of done — check git log --follow -- README.md before opening a PR.",
+  "scope": [
+    "workflow",
+    "documentation",
+    "process"
+  ],
+  "affected_areas": [
+    "README.md"
+  ],
+  "confidence": 0.95,
+  "status": "open",
+  "source_module": "agent-session",
+  "alternatives_considered": [
+    "storing in agent memory only — rejected, does not survive across all agent sessions or apply to other agents on this repo"
+  ],
+  "rejected_reason": [],
+  "validation_plan": [
+    "Verify README is touched in every feat/* PR before merge"
+  ],
+  "evidence_cited": [],
+  "id": "17420910-f2ab-4df0-bce3-84481cae0ad8",
+  "timestamp": "2026-05-17T15:24:01.883Z"
+}

@@ -124,6 +124,11 @@ Quorum layer:
 5. Keep memory healthy
    quorum growth
    quorum evolve
+
+6. Optional — explore visually
+   quorum serve
+   # Opens http://localhost:3000 with Chronicle browser, Advisor chat,
+   # Coverage heatmap, and Compass board. Also exposes MCP at /mcp.
 ```
 
 Every PR merge posts a growth comment showing what Chronicle learned. `quorum evolve` periodically consolidates entries and resolves contradictions.
@@ -137,15 +142,22 @@ Every PR merge posts a growth comment showing what Chronicle learned. `quorum ev
 | Ask what the project already knows | `quorum advisor "what did we decide about auth?"` |
 | Search memory without an LLM | `quorum advisor query "auth"` |
 | Start a session with full context | `quorum advisor brief` |
+| Check Chronicle health and pending proposals | `quorum status` |
 | Check a design before coding | `quorum check --outcome ... --design ...` |
 | Approve what the agent should remember | `quorum commit <id>` |
 | See whether memory is growing | `quorum growth` |
 | Consolidate stale or duplicate entries | `quorum evolve` |
 | Find undocumented areas | `quorum sentinel coverage` |
 | Understand what the product currently does | `quorum compass map` |
+| List gaps and opportunities from the code | `quorum compass opportunities` |
 | Generate product pathways toward a goal | `quorum compass pathways --goal "..."` |
+| Generate strategic bets | `quorum compass bets --horizon "6 months"` |
 | Score a product idea | `quorum compass score "add Slack integration"` |
+| Generate a lightweight product brief | `quorum compass spec "Smart retry backoff"` |
 | Stage a direction decision for Chronicle | `quorum compass propose --from-last` |
+| Record outcome of a prior bet or pathway | `quorum compass outcome --entry-id <id> --result validated` |
+| Start the web UI + MCP server | `quorum serve` |
+| Refresh agent instruction files after update | `quorum sync` |
 
 ---
 
@@ -166,6 +178,9 @@ Commit `.chronicle/committed/` so every teammate and every new AI session starts
 ### Level 5 — CI and PR visibility
 Enable the GitHub Actions workflows for automatic PR growth comments, coverage reports, and drift checks.
 
+### Level 6 — Web UI + MCP server
+Run `quorum serve` to open a browser-based dashboard (Chronicle, Proposals, SSE Advisor chat, Coverage heatmap, Compass board) and expose Chronicle as an MCP endpoint for Claude Desktop and other MCP-capable agents.
+
 ---
 
 ## Get started
@@ -181,6 +196,7 @@ Then run Quorum from your project:
 npx quorum advisor brief
 npx quorum advisor "what has the team decided about auth?"
 npx quorum check --outcome "..." --design "..."
+npx quorum serve   # open the web UI at http://localhost:3000
 ```
 
 **Optional — install the CLI globally:**
@@ -370,6 +386,193 @@ Three improvement types:
 - **promote** — an `open` entry confirmed by later entries → elevate to `validated`
 
 Every proposed improvement goes through the human gate (`quorum commit`). Nothing is auto-committed.
+
+---
+
+### `quorum status` — Chronicle at a glance
+
+```bash
+quorum status
+quorum status --json
+```
+
+```
+Chronicle status
+
+  Committed     17 entries
+  Pending        2 proposals
+
+  Recent entries
+    bf448871  validated  0d ago   Low-risk designs skip Council entirely
+    3efb1789  validated  0d ago   Advisor validates answers before returning
+    090c7dc6  validated  0d ago   Advisor is a read-only path — never calls oracle.propose()
+```
+
+Quick overview of Chronicle health: committed entry count, pending proposals, and the most recent entries. No LLM required.
+
+---
+
+### `quorum sentinel` — coverage and drift
+
+```bash
+quorum sentinel coverage              # which source files Chronicle knows about
+quorum sentinel coverage --path src/  # scope to a subfolder
+quorum sentinel coverage --json       # machine-readable
+```
+
+```
+Chronicle coverage
+
+  Files         42
+  Covered       31 (74%)
+  ████████████████░░░░  74%
+
+  Covered (31)
+    ✓ modules/oracle/query.ts         [abc-123, def-456]
+    ✓ modules/jury/evaluate.ts        [ghi-789]
+    …
+
+  Blind spots (11)
+    ✗ modules/sentinel/drift.ts
+    ✗ bin/commands/sync.js
+    …
+```
+
+Shows which source files have Chronicle entries referencing them (`affected_areas`) and which are blind spots. Use the coverage map to decide where to focus Chronicle growth.
+
+Exit code `1` if no `.chronicle/` is found.
+
+---
+
+### `quorum compass` — product-direction synthesis
+
+```bash
+# No LLM required
+quorum compass map                          # map current product behaviours from code + docs
+quorum compass map --area advisor           # scope to one area
+quorum compass opportunities                # list gaps from the behaviour map
+quorum compass opportunities --limit 5
+
+# LLM required
+quorum compass brief                        # summarise product direction
+quorum compass brief --area auth
+quorum compass pathways --goal "onboard new agents faster"
+quorum compass bets --horizon "6 months"
+quorum compass score "add Slack integration"
+quorum compass spec "Smart retry backoff"   # lightweight product brief
+
+# Staging and recording
+quorum compass propose --from-last          # stage a Chronicle entry from last artifact
+quorum compass outcome --entry-id <id> --result validated   # record bet/pathway outcome
+
+# All subcommands accept --json and --area
+```
+
+**`map`** scans code, CLI commands, docs, and `package.json` — no LLM — and returns a structured list of current behaviours grouped by area, plus gaps (documented areas with no corresponding code).
+
+**`opportunities`** surfaces those gaps as ranked items with suggested next steps.
+
+**`pathways`** generates scored product pathways sorted by strategic fit, feasibility, and evidence strength. Each pathway includes phases, dependencies, risks, assumptions, and a `suggested_next_step`.
+
+**`bets`** generates 2–3 strategic bets with falsifiable theses, kill criteria, and invalidation signals.
+
+**`score`** evaluates a product idea across 11 dimensions (strategic fit, feasibility, evidence strength, complexity, etc.) and returns a 0–100 score with a `pursue / pursue-small-test / investigate-more / defer / avoid` recommendation.
+
+**`spec`** generates a lightweight product brief: problem, target user, recommended solution, smallest useful version, non-goals, risks, open questions, and suggested `quorum check` commands.
+
+**`propose --from-last`** stages a Chronicle entry from the most recent `map`, `pathways`, `bets`, or `score` output. Follows the human gate — nothing is indexed without `quorum commit`.
+
+**`outcome`** records the result of a previously staged bet or pathway. Result values: `validated`, `partially-validated`, `invalidated`, `unclear`, `superseded`.
+
+```
+quorum compass score "add Slack integration"
+
+  Score: 62/100 — Strong — pursue small test
+  Idea: add Slack integration
+
+  Strengths:
+    + Slack is mentioned in three Chronicle entries as a requested integration channel
+    + Engineering cost is low — existing webhook infrastructure
+
+  Risks:
+    - No direct user demand evidence connected
+    - OAuth flow adds new auth surface
+
+  Open questions:
+    ? Which Quorum events should trigger Slack notifications?
+
+  Next step: quorum compass spec "Slack integration" to draft a product brief
+```
+
+---
+
+### `quorum serve` — web UI and MCP server
+
+```bash
+quorum serve                # default port 3000
+quorum serve --port 4000    # custom port
+```
+
+Starts a single HTTP server at `http://localhost:3000` that exposes:
+
+**Web UI** — five tabs:
+
+| Tab | What it shows |
+|---|---|
+| Chronicle | All committed entries — searchable, filterable by status |
+| Proposals | Pending entries awaiting `quorum commit` |
+| Advisor | SSE-streaming chat — ask a question, get a synthesised answer grounded in Chronicle evidence |
+| Coverage | Heatmap of source files by Chronicle entry depth — see blind spots at a glance |
+| Compass | Behaviour map grouped by area, plus SSE-streaming Compass Brief |
+
+**REST API:**
+
+| Route | Description |
+|---|---|
+| `GET /api/chronicle` | All committed entries as JSON |
+| `GET /api/proposals` | All pending proposals as JSON |
+| `GET /api/coverage` | Coverage map as JSON |
+| `GET /api/growth` | Chronicle health as JSON |
+| `GET /api/advisor?q=…` | SSE stream — `status → result \| no_llm \| error` |
+| `GET /api/compass/map[?area=]` | Behaviour map as JSON |
+| `GET /api/compass/brief[?area=]` | SSE stream — Compass Brief |
+
+**MCP server** — exposes Chronicle as a [Model Context Protocol](https://modelcontextprotocol.io/) endpoint:
+
+```
+POST /mcp
+```
+
+Ten tools: `quorum_query`, `quorum_brief`, `quorum_stage`, `quorum_pending`, `quorum_coverage`, `quorum_growth`, `quorum_help`, `quorum_advisor`, `quorum_check`, `quorum_compass`.
+
+Three resources: `chronicle://entries`, `chronicle://summary`, `chronicle://proposals`.
+
+**Claude Desktop configuration:**
+
+```json
+{
+  "mcpServers": {
+    "quorum": {
+      "type": "streamable-http",
+      "url": "http://localhost:3000/mcp"
+    }
+  }
+}
+```
+
+Add this to `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or `%APPDATA%\Claude\claude_desktop_config.json` (Windows). Start `quorum serve` before launching Claude Desktop.
+
+LLM auto-detection applies — if an API key is present, Advisor and Compass Brief stream live answers. Without an LLM, those endpoints return Chronicle evidence directly.
+
+---
+
+### `quorum sync` — refresh agent instruction files
+
+```bash
+quorum sync
+```
+
+After `npm update @balpal4495/quorum`, refreshes the `<!-- quorum:start -->…<!-- quorum:end -->` marker blocks in `.github/copilot-instructions.md` and replaces `quorum/CLAUDE.md`, `quorum/AGENTS.md`, and `quorum/SETUP.md` with the latest versions from the package. Files not initialised by `quorum init` are skipped.
 
 ---
 
