@@ -1,0 +1,29 @@
+{
+  "schema_version": 2,
+  "topic": "PR #45",
+  "decision": "feat(ui): add Advisor, Check, Ingest, and Sentinel tabs to quorum serve",
+  "key_insight": "feat(ui): add Advisor, Check, Ingest, and Sentinel tabs to quorum serve",
+  "affected_areas": [
+    "bin/mcp/server.js",
+    "bin/mcp/tools.js",
+    "bin/ui/app.html"
+  ],
+  "scope": [
+    "cli"
+  ],
+  "alternatives_considered": [],
+  "rejected_reason": [],
+  "supersedes": null,
+  "superseded_by": null,
+  "status": "open",
+  "confidence": 0.4,
+  "source_quality": "metadata-derived",
+  "needs_human_summary": true,
+  "source_module": "pr-merge",
+  "evidence_cited": [],
+  "work_ref": {
+    "type": "pr",
+    "ref": "PR #45"
+  },
+  "outcome": "## Summary\n\nExpands the `quorum serve` UI with four new tabs, each backed by a new REST route and tool function.\n\n### New tabs\n\n| Tab | Route | LLM? | Description |\n|---|---|---|---|\n| **Advisor** | `POST /api/advisor` | Yes | Chat UI — plain-language questions answered from Chronicle memory. Shows confidence, citations, what_we_know, recommendation, next_step, and risks. |\n| **Check** | `POST /api/check` | No | Two-column risk triage form. Renders a colour-coded risk banner (critical/high/mediu"
+}
