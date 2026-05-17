@@ -263,26 +263,70 @@ export async function toolHelp({ topic } = {}) {
   return { topic, content: section }
 }
 
-// ── [TODO] LLM-powered placeholders ──────────────────────────────────────────
-// These tools require a live LLM provider wired into quorum serve (--llm flag).
-// They are registered so AI clients can discover them, but return a clear
-// "not yet available" message rather than silently failing.
+// ── LLM-powered tools ─────────────────────────────────────────────────────────
+// These are activated when quorum serve detects an LLM provider.
+// Without a provider they return a clear CLI-fallback hint.
 
-const TODO_MESSAGE = (name) =>
-  `${name} requires an LLM provider. This is planned — run 'quorum ${name.replace("quorum_", "")}' from the CLI for now, or watch for a future 'quorum serve --llm' flag.`
+let _llm = null  // set by createTools() at server startup
 
-export async function toolAdvisor({ question } = {}) {
+const NO_LLM = (name) => ({
+  status: "no-llm",
+  message: `${name} requires an LLM provider. No provider was detected at startup. ` +
+    `Set ANTHROPIC_API_KEY, OPENAI_API_KEY, or GEMINI_API_KEY and restart quorum serve. ` +
+    `Alternatively run 'quorum ${name.replace("quorum_", "")}' from the CLI.`,
+})
+
+export async function toolAdvisor({ question, projectRoot } = {}) {
   if (!question) throw new Error("question is required")
-  return { status: "todo", message: TODO_MESSAGE("quorum_advisor") }
+  if (!_llm) return NO_LLM("quorum_advisor")
+
+  const { ask } = await import("../../dist/advisor/index.js")
+  const { chronicleDir } = await resolve(projectRoot)
+  const { createOracleClient } = await import("../../dist/oracle/index.js")
+  const { xenovaEmbed } = await import("../../dist/oracle/adapters/xenova-embedder.js")
+  const { createLanceDBStore } = await import("../../dist/oracle/adapters/lance-db.js")
+
+  const store  = await createLanceDBStore(chronicleDir)
+  const oracle = createOracleClient({ store, embed: xenovaEmbed })
+  const result = await ask({ question, oracle, llm: _llm })
+  return result
 }
 
-export async function toolCheck({ outcome, design } = {}) {
+export async function toolCheck({ outcome, design, projectRoot } = {}) {
+  // quorum check is LLM-free — uses the same preflight + risk classifier as the CLI
   if (!outcome && !design) throw new Error("outcome or design is required")
-  return { status: "todo", message: TODO_MESSAGE("quorum_check") }
+  const { runPreflight, classifyRisk } = await import("../shared/patterns.js")
+  const preflight = runPreflight(outcome ?? "", design ?? "")
+  const risk      = classifyRisk(outcome ?? "", design ?? "")
+  return { preflight, risk }
 }
 
-export async function toolCompass({ subcommand } = {}) {
-  return { status: "todo", message: TODO_MESSAGE("quorum_compass") }
+export async function toolCompass({ subcommand = "brief", goal, idea, projectRoot } = {}) {
+  if (!_llm) return NO_LLM("quorum_compass")
+
+  const { chronicleDir } = await resolve(projectRoot)
+  // Delegate to the compass CLI command handler for now
+  const { run: compassRun } = await import("../commands/compass.js")
+  // Capture stdout
+  const captured = []
+  const origWrite = process.stdout.write.bind(process.stdout)
+  process.stdout.write = (chunk, ...rest) => { captured.push(String(chunk)); return true }
+  try {
+    const extraArgs = []
+    if (subcommand === "pathways" && goal) extraArgs.push("--goal", goal)
+    if (subcommand === "score"    && idea) extraArgs.push("--idea", idea)
+    await compassRun([subcommand, ...extraArgs])
+  } finally {
+    process.stdout.write = origWrite
+  }
+  return { subcommand, output: captured.join("").trim() }
+}
+
+/**
+ * Call once at server startup to wire the LLM provider into LLM-powered tools.
+ */
+export function setLLM(llmProvider) {
+  _llm = llmProvider
 }
 
 // ── Proposal commit (human-gate — UI only, never an MCP AI tool) ──────────────
@@ -314,6 +358,27 @@ export async function deleteProposal(proposalId, chronicleDir) {
   if (!match) throw new Error(`Proposal not found: ${proposalId}`)
   await fs.unlink(path.join(proposalsDir, match))
   return { deleted: match.replace(".json", "") }
+}
+
+export async function updateProposal(proposalId, patch, chronicleDir) {
+  const ALLOWED = ["topic", "decision", "key_insight", "status", "confidence",
+                   "affected_areas", "scope", "alternatives_considered", "rejected_reason"]
+  const proposalsDir = path.join(chronicleDir, "proposals")
+  const files = await fs.readdir(proposalsDir).catch(() => [])
+  const match = files.find(f => f === `${proposalId}.json` || f.startsWith(proposalId))
+  if (!match) throw new Error(`Proposal not found: ${proposalId}`)
+
+  const proposalPath = path.join(proposalsDir, match)
+  const raw     = await fs.readFile(proposalPath, "utf8")
+  const current = JSON.parse(raw)
+
+  // Only apply allowed fields — never let PATCH overwrite id/proposalId/schema_version
+  for (const key of ALLOWED) {
+    if (patch[key] !== undefined) current[key] = patch[key]
+  }
+
+  await fs.writeFile(proposalPath, JSON.stringify(current, null, 2), "utf8")
+  return { updated: match.replace(".json", ""), topic: current.topic }
 }
 
 // ── MCP tool registry ─────────────────────────────────────────────────────────
@@ -416,7 +481,7 @@ export const MCP_TOOLS = [
   // ── [TODO] LLM-powered tools ──
   {
     name: "quorum_advisor",
-    description: "[TODO] Ask a plain-language question answered from Chronicle using an LLM. Requires 'quorum serve --llm'. Use 'quorum advisor' CLI for now.",
+    description: "Ask a plain-language question answered from Chronicle using an LLM. Returns a synthesised answer with evidence citations. Auto-activated when quorum serve detects an API key.",
     inputSchema: {
       type: "object",
       properties: {
@@ -428,7 +493,7 @@ export const MCP_TOOLS = [
   },
   {
     name: "quorum_check",
-    description: "[TODO] Run instant risk triage on a design against Chronicle evidence. Requires 'quorum serve --llm'. Use 'quorum check' CLI for now.",
+    description: "Run instant risk triage on a design against Chronicle patterns — no LLM required. Returns preflight flags and a risk level (low/medium/high/critical).",
     inputSchema: {
       type: "object",
       properties: {
@@ -440,7 +505,7 @@ export const MCP_TOOLS = [
   },
   {
     name: "quorum_compass",
-    description: "[TODO] Product-direction synthesis — behaviours, pathways, bets, idea scoring. Requires 'quorum serve --llm'. Use 'quorum compass' CLI for now.",
+    description: "Product-direction synthesis — behaviours, pathways, bets, idea scoring. Auto-activated when quorum serve detects an LLM provider. Use subcommand: brief | map | pathways | bets | score | opportunities.",
     inputSchema: {
       type: "object",
       properties: {

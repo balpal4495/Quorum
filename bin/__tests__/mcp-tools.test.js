@@ -489,37 +489,37 @@ describe("toolHelp", () => {
   })
 })
 
-// ── TODO placeholder tools ────────────────────────────────────────────────────
+// ── LLM-powered tools (no-llm fallback when no provider configured) ───────────
 
-describe("toolAdvisor (TODO placeholder)", () => {
+describe("toolAdvisor", () => {
   it("throws when question is missing", async () => {
     await expect(toolAdvisor({})).rejects.toThrow("question is required")
   })
 
-  it("returns status=todo with a message", async () => {
+  it("returns status=no-llm with a message when no provider is set", async () => {
     const result = await toolAdvisor({ question: "what was decided about retries?" })
-    expect(result.status).toBe("todo")
-    expect(result.message).toMatch(/todo|quorum advisor/i)
+    expect(result.status).toBe("no-llm")
+    expect(result.message).toMatch(/quorum advisor/i)
   })
 })
 
-describe("toolCheck (TODO placeholder)", () => {
+describe("toolCheck", () => {
   it("throws when neither outcome nor design is provided", async () => {
     await expect(toolCheck({})).rejects.toThrow("outcome or design is required")
   })
 
-  it("returns status=todo with a message", async () => {
+  it("returns preflight and risk when called with outcome and design", async () => {
     const result = await toolCheck({ outcome: "ship safely", design: "use feature flags" })
-    expect(result.status).toBe("todo")
-    expect(result.message).toMatch(/todo|quorum check/i)
+    expect(result).toHaveProperty("preflight")
+    expect(result).toHaveProperty("risk")
   })
 })
 
-describe("toolCompass (TODO placeholder)", () => {
-  it("returns status=todo with a message", async () => {
+describe("toolCompass", () => {
+  it("returns status=no-llm with a message when no provider is set", async () => {
     const result = await toolCompass({ subcommand: "brief" })
-    expect(result.status).toBe("todo")
-    expect(result.message).toMatch(/todo|quorum compass/i)
+    expect(result.status).toBe("no-llm")
+    expect(result.message).toMatch(/quorum compass/i)
   })
 })
 
