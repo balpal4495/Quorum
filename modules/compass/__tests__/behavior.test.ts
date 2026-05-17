@@ -45,20 +45,26 @@ describe("mapBehaviorsFromFindings", () => {
     expect(map.behaviors.every(b => b.area.includes("advisor") || b.name.toLowerCase().includes("advisor"))).toBe(true)
   })
 
-  it("detects gaps for undocumented expected areas", () => {
-    // Empty findings → all expected areas should appear as gaps
-    const map = mapBehaviorsFromFindings([])
+  it("detects gaps when a documented area has no implemented artifact", () => {
+    // A docs finding with an area that has no CLI/route finding → gap
+    const findings: ProductSourceFinding[] = [
+      makeFinding({ id: "f-doc", kind: "docs", title: "Authentication", summary: "Auth overview", tags: ["auth"], confidence: 0.8 }),
+    ]
+    const map = mapBehaviorsFromFindings(findings)
     expect(map.gaps.length).toBeGreaterThan(0)
     expect(map.gaps[0]).toHaveProperty("gap")
     expect(map.gaps[0]).toHaveProperty("why_it_matters")
     expect(map.gaps[0]).toHaveProperty("confidence")
   })
 
-  it("always includes product-direction gap when no compass behaviour present", () => {
-    const map = mapBehaviorsFromFindings([])
-    const compassGap = map.gaps.find(g => g.id === "gap-product-direction")
-    expect(compassGap).toBeDefined()
-    expect(compassGap!.confidence).toBeGreaterThan(0.5)
+  it("no gaps when all documented areas are covered by implemented artifacts", () => {
+    const findings: ProductSourceFinding[] = [
+      makeFinding({ id: "f-cli", kind: "cli", title: "auth", summary: "auth command", tags: ["auth"] }),
+      makeFinding({ id: "f-doc", kind: "docs", title: "Authentication", summary: "Auth overview", tags: ["auth"], confidence: 0.8 }),
+    ]
+    const map = mapBehaviorsFromFindings(findings)
+    // The "auth" area is implemented, so no gap should be created for it
+    expect(map.gaps.find(g => g.area === "auth")).toBeUndefined()
   })
 
   it("each behavior has an evidence array with at least one entry", () => {
@@ -76,7 +82,11 @@ describe("summarizeBehaviorMap", () => {
   })
 
   it("includes gaps when present", () => {
-    const map = mapBehaviorsFromFindings([])
+    // A docs-only area with no implementation produces a gap
+    const findings: ProductSourceFinding[] = [
+      makeFinding({ id: "f-doc", kind: "docs", title: "Payments", summary: "Billing overview", tags: ["payments"], confidence: 0.8 }),
+    ]
+    const map = mapBehaviorsFromFindings(findings)
     const summary = summarizeBehaviorMap(map)
     expect(summary).toContain("Gaps")
   })

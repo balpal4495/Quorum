@@ -8,20 +8,9 @@ export function docsSource(): ProductSource {
       const { promises: fs } = await import("fs")
       const path = await import("path")
 
-      const targets = [
-        "README.md",
-        "SETUP.md",
-        "CLAUDE.md",
-        "AGENTS.md",
-        "GEMINI.md",
-        "modules/README.md",
-        "quorum/CLAUDE.md",
-        "quorum/SETUP.md",
-        "docs",
-      ]
-
       const findings: ProductSourceFinding[] = []
       let idx = 0
+      const SKIP_DIRS = new Set(["node_modules", ".git", "dist", "build", "out", ".next", ".chronicle", "coverage", ".cache", ".turbo", ".vercel"])
 
       async function scanMarkdown(filePath: string): Promise<void> {
         let content: string
@@ -33,13 +22,11 @@ export function docsSource(): ProductSource {
         const rel = path.relative(input.rootDir, filePath).replace(/\\/g, "/")
         const lines = content.split("\n")
 
-        // Extract headings as structural claims
         for (let i = 0; i < lines.length; i++) {
           const line = lines[i]
           const headingMatch = line.match(/^#{1,3}\s+(.+)/)
           if (headingMatch) {
             const heading = headingMatch[1].trim()
-            // Grab up to 3 lines of context below
             const context = lines
               .slice(i + 1, i + 4)
               .join(" ")
@@ -58,22 +45,6 @@ export function docsSource(): ProductSource {
               tags: inferTags(heading + " " + context),
             })
           }
-
-          // Extract CLI code blocks (``` lines starting with quorum)
-          if (line.trim().startsWith("quorum ") || line.trim().startsWith("npx quorum")) {
-            const cmd = line.trim()
-            findings.push({
-              id: `docs-cmd-${idx++}`,
-              kind: "docs",
-              source: rel,
-              path: rel,
-              line: i + 1,
-              title: `CLI usage: ${cmd.slice(0, 60)}`,
-              summary: `Documented command: ${cmd}`,
-              confidence: 0.85,
-              tags: ["cli", "command", ...inferTags(cmd)],
-            })
-          }
         }
       }
 
@@ -86,7 +57,7 @@ export function docsSource(): ProductSource {
         }
         for (const entry of entries) {
           const full = path.join(dir, entry.name)
-          if (entry.isDirectory() && !["node_modules", ".git", "dist"].includes(entry.name)) {
+          if (entry.isDirectory() && !SKIP_DIRS.has(entry.name)) {
             await scanDir(full)
           } else if (entry.isFile() && entry.name.endsWith(".md")) {
             await scanMarkdown(full)
@@ -94,15 +65,21 @@ export function docsSource(): ProductSource {
         }
       }
 
-      for (const target of targets) {
-        const full = path.join(input.rootDir, target)
+      // Scan all .md files at project root (non-recursive)
+      let rootEntries: import("fs").Dirent[] = []
+      try { rootEntries = await fs.readdir(input.rootDir, { withFileTypes: true }) } catch { rootEntries = [] }
+      for (const entry of rootEntries) {
+        if (entry.isFile() && entry.name.endsWith(".md")) {
+          await scanMarkdown(path.join(input.rootDir, entry.name))
+        }
+      }
+
+      // Scan standard documentation directories recursively
+      for (const d of ["docs", "documentation", "doc", ".github", "wiki"]) {
+        const full = path.join(input.rootDir, d)
         let stat
         try { stat = await fs.stat(full) } catch { continue }
-        if (stat.isDirectory()) {
-          await scanDir(full)
-        } else {
-          await scanMarkdown(full)
-        }
+        if (stat.isDirectory()) await scanDir(full)
       }
 
       return area(input.area, findings)
@@ -167,59 +144,78 @@ export function cliSource(): ProductSource {
       const findings: ProductSourceFinding[] = []
       let idx = 0
 
-      const binDir = path.join(input.rootDir, "bin", "commands")
-      let commandFiles: string[] = []
-      try {
-        commandFiles = (await fs.readdir(binDir)).filter(f => f.endsWith(".js"))
-      } catch {
-        return []
+      // ── CLI tool pattern ──────────────────────────────────────────────────
+      for (const base of ["bin/commands", "bin", "src/commands", "src/cli"]) {
+        const binDir = path.join(input.rootDir, base)
+        let entries
+        try { entries = await fs.readdir(binDir, { withFileTypes: true }) } catch { continue }
+        const files = entries.filter((e: import("fs").Dirent) => e.isFile() && /\.(js|ts)$/.test(e.name))
+        for (const entry of files) {
+          let content: string
+          try { content = await fs.readFile(path.join(binDir, entry.name), "utf8") } catch { continue }
+          const cmdName = entry.name.replace(/\.(js|ts)$/, "")
+          const relPath = `${base}/${entry.name}`
+          const subcommands = [...content.matchAll(/case ["']([a-z-]+)["']/g)].map(m => m[1])
+          const flags = [...new Set([...content.matchAll(/["'](--[a-z-]+)["']/g)].map(m => m[1]))]
+          findings.push({
+            id: `cli-${idx++}`,
+            kind: "cli",
+            source: relPath,
+            path: relPath,
+            title: `Command: ${cmdName}`,
+            summary: [
+              cmdName,
+              subcommands.length ? `Subcommands: ${subcommands.join(", ")}` : "",
+              flags.length ? `Flags: ${flags.slice(0, 8).join(", ")}` : "",
+            ].filter(Boolean).join(" | "),
+            confidence: 0.9,
+            tags: ["cli", "command", cmdName, ...subcommands.map((s: string) => `subcommand:${s}`)].filter(Boolean),
+          })
+        }
+        if (findings.length) break
       }
 
-      for (const file of commandFiles) {
-        const cmdName = file.replace(".js", "")
-        const filePath = path.join(binDir, file)
-        let content: string
-        try { content = await fs.readFile(filePath, "utf8") } catch { continue }
+      // ── Web app route pattern (Next.js app/pages router) ──────────────────
+      if (!findings.length) {
+        const SKIP_ROUTE = new Set(["node_modules", "_components", "_lib", "_hooks"])
 
-        const relPath = `bin/commands/${file}`
+        async function walkRoutes(dir: string, prefix: string, isApiBase: boolean): Promise<void> {
+          let entries
+          try { entries = await fs.readdir(dir, { withFileTypes: true }) } catch { return }
+          for (const e of entries) {
+            if (SKIP_ROUTE.has(e.name) || e.name.startsWith(".")) continue
+            const full = path.join(dir, e.name)
+            const rel = path.relative(input.rootDir, full).replace(/\\/g, "/")
+            if (e.isDirectory()) {
+              const seg = e.name.startsWith("(") ? "" : ("/" + e.name)
+              await walkRoutes(full, prefix + seg, isApiBase || e.name === "api")
+            } else if (e.isFile() && /\.(tsx?|jsx?)$/.test(e.name)) {
+              const name = e.name.replace(/\.(tsx?|jsx?)$/, "")
+              const isPage = ["page", "index"].includes(name) && !["_app", "_document", "_error"].includes(name)
+              const isRoute = name === "route"
+              if (!isPage && !isRoute) continue
+              const route = prefix || "/"
+              const isApi = isApiBase || isRoute || prefix.startsWith("/api")
+              findings.push({
+                id: `route-${idx++}`,
+                kind: "code",
+                source: rel,
+                path: rel,
+                title: isApi ? `API: ${route}` : `Page: ${route}`,
+                summary: isApi ? `API route at ${route}` : `Page/screen at ${route}`,
+                confidence: 0.85,
+                tags: [isApi ? "api" : "ui", "route", ...inferTags(route + " " + rel)],
+              })
+            }
+          }
+        }
 
-        // Detect subcommands from switch/if patterns
-        const subcmdMatches = [...content.matchAll(/case ["']([a-z-]+)["']/g)]
-        const subcommands = subcmdMatches.map(m => m[1])
-
-        // Detect flags
-        const flagMatches = [...content.matchAll(/["'](--[a-z-]+)["']/g)]
-        const flags = [...new Set(flagMatches.map(m => m[1]))]
-
-        // Detect LLM usage
-        const usesLLM = /llm|LLM|provider|model/.test(content)
-
-        // Detect Chronicle reads/writes
-        const readsChronicle = /readCommitted|findChronicleDir|committed/.test(content)
-        const writesChronicle = /writeFile.*proposals|proposals.*writeFile|oracle\.propose/.test(content)
-
-        findings.push({
-          id: `cli-${idx++}`,
-          kind: "cli",
-          source: relPath,
-          path: relPath,
-          title: `Command: quorum ${cmdName}`,
-          summary: [
-            `quorum ${cmdName}`,
-            subcommands.length > 0 ? `Subcommands: ${subcommands.join(", ")}` : "",
-            flags.length > 0 ? `Flags: ${flags.slice(0, 8).join(", ")}` : "",
-            usesLLM ? "Uses LLM" : "No LLM required",
-            readsChronicle ? "Reads Chronicle" : "",
-            writesChronicle ? "Writes Chronicle proposals" : "",
-          ].filter(Boolean).join(" | "),
-          confidence: 0.9,
-          tags: [
-            "cli", "command", cmdName,
-            ...subcommands.map(s => `subcommand:${s}`),
-            usesLLM ? "llm" : "deterministic",
-            readsChronicle ? "chronicle" : "",
-          ].filter(Boolean),
-        })
+        for (const base of ["app", "pages", "src/app", "src/pages"]) {
+          const routeBase = path.join(input.rootDir, base)
+          try { await fs.stat(routeBase) } catch { continue }
+          await walkRoutes(routeBase, "", base.includes("api"))
+          if (findings.length) break
+        }
       }
 
       return area(input.area, findings)
@@ -238,31 +234,40 @@ export function repoSource(): ProductSource {
       const findings: ProductSourceFinding[] = []
       let idx = 0
 
-      // Scan modules/
-      const modulesDir = path.join(input.rootDir, "modules")
-      try {
-        const entries = await fs.readdir(modulesDir, { withFileTypes: true })
-        for (const entry of entries) {
-          if (entry.isDirectory() && !entry.name.startsWith("_") && !["shared"].includes(entry.name)) {
-            findings.push({
-              id: `repo-module-${idx++}`,
-              kind: "code",
-              source: `modules/${entry.name}/`,
-              path: `modules/${entry.name}/`,
-              title: `Module: ${entry.name}`,
-              summary: `TypeScript module: modules/${entry.name}/`,
-              confidence: 0.85,
-              tags: ["module", entry.name, "code"],
-            })
-          }
-        }
-      } catch { /* no modules dir */ }
+      const SKIP = new Set(["node_modules", ".git", "dist", "build", "out", ".next", ".chronicle", "coverage", ".cache", ".turbo", ".vercel", "public", "static", "assets", "images", "fonts"])
+      const SOURCE_HINTS = new Set(["src", "lib", "app", "modules", "packages", "services", "components", "api", "server", "client", "core", "shared", "common", "utils", "hooks", "stores", "models", "types", "schemas", "db", "database"])
 
-      // Scan workflows
+      let rootEntries
+      try { rootEntries = await fs.readdir(input.rootDir, { withFileTypes: true }) } catch { return findings }
+
+      for (const entry of rootEntries) {
+        if (!entry.isDirectory() || SKIP.has(entry.name) || entry.name.startsWith(".")) continue
+        const isSource = SOURCE_HINTS.has(entry.name)
+        let subEntries: import("fs").Dirent[] = []
+        try { subEntries = await fs.readdir(path.join(input.rootDir, entry.name), { withFileTypes: true }) } catch {}
+        const subDirs = subEntries.filter((e: import("fs").Dirent) => e.isDirectory() && !SKIP.has(e.name) && !e.name.startsWith(".")).map((e: import("fs").Dirent) => e.name)
+        const fileCount = subEntries.filter((e: import("fs").Dirent) => e.isFile()).length
+        if (fileCount === 0 && subDirs.length === 0) continue
+        const desc = subDirs.length
+          ? `Contains: ${subDirs.slice(0, 6).join(", ")}${subDirs.length > 6 ? "\u2026" : ""}`
+          : `${fileCount} files`
+        findings.push({
+          id: `repo-${idx++}`,
+          kind: "code",
+          source: `${entry.name}/`,
+          path: `${entry.name}/`,
+          title: `${isSource ? "Source" : "Directory"}: ${entry.name}/`,
+          summary: desc,
+          confidence: isSource ? 0.9 : 0.7,
+          tags: ["code", entry.name, isSource ? "source" : "directory", ...inferTags(entry.name + " " + desc)],
+        })
+      }
+
+      // GitHub Actions workflows
       const workflowsDir = path.join(input.rootDir, ".github", "workflows")
       try {
-        const entries = await fs.readdir(workflowsDir)
-        for (const file of entries.filter(f => f.endsWith(".yml"))) {
+        const wfEntries = await fs.readdir(workflowsDir)
+        for (const file of wfEntries.filter((f: string) => f.endsWith(".yml") || f.endsWith(".yaml"))) {
           const content = await fs.readFile(path.join(workflowsDir, file), "utf8")
           const nameMatch = content.match(/^name:\s*(.+)$/m)
           findings.push({
@@ -273,7 +278,7 @@ export function repoSource(): ProductSource {
             title: `Workflow: ${nameMatch?.[1]?.trim() ?? file}`,
             summary: `CI/CD workflow: ${nameMatch?.[1]?.trim() ?? file}`,
             confidence: 0.8,
-            tags: ["workflow", "ci", "github-actions"],
+            tags: ["workflow", "ci", "deploy"],
           })
         }
       } catch { /* no workflows */ }
@@ -294,18 +299,19 @@ export function testsSource(): ProductSource {
       const findings: ProductSourceFinding[] = []
       let idx = 0
 
+      const SKIP_TEST = new Set(["node_modules", "dist", "build", ".next", ".cache", "coverage"])
+
       async function walkTests(dir: string): Promise<void> {
         let entries
         try { entries = await fs.readdir(dir, { withFileTypes: true }) } catch { return }
         for (const entry of entries) {
           const full = path.join(dir, entry.name)
-          if (entry.isDirectory() && !["node_modules", "dist"].includes(entry.name)) {
+          if (entry.isDirectory() && !SKIP_TEST.has(entry.name) && !entry.name.startsWith(".")) {
             await walkTests(full)
-          } else if (entry.isFile() && (entry.name.endsWith(".test.ts") || entry.name.endsWith(".test.js"))) {
+          } else if (entry.isFile() && /\.(test|spec)\.(ts|js|tsx|jsx)$/.test(entry.name)) {
             let content: string
             try { content = await fs.readFile(full, "utf8") } catch { continue }
             const rel = path.relative(input.rootDir, full).replace(/\\/g, "/")
-            // Extract describe/it/test names
             const describeMatches = [...content.matchAll(/(?:describe|it|test)\s*\(\s*["'`]([^"'`]+)/g)]
             const behaviors = describeMatches.map(m => m[1]).slice(0, 5)
             if (behaviors.length > 0) {
@@ -314,7 +320,7 @@ export function testsSource(): ProductSource {
                 kind: "tests",
                 source: rel,
                 path: rel,
-                title: `Test: ${path.basename(entry.name, ".test.ts")}`,
+                title: `Test: ${path.basename(entry.name).replace(/\.(test|spec)\.(ts|js|tsx|jsx)$/, "")}`,
                 summary: `Regression-protected: ${behaviors.join("; ")}`,
                 confidence: 0.85,
                 tags: ["test", "guaranteed-behavior", ...inferTags(behaviors.join(" "))],
@@ -324,8 +330,7 @@ export function testsSource(): ProductSource {
         }
       }
 
-      await walkTests(path.join(input.rootDir, "modules"))
-      await walkTests(path.join(input.rootDir, "evals"))
+      await walkTests(input.rootDir)
 
       return area(input.area, findings)
     },
@@ -369,20 +374,20 @@ function inferTags(text: string): string[] {
   const tags: string[] = []
   const lower = text.toLowerCase()
   const patterns: [RegExp, string][] = [
-    [/onboard|init|install|setup|get.?started/, "onboarding"],
-    [/auth|jwt|session|login|token/, "auth"],
-    [/database|migration|sql|postgres|mysql/, "database"],
-    [/payment|stripe|billing|checkout/, "payments"],
+    [/onboard|install|setup|get.?started/, "onboarding"],
+    [/auth|jwt|session|login|token|oauth|saml/, "auth"],
+    [/database|migration|sql|postgres|mysql|mongo|redis|prisma/, "database"],
+    [/payment|stripe|billing|checkout|invoice|subscription/, "payments"],
     [/pii|privacy|gdpr|personal.?data/, "pii"],
-    [/commit|proposal|review|approve|memory/, "chronicle"],
-    [/advisor|brief|query/, "advisor"],
-    [/sentinel|coverage|drift/, "sentinel"],
-    [/jury|evaluate|score/, "jury"],
-    [/council|deliberate|validate/, "council"],
-    [/compass|pathway|bet|direction/, "compass"],
+    [/api|endpoint|rest|graphql|rpc|webhook/, "api"],
+    [/component|page|view|screen|widget|layout/, "ui"],
+    [/deploy|pipeline|release|ci|cd/, "deploy"],
+    [/config|setting|env|environment|dotenv/, "config"],
     [/cli|command|terminal/, "cli"],
-    [/test|eval|spec/, "testing"],
-    [/llm|gpt|claude|openai|anthropic|gemini/, "llm"],
+    [/test|spec|fixture/, "testing"],
+    [/llm|gpt|claude|openai|anthropic|gemini|model/, "llm"],
+    [/middleware|interceptor|guard|filter/, "middleware"],
+    [/worker|job|queue|cron|schedule/, "service"],
   ]
   for (const [rx, tag] of patterns) {
     if (rx.test(lower)) tags.push(tag)
