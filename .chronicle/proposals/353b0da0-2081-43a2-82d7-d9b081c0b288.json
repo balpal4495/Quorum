@@ -1,0 +1,33 @@
+{
+  "schema_version": 2,
+  "topic": "PR #38",
+  "decision": "feat: quorum serve — MCP HTTP server + web UI on a single port",
+  "key_insight": "feat: quorum serve — MCP HTTP server + web UI on a single port",
+  "affected_areas": [
+    "bin/__tests__/mcp-server.test.js",
+    "bin/__tests__/mcp-tools.test.js",
+    "bin/commands/serve.js",
+    "bin/mcp/server.js",
+    "bin/mcp/tools.js",
+    "bin/quorum.js",
+    "bin/ui/app.html"
+  ],
+  "scope": [
+    "cli"
+  ],
+  "alternatives_considered": [],
+  "rejected_reason": [],
+  "supersedes": null,
+  "superseded_by": null,
+  "status": "open",
+  "confidence": 0.4,
+  "source_quality": "metadata-derived",
+  "needs_human_summary": true,
+  "source_module": "pr-merge",
+  "evidence_cited": [],
+  "work_ref": {
+    "type": "pr",
+    "ref": "PR #38"
+  },
+  "outcome": "## What\n\n`quorum serve` starts a single HTTP server that is simultaneously:\n- A **web UI** for humans (Chronicle browser, Proposals queue, Coverage heatmap)\n- An **MCP server** for AI clients (Claude Desktop, Claude Code, future Copilot agent mode)\n\n```\nquorum serve                    # http://localhost:3000\nquorum serve --port 8080\nquorum serve --host 0.0.0.0\n```\n\n---\n\n## MCP tools\n\nAI clients connect to `POST /mcp` (MCP Streamable HTTP, JSON-RPC 2.0):\n\n| Tool | Description |\n|---|---|\n| `chron"
+}
