@@ -1,0 +1,36 @@
+{
+  "schema_version": 2,
+  "topic": "PR #41",
+  "decision": "feat(serve): governance UI + MCP resource layer (Phase 1)",
+  "key_insight": "feat(serve): governance UI + MCP resource layer (Phase 1)",
+  "affected_areas": [
+    "README.md",
+    "bin/__tests__/mcp-server.test.js",
+    "bin/__tests__/mcp-tools.test.js",
+    "bin/commands/serve.js",
+    "bin/mcp/server.js",
+    "bin/mcp/tools.js",
+    "bin/ui/app.html",
+    "modules/oracle/adapters/lance-db.ts"
+  ],
+  "scope": [
+    "oracle",
+    "cli",
+    "docs"
+  ],
+  "alternatives_considered": [],
+  "rejected_reason": [],
+  "supersedes": null,
+  "superseded_by": null,
+  "status": "open",
+  "confidence": 0.4,
+  "source_quality": "metadata-derived",
+  "needs_human_summary": true,
+  "source_module": "pr-merge",
+  "evidence_cited": [],
+  "work_ref": {
+    "type": "pr",
+    "ref": "PR #41"
+  },
+  "outcome": "## Summary\n\nImplements the governance UI and MCP resource layer approved by Chronicle entry `2b6aef43` (jury: 79% confidence, proceed; council: satisfied, 3 conditions).\n\n### Governance UI (`quorum serve` → `http://localhost:4242`)\n\n5-tab interface replacing the single-view stub:\n\n- **Chronicle** — search + browse committed entries\n- **Proposals** — review pending proposals with inline evidence tags, Jury breakdown bars, Council conditions, and an Edit button\n- **Coverage** — Sentinel file cover"
+}
