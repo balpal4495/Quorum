@@ -141,6 +141,9 @@ Every PR merge posts a growth comment showing what Chronicle learned. `quorum ev
 | Approve what the agent should remember | `quorum commit <id>` |
 | See whether memory is growing | `quorum growth` |
 | Consolidate stale or duplicate entries | `quorum evolve` |
+| Seed Chronicle from git history | `quorum bootstrap --from-git --propose` |
+| Ingest docs and source files as evidence | `quorum ingest docs/ --recurse` |
+| Ingest URLs as evidence | `quorum ingest-url https://example.com/rfc` |
 | Find undocumented areas | `quorum sentinel coverage` |
 | Understand what the product currently does | `quorum compass map` |
 | Generate product pathways toward a goal | `quorum compass pathways --goal "..."` |
@@ -150,6 +153,14 @@ Every PR merge posts a growth comment showing what Chronicle learned. `quorum ev
 ---
 
 ## Start small, then add guardrails
+
+### Level 0 — Cold start
+New repo with no Chronicle yet? Seed it from git history:
+```bash
+quorum bootstrap --from-git --since P90D --propose
+quorum commit --list   # review, then approve entries
+```
+Each commit becomes a low-trust draft proposal (`confidence: 0.4`, `needs_human_summary: true`). Nothing is indexed until you run `quorum commit <id>`.
 
 ### Level 1 — Local memory
 Use `quorum advisor brief` and `quorum advisor query` at the start of AI sessions. No setup beyond `init`.
@@ -230,6 +241,66 @@ For most host-project use cases the CLI is sufficient and requires no loader. Se
 
 ## Command reference
 
+### `quorum ingest` — ingest files and folders
+
+```bash
+quorum ingest README.md SETUP.md
+quorum ingest docs/ --recurse
+quorum ingest docs/ --recurse --propose   # also stage as proposals
+```
+
+Writes low-trust evidence to `.chronicle/sources/` and `.chronicle/evidence/`. Content-hash deduplication skips files that have not changed since the last ingest. Use `--propose` to also write to `.chronicle/proposals/` for review with `quorum commit --list`.
+
+Supported extensions: `.md`, `.txt`, `.js`, `.ts`, `.json`, `.yaml`, `.html`, and other plain-text formats. Binary and unsupported files are recorded as sources with a fallback summary.
+
+---
+
+### `quorum ingest-git` — ingest git history
+
+```bash
+quorum ingest-git --since P90D
+quorum ingest-git --since P6M --propose   # also stage commits as proposals
+```
+
+`--since` accepts ISO 8601 durations: `P30D`, `P6M`, `P1Y`. Defaults to `P90D`. Each commit is stored as a source record and an evidence record containing the commit subject and changed files. Already-ingested commits are skipped by hash.
+
+---
+
+### `quorum ingest-url` — ingest URLs
+
+```bash
+quorum ingest-url https://example.com/internal-rfc
+quorum ingest-url https://example.com/rfc https://example.com/spec --propose
+```
+
+Fetches each URL (http/https only), strips HTML, and stores a low-trust evidence record. Follows redirects. Deduplicates by URL on re-runs.
+
+---
+
+### `quorum bootstrap` — cold-start Chronicle from history
+
+```bash
+quorum bootstrap --from-git
+quorum bootstrap --from-git --since P6M --propose
+```
+
+Convenience wrapper around `ingest-git`. Seeds a new Chronicle from the project's commit history. Without `--propose`, evidence sits in `.chronicle/evidence/` until you promote it. With `--propose`, every commit becomes a draft proposal ready for `quorum commit`.
+
+All ingested evidence uses the same low-trust format as PR-merge proposals:
+
+```json
+{
+  "source_quality": "metadata-derived",
+  "needs_human_summary": true,
+  "status": "open",
+  "confidence": 0.4
+}
+```
+
+This solves the cold-start problem: a repo gets candidate memory from real history without bypassing the human gate.
+
+---
+
 ### `quorum advisor` — ask Chronicle a question
 
 ```bash
@@ -300,6 +371,8 @@ Writes to `.chronicle/committed/`, updates `SUMMARY.md`, removes the proposal. A
 
 ```
 .chronicle/
+  sources/      ← raw ingested source records (files, URLs, git commits)
+  evidence/     ← low-trust extracted insights, not yet Chronicle
   proposals/    ← AI-staged entries waiting for your approval
   committed/    ← approved entries, indexed and searchable
   SUMMARY.md    ← auto-generated context for your AI to read

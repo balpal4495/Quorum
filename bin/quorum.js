@@ -33,6 +33,10 @@ ${c.bold("Usage:")}
   ${c.cyan("quorum compass")} <subcommand>          Product-direction synthesis (brief, map, pathways, bets, score)
   ${c.cyan("quorum serve")}                         Start web UI + MCP server (default port 3000)
   ${c.cyan("quorum sync")}                          Refresh Quorum instruction blocks after npm update
+  ${c.cyan("quorum ingest")} <paths...>             Ingest files/folders as low-trust evidence
+  ${c.cyan("quorum ingest-git")} [--since P90D]     Ingest git history as low-trust evidence
+  ${c.cyan("quorum ingest-url")} <url...>           Ingest URLs as low-trust evidence
+  ${c.cyan("quorum bootstrap")} --from-git          Cold-start Chronicle from git history
   ${c.cyan("quorum migrate-v2")}                    Migrate from v1 vendored quorum/modules/ to npm package
   ${c.cyan("quorum --version")}                     Print version
 
@@ -69,6 +73,22 @@ ${c.bold("quorum compass")} subcommands:
   opportunities       List gaps from behaviour map (no LLM)
   propose --from-last Stage a Chronicle entry from last artifact
   outcome --entry-id X --result Y  Record a bet/pathway outcome
+
+${c.bold("quorum ingest")} flags:
+  --recurse  -r   Walk directories recursively
+  --propose       Also stage evidence as Chronicle proposals
+
+${c.bold("quorum ingest-git")} flags:
+  --since P90D    ISO 8601 duration: P30D, P6M, P1Y  [default: P90D]
+  --propose       Also stage commits as Chronicle proposals
+
+${c.bold("quorum ingest-url")} flags:
+  --propose       Also stage URLs as Chronicle proposals
+
+${c.bold("quorum bootstrap")} flags:
+  --from-git      Bootstrap from git commit history
+  --since P90D    ISO 8601 duration  [default: P90D]
+  --propose       Also stage evidence as Chronicle proposals
 
 ${c.bold("Exit codes")} (quorum check):
   0  low / medium risk
@@ -158,6 +178,30 @@ async function cli() {
 
   if (command === "serve") {
     const { run } = await import(path.join(__dirname, "commands/serve.js"))
+    await run(rest)
+    return
+  }
+
+  if (command === "ingest") {
+    const { run } = await import(path.join(__dirname, "commands/ingest.js"))
+    await run(rest)
+    return
+  }
+
+  if (command === "ingest-git") {
+    const { run } = await import(path.join(__dirname, "commands/ingest-git.js"))
+    await run(rest)
+    return
+  }
+
+  if (command === "ingest-url") {
+    const { run } = await import(path.join(__dirname, "commands/ingest-url.js"))
+    await run(rest)
+    return
+  }
+
+  if (command === "bootstrap") {
+    const { run } = await import(path.join(__dirname, "commands/bootstrap.js"))
     await run(rest)
     return
   }

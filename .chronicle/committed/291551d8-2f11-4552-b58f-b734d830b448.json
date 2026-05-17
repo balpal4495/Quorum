@@ -25,5 +25,7 @@
     "type": "pr",
     "ref": "PR #32"
   },
-  "outcome": "Commit `636613f` missed the squash-merge of PR #31 — this PR brings it in.\n\n## What was missing\n\n`modules/compass/sources/index.ts` and `modules/compass/behavior.ts` still had the same quorum-specific hardcodings as the original CLI. Any AI agent (Copilot, Claude Code, Gemini, Codex) calling `createCompass().mapBehaviors()` got a map of quorum's own features rather than the host project.\n\n## Changes\n\n**sources/index.ts**\n- `docsSource`: scan all root `.md` files + `docs/documentation/doc/.github"
+  "outcome": "Commit `636613f` missed the squash-merge of PR #31 — this PR brings it in.\n\n## What was missing\n\n`modules/compass/sources/index.ts` and `modules/compass/behavior.ts` still had the same quorum-specific hardcodings as the original CLI. Any AI agent (Copilot, Claude Code, Gemini, Codex) calling `createCompass().mapBehaviors()` got a map of quorum's own features rather than the host project.\n\n## Changes\n\n**sources/index.ts**\n- `docsSource`: scan all root `.md` files + `docs/documentation/doc/.github",
+  "id": "291551d8-2f11-4552-b58f-b734d830b448",
+  "timestamp": "2026-05-17T15:36:57.090Z"
 }
