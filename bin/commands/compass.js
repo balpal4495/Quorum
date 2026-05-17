@@ -436,23 +436,38 @@ Score total = strategic_fit*20 + user_problem_clarity*15 + evidence_strength*20 
 // ── LLM helper ────────────────────────────────────────────────────────────────
 
 function parseLLMJson(raw) {
-  const cleaned = raw.replace(/^```(?:json)?\s*/m, "").replace(/\s*```$/m, "").trim()
+  // Strip markdown code fences — handle both paired fences and an opener with no closing fence
+  let cleaned = raw.trim()
+  if (cleaned.startsWith("```")) {
+    cleaned = cleaned.replace(/^```(?:json)?\s*\n?/, "")
+    const closingFence = cleaned.lastIndexOf("```")
+    if (closingFence !== -1) cleaned = cleaned.slice(0, closingFence)
+    cleaned = cleaned.trim()
+  }
   try {
     return JSON.parse(cleaned)
   } catch (firstErr) {
-    // Salvage truncated responses: trim to last complete object boundary
-    const lastBrace = cleaned.lastIndexOf('},')
-    if (lastBrace !== -1) {
-      const salvaged = cleaned.slice(0, lastBrace + 1)
-      // Find the outermost container and close it
-      const openBracket = salvaged.indexOf('[')
-      const openBrace = salvaged.indexOf('{')
-      try {
-        if (openBracket !== -1 && (openBrace === -1 || openBracket < openBrace)) {
-          return JSON.parse(salvaged + ']}')
-        }
-        return JSON.parse(salvaged + '}')
-      } catch { /* fall through to original error */ }
+    // Salvage truncated responses: trim to the last complete item boundary ("},")
+    // then close every unclosed bracket/brace by counting the stack.
+    const lastBoundary = cleaned.lastIndexOf('},')
+    if (lastBoundary !== -1) {
+      const truncated = cleaned.slice(0, lastBoundary + 1)
+      // Walk the string counting opens vs closes to build the closing suffix
+      let inStr = false, escape = false
+      const stack = []
+      for (const ch of truncated) {
+        if (escape) { escape = false; continue }
+        if (ch === '\\' && inStr) { escape = true; continue }
+        if (ch === '"') { inStr = !inStr; continue }
+        if (inStr) continue
+        if (ch === '{') stack.push('}')
+        else if (ch === '[') stack.push(']')
+        else if (ch === '}' || ch === ']') stack.pop()
+      }
+      const closer = stack.reverse().join('')
+      if (closer) {
+        try { return JSON.parse(truncated + closer) } catch { /* fall through */ }
+      }
     }
     throw firstErr
   }
