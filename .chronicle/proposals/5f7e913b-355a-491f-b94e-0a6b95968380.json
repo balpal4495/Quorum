@@ -1,0 +1,28 @@
+{
+  "schema_version": 2,
+  "topic": "PR #36",
+  "decision": "fix(oracle): ESM-safe dynamic import for xenova + drop { metric } from createTable",
+  "key_insight": "fix(oracle): ESM-safe dynamic import for xenova + drop { metric } from createTable",
+  "affected_areas": [
+    "modules/oracle/adapters/lance-db.ts",
+    "modules/oracle/adapters/xenova-embedder.ts"
+  ],
+  "scope": [
+    "oracle"
+  ],
+  "alternatives_considered": [],
+  "rejected_reason": [],
+  "supersedes": null,
+  "superseded_by": null,
+  "status": "open",
+  "confidence": 0.4,
+  "source_quality": "metadata-derived",
+  "needs_human_summary": true,
+  "source_module": "pr-merge",
+  "evidence_cited": [],
+  "work_ref": {
+    "type": "pr",
+    "ref": "PR #36"
+  },
+  "outcome": "## Two bugs — same class as PR #34\n\n### Bug 1 — `xenova-embedder.ts`: `require()` in ESM scope\n\n`@xenova/transformers` was loaded with a top-level `require()`, identical to the `vectordb` bug fixed in PR #34. In ESM scope this throws `ReferenceError: require is not defined`.\n\n**Fix:** move the import inside `getPipeline()` as `await import(\"@xenova/transformers\")` with `mod.pipeline ?? mod.default?.pipeline` to handle CJS export shapes.\n\n### Bug 2 — `lance-db.ts`: `{ metric: \"cosine\" }` crashes "
+}
