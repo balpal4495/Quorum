@@ -304,22 +304,26 @@ export async function toolCheck({ outcome, design, projectRoot } = {}) {
 export async function toolCompass({ subcommand = "brief", goal, idea, projectRoot } = {}) {
   if (!_llm) return NO_LLM("quorum_compass")
 
-  const { chronicleDir } = await resolve(projectRoot)
-  // Delegate to the compass CLI command handler for now
   const { run: compassRun } = await import("../commands/compass.js")
-  // Capture stdout
+
+  // Capture stdout — always request JSON so there are no ANSI codes
   const captured = []
   const origWrite = process.stdout.write.bind(process.stdout)
   process.stdout.write = (chunk, ...rest) => { captured.push(String(chunk)); return true }
   try {
-    const extraArgs = []
+    const extraArgs = ["--json"]
     if (subcommand === "pathways" && goal) extraArgs.push("--goal", goal)
     if (subcommand === "score"    && idea) extraArgs.push("--idea", idea)
-    await compassRun([subcommand, ...extraArgs])
+    // Pass _llm directly to skip the ~1.5 s provider re-detection on every request
+    await compassRun([subcommand, ...extraArgs], _llm)
   } finally {
     process.stdout.write = origWrite
   }
-  return { subcommand, output: captured.join("").trim() }
+
+  const raw = captured.join("").trim()
+  let data = null
+  try { data = JSON.parse(raw) } catch { /* fallback to raw string below */ }
+  return { subcommand, data, output: data ? null : raw }
 }
 
 /**
