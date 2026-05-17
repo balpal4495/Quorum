@@ -12,13 +12,16 @@
  *   await warmEmbedder()
  */
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const { pipeline } = require("@xenova/transformers")
-
 let embedderPipeline: any = null
 
 async function getPipeline(): Promise<any> {
   if (!embedderPipeline) {
+    // Dynamic import keeps this file valid ESM — @xenova/transformers is CJS-only
+    // and has no ESM export, so a top-level require() would throw in ESM scope.
+    // Cast to any — the package's TS declarations are incomplete.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const mod: any = await import("@xenova/transformers")
+    const pipeline = mod.pipeline ?? mod.default?.pipeline
     embedderPipeline = await pipeline(
       "feature-extraction",
       "Xenova/all-MiniLM-L6-v2",

@@ -42,7 +42,10 @@ export async function createLanceDBStore(chronicleDir: string): Promise<VectorSt
     if (names.includes("entries")) {
       table = await db.openTable("entries")
     } else if (firstRow) {
-      table = await db.createTable("entries", [firstRow], { metric: "cosine" })
+      // { metric: "cosine" } crashes vectordb v0.4.x — isWriteOptions() passes it
+      // through but the native Rust layer misinterprets it as a schema field.
+      // Cosine is the default metric for float vectors so the option can be omitted.
+      table = await db.createTable("entries", [firstRow])
     }
     return table
   }
