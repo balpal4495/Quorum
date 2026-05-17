@@ -1,0 +1,29 @@
+{
+  "schema_version": 2,
+  "topic": "PR #32",
+  "decision": "fix(compass): port generic project scanner to programmatic API",
+  "key_insight": "fix(compass): port generic project scanner to programmatic API",
+  "affected_areas": [
+    "modules/compass/__tests__/behavior.test.ts",
+    "modules/compass/behavior.ts",
+    "modules/compass/sources/index.ts"
+  ],
+  "scope": [
+    "general"
+  ],
+  "alternatives_considered": [],
+  "rejected_reason": [],
+  "supersedes": null,
+  "superseded_by": null,
+  "status": "open",
+  "confidence": 0.4,
+  "source_quality": "metadata-derived",
+  "needs_human_summary": true,
+  "source_module": "pr-merge",
+  "evidence_cited": [],
+  "work_ref": {
+    "type": "pr",
+    "ref": "PR #32"
+  },
+  "outcome": "Commit `636613f` missed the squash-merge of PR #31 — this PR brings it in.\n\n## What was missing\n\n`modules/compass/sources/index.ts` and `modules/compass/behavior.ts` still had the same quorum-specific hardcodings as the original CLI. Any AI agent (Copilot, Claude Code, Gemini, Codex) calling `createCompass().mapBehaviors()` got a map of quorum's own features rather than the host project.\n\n## Changes\n\n**sources/index.ts**\n- `docsSource`: scan all root `.md` files + `docs/documentation/doc/.github"
+}
