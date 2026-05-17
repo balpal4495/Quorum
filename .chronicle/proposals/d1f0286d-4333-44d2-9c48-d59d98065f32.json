@@ -1,0 +1,28 @@
+{
+  "schema_version": 2,
+  "topic": "PR #46",
+  "decision": "fix(ui): remove duplicate nav buttons; fix Advisor ask() call signature",
+  "key_insight": "fix(ui): remove duplicate nav buttons; fix Advisor ask() call signature",
+  "affected_areas": [
+    "bin/mcp/tools.js",
+    "bin/ui/app.html"
+  ],
+  "scope": [
+    "cli"
+  ],
+  "alternatives_considered": [],
+  "rejected_reason": [],
+  "supersedes": null,
+  "superseded_by": null,
+  "status": "open",
+  "confidence": 0.4,
+  "source_quality": "metadata-derived",
+  "needs_human_summary": true,
+  "source_module": "pr-merge",
+  "evidence_cited": [],
+  "work_ref": {
+    "type": "pr",
+    "ref": "PR #46"
+  },
+  "outcome": "## Summary\n\nTwo bugs introduced in PR #45 (shipped after the merge).\n\n### 1. Duplicate nav buttons\n\nA partial `multi_replace` during development added the Advisor / Check / Ingest / Sentinel nav buttons twice. Removes the second set.\n\n### 2. Advisor `ask()` call signature\n\n`ask()` takes two positional arguments `(input: AdvisorInput, deps: AdvisorDeps)`, not a single merged object. The original call was:\n\n```js\n// wrong\nawait ask({ question, oracle, llm: _llm })\n```\n\nFixed to query the oracle fi"
+}
