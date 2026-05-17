@@ -5,25 +5,52 @@ import path from "path"
 const execAsync = promisify(exec)
 
 /**
- * Auto-detect an available LLM provider from the environment.
+ * Auto-detect all available LLM providers from the environment and return a
+ * cascading provider that falls back automatically on quota / rate-limit errors.
  *
- * Priority:
+ * Detection order (highest priority first):
  *   1. ANTHROPIC_API_KEY            → Anthropic Claude
  *   2. OPENAI_API_KEY               → OpenAI (or compatible via OPENAI_BASE_URL)
  *   3. GEMINI_API_KEY               → Google Gemini (API)
- *   4. OPENAI_BASE_URL (no key)     → OpenAI-compatible endpoint (Azure, Groq, Ollama, etc.)
- *   5. OLLAMA_HOST env var          → Ollama (explicit host)
- *   6. localhost:11434 probe        → Ollama (auto-detect)
- *   7. gemini CLI in PATH           → Google Gemini (CLI subprocess)
+ *   4. OPENAI_BASE_URL (no key)     → OpenAI-compatible endpoint (Azure, Groq, etc.)
+ *   5. OLLAMA_HOST / localhost:11434 → Ollama (probed in parallel with the above)
+ *   6. gemini CLI in PATH           → Google Gemini (CLI subprocess)
  *
- * Returns { llm: LLMProvider, name: string } or null.
+ * All detected providers are tried in order. A 429 / quota / rate-limit error
+ * from one provider causes a silent fallback to the next rather than a hard
+ * failure. Only non-quota errors or exhausting all providers throws.
+ *
+ * Returns { llm, name } where name is the primary provider, or null if none found.
  */
 export async function detectProvider() {
+  const candidates = await gatherCandidates()
+  if (candidates.length === 0) return null
+  if (candidates.length === 1) return candidates[0]
+
+  return {
+    llm:  createCascadingLLM(candidates),
+    name: candidates[0].name,
+  }
+}
+
+/**
+ * Collect every available provider — all that can be detected run in parallel.
+ * Ollama is probed concurrently with API-key checks so it doesn't add latency.
+ */
+async function gatherCandidates() {
+  // Probe async sources concurrently
+  const [ollamaModel, geminiCLIAvail] = await Promise.all([
+    probeOllama(process.env.OLLAMA_HOST || "http://localhost:11434"),
+    probeGeminiCLI(),
+  ])
+
+  const candidates = []
+
   if (process.env.ANTHROPIC_API_KEY) {
-    return {
+    candidates.push({
       llm:  createAnthropicProvider(process.env.ANTHROPIC_API_KEY),
       name: "Anthropic",
-    }
+    })
   }
 
   if (process.env.OPENAI_API_KEY) {
@@ -31,45 +58,75 @@ export async function detectProvider() {
     const name = base
       ? `OpenAI-compatible (${new URL(base).hostname})`
       : "OpenAI"
-    return {
+    candidates.push({
       llm:  createOpenAICompatProvider(process.env.OPENAI_API_KEY, base || "https://api.openai.com/v1"),
       name,
-    }
+    })
+  } else if (process.env.OPENAI_BASE_URL) {
+    const base = process.env.OPENAI_BASE_URL.replace(/\/$/, "")
+    candidates.push({
+      llm:  createOpenAICompatProvider("", base),
+      name: `OpenAI-compatible (${new URL(base).hostname})`,
+    })
   }
 
   if (process.env.GEMINI_API_KEY) {
-    return {
+    candidates.push({
       llm:  createGeminiProvider(process.env.GEMINI_API_KEY),
       name: "Gemini",
-    }
+    })
   }
 
-  if (process.env.OPENAI_BASE_URL) {
-    const base = process.env.OPENAI_BASE_URL.replace(/\/$/, "")
-    return {
-      llm:  createOpenAICompatProvider("", base),
-      name: `OpenAI-compatible (${new URL(base).hostname})`,
-    }
-  }
-
-  const ollamaHost = process.env.OLLAMA_HOST || "http://localhost:11434"
-  const ollamaModel = await probeOllama(ollamaHost)
   if (ollamaModel) {
-    return {
-      llm:  createOpenAICompatProvider("", `${ollamaHost}/v1`, ollamaModel),
+    const host = process.env.OLLAMA_HOST || "http://localhost:11434"
+    candidates.push({
+      llm:  createOpenAICompatProvider("", `${host}/v1`, ollamaModel),
       name: `Ollama (${ollamaModel})`,
-    }
+    })
   }
 
-  const geminiCLI = await probeGeminiCLI()
-  if (geminiCLI) {
-    return {
+  if (geminiCLIAvail) {
+    candidates.push({
       llm:  createGeminiCLIProvider(),
       name: "Gemini CLI",
-    }
+    })
   }
 
-  return null
+  return candidates
+}
+
+/**
+ * Returns true if the error looks like a quota / rate-limit response
+ * (HTTP 429, "quota exceeded", "rate limit", etc.).
+ */
+function isQuotaError(err) {
+  return /429|quota|rate.?limit/i.test(String(err?.message ?? ""))
+}
+
+/**
+ * Wraps multiple provider functions into a single LLM function.
+ * On a quota error the next provider is tried automatically with a stderr notice.
+ * All other errors are re-thrown immediately from the failing provider.
+ */
+function createCascadingLLM(candidates) {
+  return async function llm(messages, model) {
+    let lastErr
+    for (let i = 0; i < candidates.length; i++) {
+      try {
+        return await candidates[i].llm(messages, model)
+      } catch (err) {
+        lastErr = err
+        if (isQuotaError(err) && i < candidates.length - 1) {
+          process.stderr.write(
+            `\n  ⚠  ${candidates[i].name} quota/rate-limit — falling back to ${candidates[i + 1].name}\n\n`,
+          )
+          continue
+        }
+        throw err
+      }
+    }
+    throw lastErr
+  }
 }
 
 /** Convenience wrapper — returns the provider function or null. */

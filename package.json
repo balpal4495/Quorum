@@ -43,8 +43,8 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "test": "vitest run modules/ evals/",
-    "test:watch": "vitest modules/",
+    "test": "vitest run modules/ evals/ bin/",
+    "test:watch": "vitest modules/ bin/",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
