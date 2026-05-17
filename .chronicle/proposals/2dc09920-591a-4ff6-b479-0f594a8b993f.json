@@ -1,0 +1,38 @@
+{
+  "schema_version": 2,
+  "topic": "PR #42",
+  "decision": "feat(llm): quorum llm command + provider chain improvements",
+  "key_insight": "feat(llm): quorum llm command + provider chain improvements",
+  "affected_areas": [
+    "README.md",
+    "bin/__tests__/mcp-server.test.js",
+    "bin/__tests__/mcp-tools.test.js",
+    "bin/commands/llm.js",
+    "bin/commands/serve.js",
+    "bin/mcp/server.js",
+    "bin/mcp/tools.js",
+    "bin/quorum.js",
+    "bin/shared/llm.js",
+    "bin/ui/app.html"
+  ],
+  "scope": [
+    "oracle",
+    "cli",
+    "docs"
+  ],
+  "alternatives_considered": [],
+  "rejected_reason": [],
+  "supersedes": null,
+  "superseded_by": null,
+  "status": "open",
+  "confidence": 0.4,
+  "source_quality": "metadata-derived",
+  "needs_human_summary": true,
+  "source_module": "pr-merge",
+  "evidence_cited": [],
+  "work_ref": {
+    "type": "pr",
+    "ref": "PR #42"
+  },
+  "outcome": "## Summary\n\nFollows on from PR #41. Three related improvements to the LLM layer:\n\n### 1. Provider chain reordered\nDetection now prioritises zero-config CLI tools over API keys:\n\n```\nAnthropic API → OpenAI API → OpenAI-compat → Gemini API →\nClaude Code CLI → Copilot CLI → Gemini CLI → Ollama (last resort)\n```\n\nClaude Code CLI probe uses the `Claude Code-credentials` macOS keychain entry (not just `which claude`), so it only activates when actually logged in.\n\n### 2. Copilot CLI provider\nThe stand"
+}
