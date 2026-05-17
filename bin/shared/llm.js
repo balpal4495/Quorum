@@ -11,10 +11,11 @@ const execAsync = promisify(exec)
  * Detection order (highest priority first):
  *   1. ANTHROPIC_API_KEY            → Anthropic Claude
  *   2. OPENAI_API_KEY               → OpenAI (or compatible via OPENAI_BASE_URL)
- *   3. GEMINI_API_KEY               → Google Gemini (API)
- *   4. OPENAI_BASE_URL (no key)     → OpenAI-compatible endpoint (Azure, Groq, etc.)
- *   5. OLLAMA_HOST / localhost:11434 → Ollama (probed in parallel with the above)
+ *   3. OPENAI_BASE_URL (no key)     → OpenAI-compatible endpoint (Azure, Groq, etc.)
+ *   4. GEMINI_API_KEY               → Google Gemini (API)
+ *   5. claude CLI in PATH           → Claude Code (CLI subprocess, --print mode)
  *   6. gemini CLI in PATH           → Google Gemini (CLI subprocess)
+ *   7. OLLAMA_HOST / localhost:11434 → Ollama (last resort — local models)
  *
  * All detected providers are tried in order. A 429 / quota / rate-limit error
  * from one provider causes a silent fallback to the next rather than a hard
@@ -39,8 +40,9 @@ export async function detectProvider() {
  */
 async function gatherCandidates() {
   // Probe async sources concurrently
-  const [ollamaModel, geminiCLIAvail] = await Promise.all([
+  const [ollamaModel, claudeCLIAvail, geminiCLIAvail] = await Promise.all([
     probeOllama(process.env.OLLAMA_HOST || "http://localhost:11434"),
+    probeClaudeCLI(),
     probeGeminiCLI(),
   ])
 
@@ -77,11 +79,10 @@ async function gatherCandidates() {
     })
   }
 
-  if (ollamaModel) {
-    const host = process.env.OLLAMA_HOST || "http://localhost:11434"
+  if (claudeCLIAvail) {
     candidates.push({
-      llm:  createOpenAICompatProvider("", `${host}/v1`, ollamaModel),
-      name: `Ollama (${ollamaModel})`,
+      llm:  createClaudeCLIProvider(),
+      name: "Claude Code CLI",
     })
   }
 
@@ -89,6 +90,15 @@ async function gatherCandidates() {
     candidates.push({
       llm:  createGeminiCLIProvider(),
       name: "Gemini CLI",
+    })
+  }
+
+  // Ollama is last — local models are the slowest fallback
+  if (ollamaModel) {
+    const host = process.env.OLLAMA_HOST || "http://localhost:11434"
+    candidates.push({
+      llm:  createOpenAICompatProvider("", `${host}/v1`, ollamaModel),
+      name: `Ollama (${ollamaModel})`,
     })
   }
 
@@ -233,6 +243,58 @@ function createGeminiProvider(apiKey) {
     if (!res.ok) throw new Error(`Gemini API ${res.status}: ${(await res.text()).slice(0, 200)}`)
     const data = await res.json()
     return data.candidates?.[0]?.content?.parts?.[0]?.text ?? ""
+  }
+}
+
+async function probeClaudeCLI() {
+  // Must be in PATH
+  try {
+    await execAsync("which claude")
+  } catch {
+    return false
+  }
+
+  // Must have an active session — Claude Code stores OAuth tokens in the macOS keychain.
+  // A quick smoke-test is cheaper than shelling out; check the keychain entry exists.
+  // On non-macOS, fall back to checking ~/.claude/sessions/ for any session file.
+  try {
+    const { platform } = await import("os")
+    if (platform() === "darwin") {
+      await execAsync("security find-generic-password -s 'Claude Code-credentials' 2>/dev/null")
+      return true
+    }
+    // Non-macOS: check for at least one session file
+    const { readdir } = await import("fs/promises")
+    const { homedir } = await import("os")
+    const sessions = await readdir(path.join(homedir(), ".claude", "sessions")).catch(() => [])
+    return sessions.length > 0
+  } catch {
+    return false
+  }
+}
+
+function createClaudeCLIProvider() {
+  return function llm(messages) {
+    return new Promise((resolve, reject) => {
+      const system      = messages.find(m => m.role === "system")?.content ?? ""
+      const userContent = messages.filter(m => m.role !== "system").map(m => m.content).join("\n\n")
+
+      // Combine system + user into one prompt piped via stdin; --print for non-interactive output.
+      // Do NOT use --bare — that disables keychain OAuth and requires ANTHROPIC_API_KEY instead.
+      const fullPrompt = system ? `${system}\n\n${userContent}` : userContent
+      const child = spawn("claude", ["--print", "--output-format", "text"], { stdio: ["pipe", "pipe", "pipe"] })
+
+      let out = "", err = ""
+      child.stdout.on("data", d => { out += d })
+      child.stderr.on("data", d => { err += d })
+      child.on("error", reject)
+      child.on("close", code => {
+        if (code === 0) resolve(out.trim())
+        else reject(new Error(`claude CLI exited ${code}: ${err.slice(0, 200)}`))
+      })
+      child.stdin.write(fullPrompt)
+      child.stdin.end()
+    })
   }
 }
 
