@@ -1,0 +1,32 @@
+{
+  "schema_version": 2,
+  "topic": "PR #50",
+  "decision": "fix(oracle): make commit() idempotent — skip duplicate proposals",
+  "key_insight": "fix(oracle): make commit() idempotent — skip duplicate proposals",
+  "affected_areas": [
+    "bin/mcp/tools.js",
+    "modules/oracle/__tests__/propose.test.ts",
+    "modules/oracle/propose.ts",
+    "modules/shared/types.ts"
+  ],
+  "scope": [
+    "oracle",
+    "shared",
+    "cli"
+  ],
+  "alternatives_considered": [],
+  "rejected_reason": [],
+  "supersedes": null,
+  "superseded_by": null,
+  "status": "open",
+  "confidence": 0.4,
+  "source_quality": "metadata-derived",
+  "needs_human_summary": true,
+  "source_module": "pr-merge",
+  "evidence_cited": [],
+  "work_ref": {
+    "type": "pr",
+    "ref": "PR #50"
+  },
+  "outcome": "Fixes #49.\n\n## Problem\n\n`quorum commit <id>` had no idempotency guard. Calling it twice on the same proposal (or re-staging the same proposal UUID) wrote a second entry to `.chronicle/committed/` with a fresh UUID and timestamp. The vector index would then contain the same content twice, causing `oracle.query()` to return duplicate evidence and skewing Jury/Council scoring.\n\n## Fix\n\nBefore writing a new committed entry, `commit()` now scans `committed/` for any existing file where `source_propos"
+}
