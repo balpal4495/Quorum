@@ -29,6 +29,7 @@ ${c.bold("Usage:")}
   ${c.cyan("quorum status")}                        Show Chronicle health and pending proposals
   ${c.cyan("quorum check")} --outcome <x> --design <y>  Preflight + risk (no LLM)
   ${c.cyan("quorum commit")} <id>                   Approve and index a Chronicle proposal
+  ${c.cyan("quorum reject")} <id>                   Delete or mark-refuted a pending proposal
   ${c.cyan("quorum sentinel")} [coverage]           Chronicle coverage of source files
   ${c.cyan("quorum growth")}                        Chronicle learning health and growth rate
   ${c.cyan("quorum evolve")}                        Consolidate and improve Chronicle entries (uses LLM)
@@ -56,6 +57,9 @@ ${c.bold("quorum check")} flags:
 ${c.bold("quorum commit")} flags:
   --dry-run       Preview without writing
   --list          List pending proposals
+
+${c.bold("quorum reject")} flags:
+  --as-refuted    Commit the proposal with status: refuted (keeps history)
 
 ${c.bold("quorum sentinel")} subcommands:
   coverage [--path <dir>]   Chronicle coverage for .ts files (default: cwd)
@@ -144,6 +148,12 @@ async function cli() {
 
   if (command === "commit") {
     const { run } = await import(path.join(__dirname, "commands/commit.js"))
+    await run(rest)
+    return
+  }
+
+  if (command === "reject") {
+    const { run } = await import(path.join(__dirname, "commands/reject.js"))
     await run(rest)
     return
   }

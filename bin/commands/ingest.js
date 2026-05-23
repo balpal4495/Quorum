@@ -189,6 +189,16 @@ export async function run(argv) {
     if (args.propose) {
       const proposalId = randomUUID()
       const { id: _id, ingested_at: _ts, ...proposalBody } = evidenceRecord
+
+      // Truncate key_insight/decision to max 200 chars so the proposal passes
+      // validateEntry() — ingest summaries are auto-generated and unbounded (#51)
+      const insight = (proposalBody.key_insight ?? "").slice(0, 150).trim() || `Ingested ${path.basename(relPath)}`
+      proposalBody.key_insight = insight
+      proposalBody.decision    = insight
+
+      // Ensure affected_areas is non-empty (#51)
+      if (!proposalBody.affected_areas?.length) proposalBody.affected_areas = [relPath]
+
       await fs.writeFile(
         path.join(proposalsDir, `${proposalId}.json`),
         JSON.stringify(proposalBody, null, 2),

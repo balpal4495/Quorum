@@ -1,5 +1,5 @@
 export { query } from "./query.js"
-export { propose, commit } from "./propose.js"
+export { propose, commit, validateEntry } from "./propose.js"
 export type { OracleDeps, VectorStore } from "./types.js"
 export type {
   OracleResult,

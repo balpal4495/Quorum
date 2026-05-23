@@ -107,6 +107,27 @@ export async function run(argv) {
   }
   const partial = JSON.parse(raw)
 
+  // ── Re-validate at commit time (#52) ─────────────────────────────────────────
+  const insight = (partial.key_insight ?? "").trim()
+  const decision = (partial.decision ?? "").trim()
+  const primaryText = decision || insight
+  if (primaryText.length < 20) {
+    console.error(`\n${c.red("Validation failed:")} key_insight/decision is too short (min 20 chars).`)
+    console.error(c.dim(`  Edit the proposal file or delete it with: quorum reject ${proposalId}\n`))
+    process.exit(1)
+  }
+  if (primaryText.length > 200) {
+    console.error(`\n${c.red("Validation failed:")} key_insight/decision is too long (${primaryText.length} chars, max 200).`)
+    console.error(c.dim(`  Edit the proposal file or delete it with: quorum reject ${proposalId}\n`))
+    process.exit(1)
+  }
+  const areas = (partial.affected_areas ?? []).filter(a => a.trim())
+  if (areas.length === 0) {
+    console.error(`\n${c.red("Validation failed:")} affected_areas must contain at least one non-empty entry.`)
+    console.error(c.dim(`  Edit the proposal file or delete it with: quorum reject ${proposalId}\n`))
+    process.exit(1)
+  }
+
   // ── Dry run ────────────────────────────────────────────────────────────────
   if (args.dryRun) {
     console.log(`\n${c.bold("Dry run")} — would commit proposal ${c.cyan(proposalId.slice(0, 8))}\n`)

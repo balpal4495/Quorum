@@ -169,13 +169,20 @@ function renderQuery(topic, entries) {
 }
 
 function renderBrief(allEntries) {
-  const validated = allEntries.filter(e => e.status === "validated")
-  const refuted   = allEntries.filter(e => e.status === "refuted")
-  const open      = allEntries.filter(e => e.status === "open")
-  const recent    = allEntries.slice(0, 5)
+  const validated     = allEntries.filter(e => e.status === "validated")
+  const refuted       = allEntries.filter(e => e.status === "refuted")
+  const open          = allEntries.filter(e => e.status === "open")
+  const unclassified  = allEntries.filter(e => !e.status)
+  const needsReview   = allEntries.filter(e => e.needs_human_summary)
+  const recent        = allEntries.slice(0, 5)
 
   console.log(`\n${c.bold("Chronicle Brief")}\n`)
-  console.log(`  ${c.green(validated.length)}  validated   ${c.red(refuted.length)}  refuted   ${c.dim(open.length + "  open")}\n`)
+  console.log(`  ${c.green(validated.length)}  validated   ${c.red(refuted.length)}  refuted   ${c.dim(open.length + "  open")}${unclassified.length ? `   ${c.dim(unclassified.length + "  unclassified")}` : ""}\n`)
+  console.log(`  ${c.bold("Total:")} ${allEntries.length} entries`)
+  if (needsReview.length > 0) {
+    console.log(`  ${c.yellow("⚠")}  ${c.yellow(needsReview.length)} ${c.dim("need human enrichment")} ${c.dim("(needs_human_summary: true)")} — run ${c.cyan("quorum advisor query")} to inspect`)
+  }
+  console.log("")
 
   if (recent.length > 0) {
     console.log(`${c.bold("Recent entries")}`)
@@ -183,7 +190,8 @@ function renderBrief(allEntries) {
       const statusColor =
         e.status === "validated" ? c.green :
         e.status === "refuted"   ? c.red   : c.dim
-      console.log(`  ${c.cyan((e.id ?? "").slice(0, 8))}  ${statusColor(e.status)}  ${entryText(e).slice(0, 70)}`)
+      const statusLabel = e.status ?? "unclassified"
+      console.log(`  ${c.cyan((e.id ?? "").slice(0, 8))}  ${statusColor(statusLabel)}  ${entryText(e).slice(0, 70)}`)
     }
     console.log("")
   }
