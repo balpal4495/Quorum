@@ -494,23 +494,51 @@ export function setLLM(llmProvider) {
 // ── Proposal commit (human-gate — UI only, never an MCP AI tool) ──────────────
 
 export async function commitProposal(proposalId, chronicleDir) {
-  const proposalsDir = path.join(chronicleDir, "proposals")
-  const files = await fs.readdir(proposalsDir).catch(() => [])
-  const match = files.find(f => f === `${proposalId}.json` || f.startsWith(proposalId))
-  if (!match) throw new Error(`Proposal not found: ${proposalId}`)
+  // Delegate to the module-level commit() which handles:
+  //   - idempotency (source_proposal_id dedup guard)
+  //   - embedding + vector store indexing via Xenova/LanceDB
+  //   - SUMMARY.md rebuild
+  //   - proposal file deletion
+  // Falls back to JSON-only commit if embedding deps are unavailable.
+  try {
+    const { createOracleClient } = await import("../../dist/oracle/index.js")
+    const { xenovaEmbed } = await import("../../dist/oracle/adapters/xenova-embedder.js")
+    const { createLanceDBStore } = await import("../../dist/oracle/adapters/lance-db.js")
+    const store  = await createLanceDBStore(chronicleDir)
+    const oracle = createOracleClient({ vectorStore: store, embedder: xenovaEmbed, chronicleDir })
+    const entry  = await oracle.commit(proposalId)
+    return { id: entry.id, topic: entry.topic }
+  } catch (embedErr) {
+    // Embedding deps not available — fall back to JSON-only commit with idempotency guard
+    const proposalsDir = path.join(chronicleDir, "proposals")
+    const committedDir = path.join(chronicleDir, "committed")
 
-  const proposalPath = path.join(proposalsDir, match)
-  const raw  = await fs.readFile(proposalPath, "utf8")
-  const partial = JSON.parse(raw)
+    const files = await fs.readdir(proposalsDir).catch(() => [])
+    const match = files.find(f => f === `${proposalId}.json` || f.startsWith(proposalId))
+    if (!match) throw new Error(`Proposal not found: ${proposalId}`)
+    const resolvedId = match.replace(".json", "")
 
-  const entry = { ...partial, id: randomUUID(), timestamp: new Date().toISOString() }
-  const committedPath = path.join(chronicleDir, "committed", `${entry.id}.json`)
-  await fs.mkdir(path.join(chronicleDir, "committed"), { recursive: true })
-  await fs.writeFile(committedPath, JSON.stringify(entry, null, 2), "utf8")
-  await fs.unlink(proposalPath)
-  await updateSummary(chronicleDir).catch(() => {})
+    // Idempotency guard — scan committed/ for source_proposal_id match
+    await fs.mkdir(committedDir, { recursive: true })
+    const committedFiles = await fs.readdir(committedDir).catch(() => [])
+    for (const file of committedFiles) {
+      if (!file.endsWith(".json")) continue
+      try {
+        const existing = JSON.parse(await fs.readFile(path.join(committedDir, file), "utf8"))
+        if (existing.source_proposal_id === resolvedId) {
+          return { id: existing.id, topic: existing.topic }
+        }
+      } catch { /* skip malformed */ }
+    }
 
-  return { id: entry.id, topic: entry.topic }
+    const proposalPath = path.join(proposalsDir, match)
+    const partial = JSON.parse(await fs.readFile(proposalPath, "utf8"))
+    const entry = { ...partial, id: randomUUID(), timestamp: new Date().toISOString(), source_proposal_id: resolvedId }
+    await fs.writeFile(path.join(committedDir, `${entry.id}.json`), JSON.stringify(entry, null, 2), "utf8")
+    await fs.unlink(proposalPath)
+    await updateSummary(chronicleDir).catch(() => {})
+    return { id: entry.id, topic: entry.topic }
+  }
 }
 
 export async function deleteProposal(proposalId, chronicleDir) {

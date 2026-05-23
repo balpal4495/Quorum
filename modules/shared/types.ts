@@ -81,6 +81,12 @@ export type ChronicleEntry = {
   supersedes?: string | null
   /** ID of the Chronicle entry that superseded this one. */
   superseded_by?: string | null
+  /**
+   * The proposal UUID that was committed to produce this entry.
+   * Used by commit() to detect and skip duplicate commits — prevents the same
+   * proposal being committed twice and creating phantom index entries.
+   */
+  source_proposal_id?: string
 }
 
 /**
