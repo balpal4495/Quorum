@@ -14,7 +14,7 @@ const INSIGHT_MIN_LENGTH = 20
 const INSIGHT_MAX_LENGTH = 200
 const SIMILARITY_WARNING_THRESHOLD = 0.85
 
-function validateEntry(entry: Omit<ChronicleEntry, "id" | "timestamp">): void {
+export function validateEntry(entry: Omit<ChronicleEntry, "id" | "timestamp">): void {
   const insight = entry.key_insight?.trim() ?? ""
   if (insight.length < INSIGHT_MIN_LENGTH) {
     throw new Error(
@@ -125,6 +125,10 @@ export async function commit(
   }
 
   const partial = JSON.parse(raw) as Omit<ChronicleEntry, "id" | "timestamp">
+
+  // ── Re-validate at commit time (#52) ─────────────────────────────────
+  // Validates after read so any manual edits to the proposal file are checked.
+  validateEntry(partial)
 
   // ── Idempotency guard ────────────────────────────────────────────────────
   // Scan committed/ for any entry whose source_proposal_id matches this
