@@ -1,0 +1,34 @@
+{
+  "schema_version": 2,
+  "topic": "PR #55",
+  "decision": "fix: ingest validation, commit re-validation, reject command, brief accuracy",
+  "key_insight": "fix: ingest validation, commit re-validation, reject command, brief accuracy",
+  "affected_areas": [
+    "bin/commands/advisor.js",
+    "bin/commands/commit.js",
+    "bin/commands/ingest.js",
+    "bin/commands/reject.js",
+    "bin/quorum.js",
+    "modules/oracle/index.ts",
+    "modules/oracle/propose.ts"
+  ],
+  "scope": [
+    "oracle",
+    "cli"
+  ],
+  "alternatives_considered": [],
+  "rejected_reason": [],
+  "supersedes": null,
+  "superseded_by": null,
+  "status": "open",
+  "confidence": 0.4,
+  "source_quality": "metadata-derived",
+  "needs_human_summary": true,
+  "source_module": "pr-merge",
+  "evidence_cited": [],
+  "work_ref": {
+    "type": "pr",
+    "ref": "PR #55"
+  },
+  "outcome": "Fixes #51, fixes #52, fixes #53, fixes #54\n\n## Changes\n\n### #51 — `quorum ingest --propose` now enforces entry validity\nAuto-generated `key_insight`/`decision` is truncated to 150 chars before writing the proposal file. `affected_areas` is guaranteed non-empty. This ensures all ingest-generated proposals will pass `validateEntry()` when committed.\n\n### #52 — `oracle.commit()` and `quorum commit` re-validate at commit time\n`validateEntry()` is now called inside `oracle/propose.ts commit()` immedi"
+}
