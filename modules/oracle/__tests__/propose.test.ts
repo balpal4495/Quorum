@@ -148,6 +148,30 @@ describe("oracle/propose + commit", () => {
     await expect(commit(proposalId, deps)).resolves.toBeDefined()
   })
 
+  it("commit is idempotent — committing a proposal twice returns the same entry", async () => {
+    const { proposalId } = await propose(makePartialEntry(), deps)
+    const first = await commit(proposalId, deps)
+
+    // Re-stage the same proposal so commit() can be called again
+    const proposalPath = path.join(tmpDir, "proposals", `${proposalId}.json`)
+    await fs.mkdir(path.join(tmpDir, "proposals"), { recursive: true })
+    await fs.writeFile(proposalPath, JSON.stringify(makePartialEntry()), "utf8")
+
+    const second = await commit(proposalId, deps)
+
+    // Same entry returned
+    expect(second.id).toBe(first.id)
+    expect(second.source_proposal_id).toBe(proposalId)
+    // upsert called only once (the second call is a no-op)
+    expect(deps.vectorStore.upsert).toHaveBeenCalledOnce()
+  })
+
+  it("commit sets source_proposal_id on the committed entry", async () => {
+    const { proposalId } = await propose(makePartialEntry(), deps)
+    const entry = await commit(proposalId, deps)
+    expect(entry.source_proposal_id).toBe(proposalId)
+  })
+
   // ── propose: schema validation ─────────────────────────────────────────────
 
   it("propose throws when key_insight is too short", async () => {

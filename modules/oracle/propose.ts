@@ -126,10 +126,35 @@ export async function commit(
 
   const partial = JSON.parse(raw) as Omit<ChronicleEntry, "id" | "timestamp">
 
+  // ── Idempotency guard ────────────────────────────────────────────────────
+  // Scan committed/ for any entry whose source_proposal_id matches this
+  // proposalId. Prevents phantom duplicates if commit() is called twice.
+  const committedDirEarly = path.join(chronicleDir, "committed")
+  try {
+    const files = await fs.readdir(committedDirEarly)
+    for (const file of files) {
+      if (!file.endsWith(".json")) continue
+      try {
+        const existing = JSON.parse(
+          await fs.readFile(path.join(committedDirEarly, file), "utf8"),
+        ) as ChronicleEntry
+        if (existing.source_proposal_id === proposalId) {
+          console.warn(`⚠  Already committed: ${proposalId} — skipping`)
+          return existing
+        }
+      } catch {
+        // Malformed file — skip
+      }
+    }
+  } catch {
+    // committed/ doesn't exist yet — nothing to deduplicate
+  }
+
   const entry: ChronicleEntry = {
     ...partial,
     id: randomUUID(),
     timestamp: new Date().toISOString(),
+    source_proposal_id: proposalId,
   }
 
   // Embed the primary text + areas + scope tags for richer retrieval
