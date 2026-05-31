@@ -347,7 +347,7 @@ describe("commitProposal", () => {
 
   it("moves proposal from proposals/ to committed/ and returns id + topic", async () => {
     const { dir, proposalIds } = await makeChronicle(tmpDir, {
-      proposals: [{ topic: "test topic", decision: "test decision" }],
+      proposals: [{ topic: "test topic", decision: "use this approach for all new work", affected_areas: ["src/index.ts"] }],
     })
 
     const result = await commitProposal(proposalIds[0], dir)
@@ -371,7 +371,7 @@ describe("commitProposal", () => {
 
   it("committed entry has a fresh id and timestamp", async () => {
     const { dir, proposalIds } = await makeChronicle(tmpDir, {
-      proposals: [{ topic: "timestamped", decision: "check this" }],
+      proposals: [{ topic: "timestamped", decision: "validate timestamps on every commit", affected_areas: ["src/index.ts"] }],
     })
 
     const { id } = await commitProposal(proposalIds[0], dir)

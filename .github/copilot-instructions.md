@@ -93,6 +93,30 @@ After `council.deliberate()`:
 
 ---
 
+## Pre-flight — how to query Chronicle
+
+**TypeScript client (preferred when `quorum/client.ts` or equivalent exists):**
+
+Do NOT run `npx quorum` CLI commands. Query Chronicle directly inside your design or propose script:
+
+```typescript
+const { oracle } = await getQuorum()
+const evidence = await oracle.query("topic of the work")
+```
+
+Then proceed with `evaluate()` → `deliberate()` → `oracle.propose()` as normal.
+
+**CLI fallback (for projects without a TypeScript client):**
+
+```bash
+quorum advisor brief                        # Chronicle overview
+quorum advisor query "topic of the work"    # focused lookup
+```
+
+The CLI pre-flight is the fallback only — if a TypeScript client exists in the project, use it instead.
+
+---
+
 ## CLI quick reference
 
 ```bash
