@@ -1,0 +1,33 @@
+{
+  "schema_version": 2,
+  "topic": "PR #58",
+  "decision": "fix: commitProposal validation fix + TypeScript-first pre-flight docs",
+  "key_insight": "fix: commitProposal validation fix + TypeScript-first pre-flight docs",
+  "affected_areas": [
+    ".github/copilot-instructions.md",
+    "CLAUDE.md",
+    "SETUP.md",
+    "bin/__tests__/mcp-server.test.js",
+    "bin/__tests__/mcp-tools.test.js",
+    "bin/mcp/tools.js"
+  ],
+  "scope": [
+    "cli",
+    "ci"
+  ],
+  "alternatives_considered": [],
+  "rejected_reason": [],
+  "supersedes": null,
+  "superseded_by": null,
+  "status": "open",
+  "confidence": 0.4,
+  "source_quality": "metadata-derived",
+  "needs_human_summary": true,
+  "source_module": "pr-merge",
+  "evidence_cited": [],
+  "work_ref": {
+    "type": "pr",
+    "ref": "PR #58"
+  },
+  "outcome": "Fixes #56, fixes #57\n\n## #56 — `commitProposal()` validation errors no longer swallowed\n\n**Root cause:** `bin/mcp/tools.js` `commitProposal()` wrapped the entire `oracle.commit()` call (which calls `validateEntry()` internally) in a single `try/catch`. The catch block was intended to handle missing Xenova/LanceDB embedding deps, but it caught **all** errors — including `validateEntry()` failures. A proposal with a 488-char `key_insight` (max 200) was silently committed via the JSON fallback with"
+}
