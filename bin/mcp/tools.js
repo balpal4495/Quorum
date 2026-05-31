@@ -494,12 +494,31 @@ export function setLLM(llmProvider) {
 // ── Proposal commit (human-gate — UI only, never an MCP AI tool) ──────────────
 
 export async function commitProposal(proposalId, chronicleDir) {
-  // Delegate to the module-level commit() which handles:
-  //   - idempotency (source_proposal_id dedup guard)
-  //   - embedding + vector store indexing via Xenova/LanceDB
-  //   - SUMMARY.md rebuild
-  //   - proposal file deletion
-  // Falls back to JSON-only commit if embedding deps are unavailable.
+  // ── Read proposal + validate BEFORE the try/catch ─────────────────────────
+  // Validation errors must propagate (HTTP 400) and must never be swallowed by
+  // the embedding-deps catch block below. Fixes #56.
+  const proposalsDir = path.join(chronicleDir, "proposals")
+  const allFiles = await fs.readdir(proposalsDir).catch(() => [])
+  const match = allFiles.find(f => f === `${proposalId}.json` || f.startsWith(proposalId))
+  if (!match) throw new Error(`Proposal not found: ${proposalId}`)
+  const resolvedId  = match.replace(".json", "")
+  const proposalPath = path.join(proposalsDir, match)
+  const partial = JSON.parse(await fs.readFile(proposalPath, "utf8"))
+
+  // Inline validateEntry — mirrors the logic in oracle/propose.ts so it runs
+  // unconditionally regardless of whether embedding deps are available.
+  const primaryText = ((partial.decision ?? partial.key_insight) ?? "").trim()
+  if (primaryText.length < 20)
+    throw new Error(`Validation failed: key_insight/decision is too short (${primaryText.length} chars, min 20)`)
+  if (primaryText.length > 200)
+    throw new Error(`Validation failed: key_insight/decision is too long (${primaryText.length} chars, max 200)`)
+  const areas = (partial.affected_areas ?? []).filter(a => String(a).trim())
+  if (areas.length === 0)
+    throw new Error("Validation failed: affected_areas must contain at least one non-empty entry")
+
+  // ── Embedding path (optional) ──────────────────────────────────────────────
+  // Only infrastructure/dependency errors are caught here — validation already ran.
+  const committedDir = path.join(chronicleDir, "committed")
   try {
     const { createOracleClient } = await import("../../dist/oracle/index.js")
     const { xenovaEmbed } = await import("../../dist/oracle/adapters/xenova-embedder.js")
@@ -508,17 +527,9 @@ export async function commitProposal(proposalId, chronicleDir) {
     const oracle = createOracleClient({ vectorStore: store, embedder: xenovaEmbed, chronicleDir })
     const entry  = await oracle.commit(proposalId)
     return { id: entry.id, topic: entry.topic }
-  } catch (embedErr) {
-    // Embedding deps not available — fall back to JSON-only commit with idempotency guard
-    const proposalsDir = path.join(chronicleDir, "proposals")
-    const committedDir = path.join(chronicleDir, "committed")
-
-    const files = await fs.readdir(proposalsDir).catch(() => [])
-    const match = files.find(f => f === `${proposalId}.json` || f.startsWith(proposalId))
-    if (!match) throw new Error(`Proposal not found: ${proposalId}`)
-    const resolvedId = match.replace(".json", "")
-
-    // Idempotency guard — scan committed/ for source_proposal_id match
+  } catch {
+    // Embedding deps not available — fall back to JSON-only commit with idempotency guard.
+    // Validation already ran above — safe to skip here.
     await fs.mkdir(committedDir, { recursive: true })
     const committedFiles = await fs.readdir(committedDir).catch(() => [])
     for (const file of committedFiles) {
@@ -531,8 +542,6 @@ export async function commitProposal(proposalId, chronicleDir) {
       } catch { /* skip malformed */ }
     }
 
-    const proposalPath = path.join(proposalsDir, match)
-    const partial = JSON.parse(await fs.readFile(proposalPath, "utf8"))
     const entry = { ...partial, id: randomUUID(), timestamp: new Date().toISOString(), source_proposal_id: resolvedId }
     await fs.writeFile(path.join(committedDir, `${entry.id}.json`), JSON.stringify(entry, null, 2), "utf8")
     await fs.unlink(proposalPath)

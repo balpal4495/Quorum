@@ -148,15 +148,33 @@ Add the following block if not already present:
 
 Skip this step if you are using only the CLI (`quorum advisor`, `quorum check`, etc.).
 
-For programmatic use, find the application entry point (e.g. `index.ts`, `server.ts`, `app.ts`).
+For programmatic use, create a `quorum/client.ts` singleton in the project:
 
 ```typescript
 import { setup } from "@balpal4495/quorum"
 
-const { oracle, evaluate, deliberate, ask } = await setup({
-  llm: yourLLMProvider, // replace with your project's LLM provider function
-})
+// Replace with your project's LLM provider function
+import { llm } from "./llm"
+
+let _quorum: ReturnType<typeof setup> | null = null
+
+export function getQuorum() {
+  if (!_quorum) _quorum = setup({ llm })
+  return _quorum
+}
 ```
+
+Then use it in design scripts:
+
+```typescript
+const { oracle, evaluate, deliberate } = await getQuorum()
+const evidence = await oracle.query("topic of the work")
+// proceed with evaluate() → deliberate() → oracle.propose()
+```
+
+> **Once `quorum/client.ts` exists**, agents should query Chronicle via `oracle.query()` in
+> TypeScript scripts — not via `npx quorum` CLI commands. The CLI pre-flight in AGENTS.md /
+> CLAUDE.md should be treated as the fallback for projects that have no TypeScript client.
 
 `setup()` creates `.chronicle/` directories, warms the embedder, and wires all module dependencies.
 Must be called once before any `oracle.query()`, `evaluate()`, `deliberate()`, or `ask()` call.

@@ -21,6 +21,20 @@ This is not optional. Quorum is a self-improving system. It only improves if you
 
 ### On session start
 
+**If this project has a `quorum/client.ts` (or equivalent `getQuorum()` entrypoint):**
+
+Do NOT run CLI commands. Query Chronicle directly inside your design script:
+
+```typescript
+const { oracle } = await getQuorum()
+const evidence = await oracle.query("topic of the work")
+```
+
+Then proceed with `evaluate()` → `deliberate()` → `oracle.propose()` as normal.
+The CLI commands below are the fallback for projects that have not set up a TypeScript client.
+
+**If this project does NOT have a TypeScript client (CLI-only setup):**
+
 Run these before reading any code or proposing anything:
 
 ```bash
@@ -39,16 +53,20 @@ If there are relevant entries, treat them as ground truth. If there are none, th
 
 ### During the session
 
-Before making any architectural decision, ask explicitly:
+Before making any architectural decision, query Chronicle first.
+
+**TypeScript client (preferred):**
+
+```typescript
+const { oracle } = await getQuorum()
+const evidence = await oracle.query("the specific decision you're about to make")
+```
+
+**CLI fallback (if no TypeScript client):**
 
 ```bash
 node bin/quorum.js advisor query "the specific decision you're about to make"
 ```
-
-Examples:
-- `node bin/quorum.js advisor query "retry logic"`
-- `node bin/quorum.js advisor query "LLM validation"`
-- `node bin/quorum.js advisor query "CLI command structure"`
 
 If an entry is refuted, do not retry the approach. Surface the failure reason.
 
