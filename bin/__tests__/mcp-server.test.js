@@ -82,7 +82,7 @@ let tmpDir
 let srv  // { server, baseUrl, close }
 
 const ENTRY = { topic: "caching layer", decision: "use Redis", key_insight: "Redis chosen", status: "validated", confidence: 0.9, affected_areas: ["src/cache.ts"] }
-const PROPOSAL = { topic: "new idea", decision: "try it", status: "open", confidence: 0.6, affected_areas: [] }
+const PROPOSAL = { topic: "new idea", decision: "use this approach for the new feature", status: "open", confidence: 0.6, affected_areas: ["src/feature.ts"] }
 
 beforeEach(async () => {
   tmpDir = await makeTmp()
